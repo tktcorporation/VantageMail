@@ -37,9 +37,14 @@ const GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 export interface OAuthConfig {
   clientId: string;
-  /** Cloudflare WorkerのOAuthプロキシURL（トークン交換用） */
-  tokenProxyUrl?: string;
   redirectUri: string;
+  /**
+   * OAuth プロキシの基底URL。
+   *
+   * 省略時は同一オリジンの /api/oauth/* を使用する（TanStack Start サーバールート）。
+   * 別オリジンの Worker を使う場合のみ設定する（例: "https://api.example.com"）。
+   */
+  proxyBaseUrl?: string;
 }
 
 /** ユーザーのGoogleプロフィール情報 */
@@ -114,16 +119,16 @@ export async function createAuthorizationUrl(
 /**
  * 認可コードをOAuthトークンに交換する。
  *
- * tokenProxyUrlが設定されている場合はCF Workerプロキシ経由でトークン交換
- * （client_secretをサーバー側で保持するため）。
- * 設定されていない場合はGoogleに直接リクエスト（開発用PKCE-onlyフロー）。
+ * 同一オリジンの /api/oauth/token サーバールートを経由してトークン交換する。
+ * サーバー側で client_secret を付与するため、クライアントに秘密情報は不要。
+ * proxyBaseUrl が設定されている場合はそのオリジンの API を使用する。
  */
 export async function exchangeCodeForTokens(
   config: OAuthConfig,
   code: string,
   codeVerifier: string,
 ): Promise<OAuthTokens> {
-  const tokenUrl = config.tokenProxyUrl ?? GOOGLE_TOKEN_ENDPOINT;
+  const tokenUrl = `${config.proxyBaseUrl ?? ""}/api/oauth/token`;
 
   const body = new URLSearchParams({
     client_id: config.clientId,
@@ -161,7 +166,7 @@ export async function refreshAccessToken(
   config: OAuthConfig,
   refreshToken: string,
 ): Promise<OAuthTokens> {
-  const tokenUrl = config.tokenProxyUrl ?? GOOGLE_TOKEN_ENDPOINT;
+  const refreshUrl = `${config.proxyBaseUrl ?? ""}/api/oauth/refresh`;
 
   const body = new URLSearchParams({
     client_id: config.clientId,
@@ -169,7 +174,7 @@ export async function refreshAccessToken(
     grant_type: "refresh_token",
   });
 
-  const response = await fetch(tokenUrl, {
+  const response = await fetch(refreshUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),

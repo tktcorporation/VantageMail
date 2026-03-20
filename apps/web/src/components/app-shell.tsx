@@ -26,7 +26,6 @@ export function AppShell() {
     const { url, codeVerifier } = await createAuthorizationUrl({
       clientId,
       redirectUri,
-      tokenProxyUrl: import.meta.env.VITE_OAUTH_PROXY_URL,
     });
 
     sessionStorage.setItem("vantagemail_code_verifier", codeVerifier);
