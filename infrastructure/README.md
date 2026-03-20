@@ -98,7 +98,6 @@ infrastructure/
 │   └── terraform.tfvars.example
 ├── scripts/
 │   └── setup-oauth.sh          # OAuth 同意画面 + クライアント ID（手動操作ガイド）
-├── gcp-pubsub-setup.sh         # レガシー: Terraform 移行前のシェルスクリプト
 └── README.md
 ```
 
@@ -137,11 +136,16 @@ GCP_PROJECT_ID=unified-email-client ./infrastructure/scripts/setup-oauth.sh
 ```
 
 ### 3. CF Workers デプロイ
+
+KV namespace は Terraform で作成済み。出力された ID を各 wrangler.toml に設定する。
+
 ```bash
-# KV namespace 作成
-wrangler kv namespace create SYNC_STATE
-wrangler kv namespace create SCHEDULED_JOBS
-wrangler kv namespace create WATCH_STATE
+# KV namespace ID を確認
+cd infrastructure/terraform
+terraform output kv_sync_state_id
+terraform output kv_scheduled_jobs_id
+terraform output kv_watch_state_id
+# → 各 wrangler.toml の [[kv_namespaces]] id に転記
 
 # シークレット設定
 cd workers/oauth-proxy && wrangler secret put GOOGLE_CLIENT_SECRET

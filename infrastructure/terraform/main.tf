@@ -22,6 +22,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 6.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
   }
 
   # 状態ファイルの保存先。チーム開発時は GCS バックエンドに切り替える。
@@ -34,4 +38,11 @@ terraform {
 provider "google" {
   project = var.gcp_project_id
   region  = var.gcp_region
+}
+
+# Cloudflare Provider
+# 認証: CLOUDFLARE_API_TOKEN 環境変数で設定
+# https://developers.cloudflare.com/fundamentals/api/get-started/create-token/
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }

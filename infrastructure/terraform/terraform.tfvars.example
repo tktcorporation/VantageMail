@@ -1,8 +1,15 @@
 # このファイルを terraform.tfvars にコピーして値を設定する
 # cp terraform.tfvars.example terraform.tfvars
 
-gcp_project_id = "unified-email-client"
+# ─── GCP ───
+gcp_project_id = "your-gcp-project-id"
 
+# ─── Cloudflare ───
+cloudflare_account_id = "your-cloudflare-account-id"
+# cloudflare_api_token は環境変数 CLOUDFLARE_API_TOKEN で設定するのが安全
+# cloudflare_api_token = ""
+
+# ─── 段階的セットアップ ───
 # CF push-relay Worker デプロイ後に設定する。
 # 空文字の場合、push subscription の作成はスキップされる。
 push_relay_url = ""
