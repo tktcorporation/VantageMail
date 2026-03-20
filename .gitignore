@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Cloudflare Workers
+.wrangler/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/settings.json
+
+# pnpm store (devcontainer local)
+.pnpm-store/
+
+# devenv
+.devenv/
+.devenv.flake.nix
