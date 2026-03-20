@@ -1,0 +1,16 @@
+{
+  "name": "vantagemail",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @vantagemail/web dev",
+    "build": "pnpm --filter @vantagemail/web build",
+    "preview": "pnpm --filter @vantagemail/web preview",
+    "lint": "eslint .",
+    "typecheck": "tsc -b"
+  },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  }
+}

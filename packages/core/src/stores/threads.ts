@@ -1,0 +1,162 @@
+/**
+ * スレッド（メール一覧）状態のストア。
+ *
+ * 背景: Unified Inboxの中心となる状態管理。全アカウントのスレッドを
+ * 時系列で統合し、ラベルフィルタやSmart Groupingを適用する。
+ * Gmail APIから取得したデータを正規化して保持する。
+ */
+import { createStore } from "zustand/vanilla";
+import type { Thread } from "../types/account";
+
+export interface ThreadsState {
+  /** accountId -> threadId -> Thread のマップ */
+  threadsByAccount: Record<string, Record<string, Thread>>;
+  /** 現在表示中のスレッドIDリスト（ソート済み） */
+  visibleThreadIds: string[];
+  /** 選択中のスレッドID */
+  selectedThreadId: string | null;
+  /** フィルタ中のラベル */
+  activeLabel: string | null;
+  /** フィルタ中のアカウントID（nullで全アカウント = Unified Inbox） */
+  activeAccountId: string | null;
+  /** ロード中フラグ */
+  isLoading: boolean;
+}
+
+export interface ThreadsActions {
+  setThreads: (accountId: string, threads: Thread[]) => void;
+  selectThread: (threadId: string | null) => void;
+  setActiveLabel: (label: string | null) => void;
+  /** アカウントフィルタを設定する。nullでUnified Inbox（全アカウント表示） */
+  setActiveAccountId: (accountId: string | null) => void;
+  setLoading: (loading: boolean) => void;
+  /** スレッドのラベルを更新（アーカイブ、ゴミ箱等で使用） */
+  updateThreadLabels: (
+    accountId: string,
+    threadId: string,
+    labelIds: string[],
+  ) => void;
+  /** スレッドのスター状態をトグル */
+  toggleStar: (accountId: string, threadId: string) => void;
+}
+
+export type ThreadsStore = ThreadsState & ThreadsActions;
+
+/**
+ * 全アカウントのスレッドを時系列でソートし、フラットなIDリストを返す。
+ * Unified Inboxの表示順を決定する。
+ */
+function computeVisibleThreadIds(
+  threadsByAccount: Record<string, Record<string, Thread>>,
+  activeLabel: string | null,
+  activeAccountId: string | null,
+): string[] {
+  const allThreads: Thread[] = [];
+  for (const [accountId, threads] of Object.entries(threadsByAccount)) {
+    // アカウントフィルタ: 特定アカウント選択時はそのアカウントのみ表示
+    if (activeAccountId && accountId !== activeAccountId) continue;
+    for (const thread of Object.values(threads)) {
+      if (activeLabel && !thread.labelIds.includes(activeLabel)) continue;
+      allThreads.push(thread);
+    }
+  }
+
+  // ピン留め → 最新メッセージ日時の降順でソート
+  allThreads.sort((a, b) => {
+    if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+    return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
+  });
+
+  return allThreads.map((t) => t.id);
+}
+
+export const createThreadsStore = () =>
+  createStore<ThreadsStore>((set, get) => ({
+    threadsByAccount: {},
+    visibleThreadIds: [],
+    selectedThreadId: null,
+    activeLabel: null,
+    activeAccountId: null,
+    isLoading: false,
+
+    setThreads: (accountId, threads) =>
+      set((state) => {
+        const threadsMap: Record<string, Thread> = {};
+        for (const t of threads) {
+          threadsMap[t.id] = t;
+        }
+        const newByAccount = {
+          ...state.threadsByAccount,
+          [accountId]: threadsMap,
+        };
+        return {
+          threadsByAccount: newByAccount,
+          visibleThreadIds: computeVisibleThreadIds(
+            newByAccount,
+            state.activeLabel,
+            state.activeAccountId,
+          ),
+        };
+      }),
+
+    selectThread: (threadId) => set({ selectedThreadId: threadId }),
+
+    setActiveLabel: (label) =>
+      set((state) => ({
+        activeLabel: label,
+        visibleThreadIds: computeVisibleThreadIds(
+          state.threadsByAccount,
+          label,
+          state.activeAccountId,
+        ),
+      })),
+
+    setActiveAccountId: (accountId) =>
+      set((state) => ({
+        activeAccountId: accountId,
+        visibleThreadIds: computeVisibleThreadIds(
+          state.threadsByAccount,
+          state.activeLabel,
+          accountId,
+        ),
+      })),
+
+    setLoading: (loading) => set({ isLoading: loading }),
+
+    updateThreadLabels: (accountId, threadId, labelIds) =>
+      set((state) => {
+        const accountThreads = state.threadsByAccount[accountId];
+        if (!accountThreads?.[threadId]) return state;
+        const updated = {
+          ...state.threadsByAccount,
+          [accountId]: {
+            ...accountThreads,
+            [threadId]: { ...accountThreads[threadId], labelIds },
+          },
+        };
+        return {
+          threadsByAccount: updated,
+          visibleThreadIds: computeVisibleThreadIds(
+            updated,
+            state.activeLabel,
+            state.activeAccountId,
+          ),
+        };
+      }),
+
+    toggleStar: (accountId, threadId) =>
+      set((state) => {
+        const accountThreads = state.threadsByAccount[accountId];
+        if (!accountThreads?.[threadId]) return state;
+        const thread = accountThreads[threadId];
+        return {
+          threadsByAccount: {
+            ...state.threadsByAccount,
+            [accountId]: {
+              ...accountThreads,
+              [threadId]: { ...thread, isStarred: !thread.isStarred },
+            },
+          },
+        };
+      }),
+  }));
