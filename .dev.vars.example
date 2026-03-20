@@ -1,0 +1,6 @@
+# wrangler dev 用のローカルシークレット
+# cp .dev.vars.example .dev.vars
+#
+# 値の取得先: GCP コンソール > OAuth クライアント詳細
+
+GOOGLE_CLIENT_SECRET=

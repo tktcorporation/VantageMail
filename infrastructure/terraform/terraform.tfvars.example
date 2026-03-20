@@ -1,0 +1,7 @@
+# cp terraform.tfvars.example terraform.tfvars
+
+gcp_project_id = "unified-email-client"
+
+# Worker デプロイ後に設定。空文字の場合 push subscription はスキップ。
+push_relay_url = ""
+# push_relay_url = "https://vantagemail.onon.workers.dev"

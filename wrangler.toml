@@ -1,0 +1,61 @@
+# VantageMail — 統合 Worker
+#
+# 全機能を 1 つの Worker にルートベースで統合。
+# Static Assets で Web アプリを配信し、API ルートで
+# OAuth プロキシ、Push リレー、スケジューラーを処理する。
+#
+# ルーティング:
+#   /oauth/*   → OAuth トークン交換・リフレッシュ
+#   /push      → Gmail Pub/Sub 通知受信
+#   /ws        → WebSocket（リアルタイム通知）
+#   /schedule  → スヌーズ・送信予約
+#   その他      → Static Assets（Vite ビルド出力）
+#
+# 初回セットアップ:
+#   1. wrangler kv namespace create SYNC_STATE
+#   2. wrangler kv namespace create SCHEDULED_JOBS
+#   3. wrangler kv namespace create WATCH_STATE
+#   4. 出力された ID を下の [[kv_namespaces]] に転記
+#   5. wrangler secret put GOOGLE_CLIENT_SECRET
+#   6. wrangler deploy
+
+name = "vantagemail"
+main = "workers/src/index.ts"
+compatibility_date = "2025-03-15"
+
+[assets]
+directory = "apps/web/dist"
+
+[build]
+command = "pnpm --filter @vantagemail/web build"
+
+[vars]
+ALLOWED_ORIGINS = "http://localhost:5173,https://vantagemail.onon.workers.dev"
+
+# Durable Objects — 初回は wrangler deploy をローカルで実行して migration を適用する。
+# その後、Workers Builds の自動デプロイで更新可能になる。
+# [durable_objects]
+# bindings = [
+#   { name = "PUSH_CONNECTIONS", class_name = "PushConnectionManager" }
+# ]
+#
+# [[migrations]]
+# tag = "v1"
+# new_classes = ["PushConnectionManager"]
+
+# KV Namespaces — wrangler kv namespace create で作成し、ID を転記する
+# [[kv_namespaces]]
+# binding = "SYNC_STATE"
+# id = "<wrangler kv namespace create SYNC_STATE の出力>"
+#
+# [[kv_namespaces]]
+# binding = "SCHEDULED_JOBS"
+# id = "<wrangler kv namespace create SCHEDULED_JOBS の出力>"
+#
+# [[kv_namespaces]]
+# binding = "WATCH_STATE"
+# id = "<wrangler kv namespace create WATCH_STATE の出力>"
+
+# Cron Triggers — KV 設定後にコメント解除
+# [triggers]
+# crons = ["* * * * *", "0 0 */6 * *"]
