@@ -14,14 +14,11 @@ import { useEffect, useState, useCallback } from "react";
 interface CommandItem {
   id: string;
   label: string;
-  /** ショートカットキー表示（例: "E", "⌘K"） */
   shortcut?: string;
-  /** カテゴリ（グルーピング表示用） */
   group: string;
   onSelect: () => void;
 }
 
-/** デフォルトのコマンドリスト */
 function getDefaultCommands(): CommandItem[] {
   return [
     { id: "compose", label: "新規メール作成", shortcut: "C", group: "アクション", onSelect: () => {} },
@@ -40,15 +37,12 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const commands = getDefaultCommands();
 
-  /** Cmd+K (Mac) / Ctrl+K (Windows/Linux) でパレットをトグル */
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
       e.preventDefault();
       setOpen((prev) => !prev);
     }
-    if (e.key === "Escape") {
-      setOpen(false);
-    }
+    if (e.key === "Escape") setOpen(false);
   }, []);
 
   useEffect(() => {
@@ -58,7 +52,6 @@ export function CommandPalette() {
 
   if (!open) return null;
 
-  /** コマンドをグループ別に整理 */
   const groups = new Map<string, CommandItem[]>();
   for (const cmd of commands) {
     const group = groups.get(cmd.group) ?? [];
@@ -73,97 +66,33 @@ export function CommandPalette() {
         onClick={() => setOpen(false)}
         onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
         role="presentation"
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.4)",
-          zIndex: 9998,
-        }}
+        className="fixed inset-0 bg-black/40 z-[9998]"
       />
 
       {/* パレット本体 */}
-      <div
-        style={{
-          position: "fixed",
-          top: "20%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "min(560px, 90vw)",
-          background: "var(--color-bg)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "var(--shadow-lg)",
-          border: "1px solid var(--color-border)",
-          zIndex: 9999,
-          overflow: "hidden",
-        }}
-      >
+      <div className="fixed top-[20%] left-1/2 -translate-x-1/2 w-[min(560px,90vw)] bg-[var(--color-bg)] rounded-lg shadow-xl border border-[var(--color-border)] z-[9999] overflow-hidden">
         <Command label="コマンドパレット">
           <Command.Input
             placeholder="コマンドを検索..."
-            style={{
-              width: "100%",
-              padding: "var(--space-md) var(--space-lg)",
-              border: "none",
-              borderBottom: "1px solid var(--color-border-light)",
-              fontSize: "var(--text-base)",
-              outline: "none",
-              background: "transparent",
-              color: "var(--color-text)",
-            }}
+            className="w-full px-4 py-3 border-none border-b border-[var(--color-border-light)] text-sm outline-none bg-transparent text-[var(--color-text)]"
           />
-          <Command.List
-            style={{
-              maxHeight: 320,
-              overflow: "auto",
-              padding: "var(--space-sm)",
-            }}
-          >
-            <Command.Empty
-              style={{
-                padding: "var(--space-xl)",
-                textAlign: "center",
-                color: "var(--color-text-tertiary)",
-                fontSize: "var(--text-sm)",
-              }}
-            >
+          <Command.List className="max-h-80 overflow-auto p-2">
+            <Command.Empty className="py-6 text-center text-[var(--color-text-tertiary)] text-[13px]">
               一致するコマンドがありません
             </Command.Empty>
 
             {[...groups.entries()].map(([groupName, items]) => (
-              <Command.Group
-                key={groupName}
-                heading={groupName}
-              >
+              <Command.Group key={groupName} heading={groupName}>
                 {items.map((cmd) => (
                   <Command.Item
                     key={cmd.id}
                     value={cmd.label}
-                    onSelect={() => {
-                      cmd.onSelect();
-                      setOpen(false);
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "var(--space-sm) var(--space-md)",
-                      borderRadius: "var(--radius-sm)",
-                      cursor: "pointer",
-                      fontSize: "var(--text-sm)",
-                    }}
+                    onSelect={() => { cmd.onSelect(); setOpen(false); }}
+                    className="flex items-center justify-between px-3 py-2 rounded cursor-pointer text-[13px] data-[selected=true]:bg-[var(--color-bg-hover)]"
                   >
                     <span>{cmd.label}</span>
                     {cmd.shortcut && (
-                      <kbd
-                        style={{
-                          fontSize: "var(--text-xs)",
-                          color: "var(--color-text-tertiary)",
-                          background: "var(--color-bg-tertiary)",
-                          padding: "2px 6px",
-                          borderRadius: "var(--radius-sm)",
-                          fontFamily: "var(--font-mono)",
-                        }}
-                      >
+                      <kbd className="text-[11px] text-[var(--color-text-tertiary)] bg-[var(--color-bg-tertiary)] px-1.5 py-0.5 rounded font-mono">
                         {cmd.shortcut}
                       </kbd>
                     )}

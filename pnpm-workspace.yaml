@@ -3,19 +3,21 @@ packages:
   - "apps/*"
   - "workers/*"
 
-catalogMode: prefer
-
 catalog:
+  '@tailwindcss/vite': ^4.2.2
   "@types/node": ^22
   "@types/react": ^19
   "@types/react-dom": ^19
-  typescript: ^5
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
-  vite-plus: latest
   react: ^19.1.0
   react-dom: ^19.1.0
+  tailwindcss: ^4.2.2
+  typescript: ^5
+  vite: npm:@voidzero-dev/vite-plus-core@latest
+  vite-plus: latest
+  vitest: npm:@voidzero-dev/vite-plus-test@latest
   zustand: ^5.0.3
+
+catalogMode: prefer
 
 overrides:
   vite: "catalog:"
