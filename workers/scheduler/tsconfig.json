@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "lib": ["ES2024"],
+    "types": ["@cloudflare/workers-types"],
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "include": ["src"]
+}
