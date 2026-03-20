@@ -22,6 +22,7 @@
     "@tiptap/starter-kit": "^2.12.0",
     "@vantagemail/core": "workspace:*",
     "cmdk": "^1.1.1",
+    "dompurify": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "catalog:",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "catalog:",
     "@testing-library/react": "catalog:",
+    "@types/dompurify": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "jsdom": "catalog:",
