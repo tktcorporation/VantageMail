@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OauthCallbackRouteImport } from './routes/oauth/callback'
-import { Route as ApiOauthTokenRouteImport } from './routes/api/oauth/token'
-import { Route as ApiOauthRefreshRouteImport } from './routes/api/oauth/refresh'
+import { Route as ApiAccountsIndexRouteImport } from './routes/api/accounts/index'
+import { Route as ApiAuthStartRouteImport } from './routes/api/auth/start'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,54 +24,54 @@ const OauthCallbackRoute = OauthCallbackRouteImport.update({
   path: '/oauth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiOauthTokenRoute = ApiOauthTokenRouteImport.update({
-  id: '/api/oauth/token',
-  path: '/api/oauth/token',
+const ApiAccountsIndexRoute = ApiAccountsIndexRouteImport.update({
+  id: '/api/accounts/',
+  path: '/api/accounts/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiOauthRefreshRoute = ApiOauthRefreshRouteImport.update({
-  id: '/api/oauth/refresh',
-  path: '/api/oauth/refresh',
+const ApiAuthStartRoute = ApiAuthStartRouteImport.update({
+  id: '/api/auth/start',
+  path: '/api/auth/start',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
-  '/api/oauth/refresh': typeof ApiOauthRefreshRoute
-  '/api/oauth/token': typeof ApiOauthTokenRoute
+  '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/accounts/': typeof ApiAccountsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
-  '/api/oauth/refresh': typeof ApiOauthRefreshRoute
-  '/api/oauth/token': typeof ApiOauthTokenRoute
+  '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/accounts': typeof ApiAccountsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
-  '/api/oauth/refresh': typeof ApiOauthRefreshRoute
-  '/api/oauth/token': typeof ApiOauthTokenRoute
+  '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/accounts/': typeof ApiAccountsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/oauth/callback' | '/api/oauth/refresh' | '/api/oauth/token'
+  fullPaths: '/' | '/oauth/callback' | '/api/auth/start' | '/api/accounts/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/oauth/callback' | '/api/oauth/refresh' | '/api/oauth/token'
+  to: '/' | '/oauth/callback' | '/api/auth/start' | '/api/accounts'
   id:
     | '__root__'
     | '/'
     | '/oauth/callback'
-    | '/api/oauth/refresh'
-    | '/api/oauth/token'
+    | '/api/auth/start'
+    | '/api/accounts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OauthCallbackRoute: typeof OauthCallbackRoute
-  ApiOauthRefreshRoute: typeof ApiOauthRefreshRoute
-  ApiOauthTokenRoute: typeof ApiOauthTokenRoute
+  ApiAuthStartRoute: typeof ApiAuthStartRoute
+  ApiAccountsIndexRoute: typeof ApiAccountsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -90,18 +90,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OauthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/oauth/token': {
-      id: '/api/oauth/token'
-      path: '/api/oauth/token'
-      fullPath: '/api/oauth/token'
-      preLoaderRoute: typeof ApiOauthTokenRouteImport
+    '/api/accounts/': {
+      id: '/api/accounts/'
+      path: '/api/accounts'
+      fullPath: '/api/accounts/'
+      preLoaderRoute: typeof ApiAccountsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/oauth/refresh': {
-      id: '/api/oauth/refresh'
-      path: '/api/oauth/refresh'
-      fullPath: '/api/oauth/refresh'
-      preLoaderRoute: typeof ApiOauthRefreshRouteImport
+    '/api/auth/start': {
+      id: '/api/auth/start'
+      path: '/api/auth/start'
+      fullPath: '/api/auth/start'
+      preLoaderRoute: typeof ApiAuthStartRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -110,8 +110,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OauthCallbackRoute: OauthCallbackRoute,
-  ApiOauthRefreshRoute: ApiOauthRefreshRoute,
-  ApiOauthTokenRoute: ApiOauthTokenRoute,
+  ApiAuthStartRoute: ApiAuthStartRoute,
+  ApiAccountsIndexRoute: ApiAccountsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

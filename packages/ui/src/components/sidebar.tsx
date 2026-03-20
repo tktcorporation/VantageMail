@@ -6,13 +6,14 @@
  * アカウント識別はカラードットで行う（spec §10 Design未決事項あり）。
  */
 import { useAccounts, useThreads } from "../hooks/use-store";
-import { useCallback } from "react";
+import { useCallback, type MouseEvent } from "react";
 
 interface SidebarProps {
   onAddAccount?: () => void;
+  onRemoveAccount?: (accountId: string) => void;
 }
 
-export function Sidebar({ onAddAccount }: SidebarProps = {}) {
+export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
   const accounts = useAccounts((s) => s.accounts);
   const activeAccountId = useAccounts((s) => s.activeAccountId);
   const setActiveAccount = useAccounts((s) => s.setActiveAccount);
@@ -56,30 +57,50 @@ export function Sidebar({ onAddAccount }: SidebarProps = {}) {
 
         {/* 各アカウント */}
         {accounts.map((account) => (
-          <button
+          <div
             key={account.id}
-            type="button"
-            onClick={() => handleSelectAccount(account.id)}
-            className={`flex items-center justify-between w-full px-4 py-2 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left gap-2 ${
-              activeAccountId === account.id ? "bg-[var(--color-bg-selected)]" : "bg-transparent hover:bg-[var(--color-bg-hover)]"
-            }`}
+            className="group relative"
           >
-            <span className="flex items-center gap-2">
-              {/* アカウント識別カラードット */}
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ background: account.color }}
-              />
-              <span className="truncate">
-                {account.displayName || account.email}
+            <button
+              type="button"
+              onClick={() => handleSelectAccount(account.id)}
+              className={`flex items-center justify-between w-full px-4 py-2 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left gap-2 ${
+                activeAccountId === account.id ? "bg-[var(--color-bg-selected)]" : "bg-transparent hover:bg-[var(--color-bg-hover)]"
+              }`}
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                {/* アカウント識別カラードット */}
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: account.color }}
+                />
+                <span className="truncate">
+                  {account.displayName || account.email}
+                </span>
               </span>
-            </span>
-            {account.unreadCount > 0 && (
-              <span className="text-[11px] text-[var(--color-accent)] font-semibold shrink-0">
-                {account.unreadCount}
-              </span>
+              {account.unreadCount > 0 && (
+                <span className="text-[11px] text-[var(--color-accent)] font-semibold shrink-0">
+                  {account.unreadCount}
+                </span>
+              )}
+            </button>
+            {/* ホバー時にアカウント削除ボタンを表示 */}
+            {onRemoveAccount && (
+              <button
+                type="button"
+                onClick={(e: MouseEvent) => {
+                  e.stopPropagation();
+                  if (confirm(`${account.email} の連携を解除しますか？`)) {
+                    onRemoveAccount(account.id);
+                  }
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-[11px] text-[var(--color-text-secondary)] hover:text-[var(--color-danger,#fa5252)] hover:bg-[var(--color-bg-hover)] transition-opacity border-none bg-transparent cursor-pointer"
+                title="アカウント連携を解除"
+              >
+                ×
+              </button>
             )}
-          </button>
+          </div>
         ))}
       </nav>
 
