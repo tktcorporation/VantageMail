@@ -15,46 +15,14 @@ interface AppLayoutProps {
 
 export function AppLayout({ sidebar, threadList, threadView }: AppLayoutProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100%",
-        overflow: "hidden",
-      }}
-    >
-      <aside
-        style={{
-          width: "var(--sidebar-width)",
-          minWidth: "var(--sidebar-width)",
-          borderRight: "1px solid var(--color-border-light)",
-          background: "var(--color-bg-secondary)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+    <div className="flex h-full overflow-hidden">
+      <aside className="w-[var(--sidebar-width)] min-w-[var(--sidebar-width)] border-r border-[var(--color-border-light)] bg-[var(--color-bg-secondary)] flex flex-col overflow-hidden">
         {sidebar}
       </aside>
-      <div
-        style={{
-          width: "var(--thread-list-width)",
-          minWidth: "var(--thread-list-width)",
-          borderRight: "1px solid var(--color-border-light)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <div className="w-[var(--thread-list-width)] min-w-[var(--thread-list-width)] border-r border-[var(--color-border-light)] flex flex-col overflow-hidden">
         {threadList}
       </div>
-      <main
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <main className="flex-1 flex flex-col overflow-hidden">
         {threadView}
       </main>
     </div>

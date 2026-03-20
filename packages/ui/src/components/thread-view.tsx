@@ -30,112 +30,55 @@ export function ThreadView() {
 
   if (!selectedThread) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          color: "var(--color-text-tertiary)",
-          gap: "var(--space-md)",
-        }}
-      >
-        <span style={{ fontSize: "32px" }}>✉</span>
-        <span style={{ fontSize: "var(--text-sm)" }}>
-          スレッドを選択してください
+      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-tertiary)] gap-3">
+        <span className="text-5xl opacity-30 font-bold">V</span>
+        <span className="text-base font-semibold text-[var(--color-text)]">
+          VantageMail
         </span>
-        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>
-          J / K で移動、O で開く
+        <span className="text-[13px]">
+          Gmail アカウントを追加して始めましょう
+        </span>
+        <span className="text-[11px]">
+          Cmd+K でコマンドパレットを開く
         </span>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflow: "auto",
-      }}
-    >
+    <div className="flex flex-col h-full overflow-auto">
       {/* スレッドヘッダー */}
-      <div
-        style={{
-          padding: "var(--space-xl)",
-          borderBottom: "1px solid var(--color-border-light)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", marginBottom: "var(--space-sm)" }}>
+      <div className="p-6 border-b border-[var(--color-border-light)]">
+        <div className="flex items-center gap-2 mb-2">
           {account && (
             <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: account.color,
-              }}
+              className="w-2 h-2 rounded-full"
+              style={{ background: account.color }}
             />
           )}
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+          <span className="text-[11px] text-[var(--color-text-secondary)]">
             {account?.email}
           </span>
         </div>
-        <h1
-          style={{
-            fontSize: "var(--text-xl)",
-            fontWeight: 600,
-            lineHeight: 1.3,
-          }}
-        >
+        <h1 className="text-xl font-semibold leading-snug">
           {selectedThread.subject}
         </h1>
-        <div
-          style={{
-            marginTop: "var(--space-sm)",
-            fontSize: "var(--text-xs)",
-            color: "var(--color-text-secondary)",
-          }}
-        >
+        <div className="mt-2 text-[11px] text-[var(--color-text-secondary)]">
           {selectedThread.participants.join(", ")} · {selectedThread.messageCount}通
         </div>
       </div>
 
-      {/* メッセージ本文のプレースホルダー */}
-      <div
-        style={{
-          flex: 1,
-          padding: "var(--space-xl)",
-          color: "var(--color-text-secondary)",
-          fontSize: "var(--text-sm)",
-        }}
-      >
-        {/* TODO: Gmail APIからメッセージ本文を取得して表示する。 */}
-        {/* 現在はスニペットを表示。 */}
+      {/* メッセージ本文 */}
+      <div className="flex-1 p-6 text-[var(--color-text-secondary)] text-[13px]">
+        {/* TODO: Gmail APIからメッセージ本文を取得して表示する */}
         <p>{selectedThread.snippet}</p>
       </div>
 
       {/* 返信バー */}
-      <div
-        style={{
-          padding: "var(--space-lg) var(--space-xl)",
-          borderTop: "1px solid var(--color-border-light)",
-        }}
-      >
+      <div className="px-6 py-4 border-t border-[var(--color-border-light)]">
         <button
           type="button"
-          style={{
-            padding: "var(--space-sm) var(--space-lg)",
-            background: "var(--color-accent)",
-            color: "#fff",
-            border: "none",
-            borderRadius: "var(--radius-md)",
-            cursor: "pointer",
-            fontSize: "var(--text-sm)",
-            fontWeight: 500,
-          }}
+          className="px-4 py-2 bg-[var(--color-accent)] text-white border-none rounded-md cursor-pointer text-[13px] font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
         >
           返信
         </button>
