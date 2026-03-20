@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/* apps/web/src/ → ../../../ = monorepo root → packages/ を含める */
+@source "../../../packages";
+
+/*
+ * テーマトークン（CSS 変数）
+ */
+:root {
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f8f9fa;
+  --color-bg-tertiary: #f1f3f5;
+  --color-bg-hover: #e9ecef;
+  --color-bg-selected: #dbe4ff;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #495057;
+  --color-text-tertiary: #6c757d;
+  --color-border: #ced4da;
+  --color-border-light: #dee2e6;
+  --color-accent: #1971c2;
+  --color-accent-hover: #1864ab;
+  --color-danger: #e03131;
+  --color-success: #2f9e44;
+  --color-warning: #e67700;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, monospace;
+
+  --sidebar-width: 220px;
+  --thread-list-width: 380px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1a1b1e;
+    --color-bg-secondary: #25262b;
+    --color-bg-tertiary: #2c2e33;
+    --color-bg-hover: #373a40;
+    --color-bg-selected: #1b3a5c;
+    --color-text: #e1e2e5;
+    --color-text-secondary: #a6a7ab;
+    --color-text-tertiary: #7c7d82;
+    --color-border: #404348;
+    --color-border-light: #2c2e33;
+    --color-accent: #4dabf7;
+    --color-accent-hover: #74c0fc;
+    --color-danger: #ff6b6b;
+    --color-success: #51cf66;
+    --color-warning: #fcc419;
+  }
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
