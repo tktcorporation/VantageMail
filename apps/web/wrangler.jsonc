@@ -2,7 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "vantagemail",
   "compatibility_date": "2025-03-15",
-  "compatibility_flags": ["nodejs_compat"],
+  // nodejs_compat_populate_process_env: Worker の bindings/secrets を process.env に
+  // マッピングする。TanStack Start のサーバールートで process.env.XXX でアクセス可能に。
+  // compatibility_date 2025-04-01 以降ではデフォルト有効だが、現在 2025-03-15 のため明示指定。
+  "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "main": "@tanstack/react-start/server-entry",
 
   // ビルドは CF Workers Builds の Build command で実行する（wrangler.jsonc には書かない）。
