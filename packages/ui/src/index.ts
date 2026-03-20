@@ -11,3 +11,5 @@ export { Sidebar } from "./components/sidebar";
 export { ThreadList } from "./components/thread-list";
 export { ThreadView } from "./components/thread-view";
 export { CommandPalette } from "./components/command-palette";
+export { Composer } from "./components/composer";
+export { SearchBar } from "./components/search-bar";

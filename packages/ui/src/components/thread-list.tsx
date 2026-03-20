@@ -9,6 +9,7 @@
 import { useAccounts } from "../hooks/use-store";
 import { useThreads } from "../hooks/use-store";
 import { useCallback, useEffect, useMemo } from "react";
+import { SearchBar } from "./search-bar";
 
 /** 相対時間表示（例: "3分前", "昨日"） */
 function formatRelativeTime(date: Date): string {
@@ -109,25 +110,39 @@ export function ThreadList() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* ヘッダー */}
+      {/* ヘッダー + 検索バー */}
       <div
         style={{
-          padding: "var(--space-md) var(--space-lg)",
+          padding: "var(--space-sm) var(--space-md)",
           borderBottom: "1px solid var(--color-border-light)",
-          fontWeight: 600,
-          fontSize: "var(--text-sm)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-sm)",
         }}
       >
-        受信トレイ
-        <span
-          style={{
-            marginLeft: "var(--space-sm)",
-            color: "var(--color-text-secondary)",
-            fontWeight: 400,
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontWeight: 600, fontSize: "var(--text-sm)" }}>
+            受信トレイ
+            <span
+              style={{
+                marginLeft: "var(--space-sm)",
+                color: "var(--color-text-secondary)",
+                fontWeight: 400,
+              }}
+            >
+              {visibleThreadIds.length}
+            </span>
+          </span>
+        </div>
+        <SearchBar
+          onSearch={(query) => {
+            // TODO: Gmail API検索に接続。現在はクライアント側フィルタのみ。
+            console.log("Search:", query);
           }}
-        >
-          {visibleThreadIds.length}
-        </span>
+          onClear={() => {
+            // TODO: 検索結果をクリアして通常のInbox表示に戻す
+          }}
+        />
       </div>
 
       {/* スレッドリスト */}
