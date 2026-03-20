@@ -9,6 +9,7 @@
  * 移行元: workers/src/oauth.ts の tokenExchange()
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { env } from "cloudflare:workers";
 
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 
@@ -16,7 +17,9 @@ export const Route = createFileRoute("/api/oauth/token")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+        // Cloudflare Workers の bindings から直接取得。
+        // process.env は nodejs_compat_populate_process_env フラグが必要なため使わない。
+        const clientSecret = (env as Record<string, string>).GOOGLE_CLIENT_SECRET;
         if (!clientSecret) {
           return Response.json(
             { error: "GOOGLE_CLIENT_SECRET is not configured" },

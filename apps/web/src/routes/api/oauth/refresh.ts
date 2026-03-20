@@ -7,6 +7,7 @@
  * 移行元: workers/src/oauth.ts の tokenRefresh()
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { env } from "cloudflare:workers";
 
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/api/oauth/refresh")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+        const clientSecret = (env as Record<string, string>).GOOGLE_CLIENT_SECRET;
         if (!clientSecret) {
           return Response.json(
             { error: "GOOGLE_CLIENT_SECRET is not configured" },
