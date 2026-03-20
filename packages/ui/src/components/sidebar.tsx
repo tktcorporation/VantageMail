@@ -8,7 +8,11 @@
 import { useAccounts, useThreads } from "../hooks/use-store";
 import { useCallback } from "react";
 
-export function Sidebar() {
+interface SidebarProps {
+  onAddAccount?: () => void;
+}
+
+export function Sidebar({ onAddAccount }: SidebarProps = {}) {
   const accounts = useAccounts((s) => s.accounts);
   const activeAccountId = useAccounts((s) => s.activeAccountId);
   const setActiveAccount = useAccounts((s) => s.setActiveAccount);
@@ -83,6 +87,7 @@ export function Sidebar() {
       <div className="px-4 py-3 border-t border-[var(--color-border-light)]">
         <button
           type="button"
+          onClick={onAddAccount}
           className="w-full py-2 bg-transparent border border-dashed border-[var(--color-border)] rounded-md cursor-pointer text-[13px] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
         >
           + アカウントを追加
