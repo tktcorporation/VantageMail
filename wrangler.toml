@@ -25,6 +25,9 @@ compatibility_date = "2025-03-15"
 
 [assets]
 directory = "apps/web/dist"
+# SPA フォールバック: アセットにマッチしないパスで index.html を返す
+# /oauth/callback 等のクライアントサイドルーティングに必要
+not_found_handling = "single-page-application"
 
 [build]
 command = "pnpm --filter @vantagemail/web build"

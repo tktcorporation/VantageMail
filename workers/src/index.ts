@@ -44,7 +44,9 @@ export default {
     }
 
     // ルーティング
-    if (url.pathname.startsWith("/oauth/")) {
+    // /oauth/callback は SPA のクライアントサイドで処理するため、
+    // Static Assets（index.html）にフォールスルーさせる
+    if (url.pathname.startsWith("/oauth/") && url.pathname !== "/oauth/callback") {
       return handleOAuth(request, env, corsOrigin);
     }
     if (url.pathname === "/push") {
