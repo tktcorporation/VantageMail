@@ -1,0 +1,9 @@
+# このファイルを terraform.tfvars にコピーして値を設定する
+# cp terraform.tfvars.example terraform.tfvars
+
+gcp_project_id = "unified-email-client"
+
+# CF push-relay Worker デプロイ後に設定する。
+# 空文字の場合、push subscription の作成はスキップされる。
+push_relay_url = ""
+# push_relay_url = "https://vantagemail-push-relay.workers.dev"

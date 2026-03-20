@@ -1,0 +1,23 @@
+# OAuthプロキシWorker設定
+# 背景: Googleのトークン交換にはclient_secretが必要。
+# パブリッククライアント（Web/デスクトップ）にsecretを埋め込めないため、
+# CF Workerがプロキシとしてsecretを保持し、トークン交換を仲介する（spec §6.4）。
+
+name = "vantagemail-oauth"
+main = "src/index.ts"
+compatibility_date = "2025-03-15"
+
+[vars]
+ALLOWED_ORIGINS = "http://localhost:5173,https://vantagemail.pages.dev"
+
+# client_secretはwrangler secretで設定する（コードに埋め込まない）
+# wrangler secret put GOOGLE_CLIENT_SECRET
+
+# Gmail watch() 再登録用の KV（アクセストークンの一時保存）
+[[kv_namespaces]]
+binding = "WATCH_STATE"
+id = ""  # wrangler kv namespace create で発行されたIDを設定
+
+# watch() は7日で期限切れ → 6日ごとに再登録
+[triggers]
+crons = ["0 0 */6 * *"]
