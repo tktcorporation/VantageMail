@@ -34,7 +34,6 @@ export function ThreadList() {
   const isLoading = useThreads((s) => s.isLoading);
   const accounts = useAccounts((s) => s.accounts);
 
-  /** 全スレッドのフラットマップ（IDで高速検索） */
   const threadMap = useMemo(() => {
     const map = new Map<string, { thread: ReturnType<typeof Object.values<Record<string, any>>>[number]; accountColor: string }>();
     for (const account of accounts) {
@@ -47,7 +46,6 @@ export function ThreadList() {
     return map;
   }, [threadsByAccount, accounts]);
 
-  /** J/Kキーボードナビゲーション */
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -75,15 +73,7 @@ export function ThreadList() {
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          color: "var(--color-text-secondary)",
-        }}
-      >
+      <div className="flex items-center justify-center h-full text-[var(--color-text-secondary)]">
         読み込み中...
       </div>
     );
@@ -91,62 +81,38 @@ export function ThreadList() {
 
   if (visibleThreadIds.length === 0) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          color: "var(--color-text-secondary)",
-          gap: "var(--space-sm)",
-        }}
-      >
-        <span style={{ fontSize: "var(--text-xl)" }}>📭</span>
+      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-secondary)] gap-2">
+        <span className="text-xl">📭</span>
         <span>受信トレイは空です</span>
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className="flex flex-col h-full">
       {/* ヘッダー + 検索バー */}
-      <div
-        style={{
-          padding: "var(--space-sm) var(--space-md)",
-          borderBottom: "1px solid var(--color-border-light)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "var(--space-sm)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600, fontSize: "var(--text-sm)" }}>
+      <div className="px-3 py-2 border-b border-[var(--color-border-light)] flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-[13px]">
             受信トレイ
-            <span
-              style={{
-                marginLeft: "var(--space-sm)",
-                color: "var(--color-text-secondary)",
-                fontWeight: 400,
-              }}
-            >
+            <span className="ml-2 text-[var(--color-text-secondary)] font-normal">
               {visibleThreadIds.length}
             </span>
           </span>
         </div>
         <SearchBar
           onSearch={(query) => {
-            // TODO: Gmail API検索に接続。現在はクライアント側フィルタのみ。
+            // TODO: Gmail API検索に接続
             console.log("Search:", query);
           }}
           onClear={() => {
-            // TODO: 検索結果をクリアして通常のInbox表示に戻す
+            // TODO: 検索結果をクリア
           }}
         />
       </div>
 
       {/* スレッドリスト */}
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div className="flex-1 overflow-auto">
         {visibleThreadIds.map((threadId) => {
           const entry = threadMap.get(threadId);
           if (!entry) return null;
@@ -158,100 +124,38 @@ export function ThreadList() {
               key={threadId}
               type="button"
               onClick={() => selectThread(threadId)}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                width: "100%",
-                padding: "var(--space-md) var(--space-lg)",
-                background: isSelected
-                  ? "var(--color-bg-selected)"
-                  : "var(--color-bg)",
-                border: "none",
-                borderBottom: "1px solid var(--color-border-light)",
-                cursor: "pointer",
-                textAlign: "left",
-                gap: "var(--space-xs)",
-                transition: "background var(--transition-fast)",
-              }}
-              onMouseEnter={(e) => {
-                if (!isSelected) e.currentTarget.style.background = "var(--color-bg-hover)";
-              }}
-              onMouseLeave={(e) => {
-                if (!isSelected) e.currentTarget.style.background = "var(--color-bg)";
-              }}
+              className={`flex flex-col w-full px-4 py-3 border-none border-b border-[var(--color-border-light)] cursor-pointer text-left gap-1 transition-colors ${
+                isSelected
+                  ? "bg-[var(--color-bg-selected)]"
+                  : "bg-[var(--color-bg)] hover:bg-[var(--color-bg-hover)]"
+              }`}
             >
               {/* 1行目: 送信者 + 日時 */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "var(--space-sm)",
-                }}
-              >
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                    fontWeight: thread.isUnread ? 600 : 400,
-                    fontSize: "var(--text-sm)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {/* アカウント識別カラードット */}
+              <div className="flex items-center justify-between gap-2">
+                <span className={`flex items-center gap-2 text-[13px] truncate ${thread.isUnread ? "font-semibold" : "font-normal"}`}>
                   <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: accountColor,
-                      flexShrink: 0,
-                    }}
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: accountColor }}
                   />
                   {thread.participants[0] ?? "不明"}
                   {thread.messageCount > 1 && (
-                    <span style={{ color: "var(--color-text-tertiary)", fontWeight: 400 }}>
+                    <span className="text-[var(--color-text-tertiary)] font-normal">
                       ({thread.messageCount})
                     </span>
                   )}
                 </span>
-                <span
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-tertiary)",
-                    flexShrink: 0,
-                  }}
-                >
+                <span className="text-[11px] text-[var(--color-text-tertiary)] shrink-0">
                   {formatRelativeTime(thread.lastMessageAt)}
                 </span>
               </div>
 
               {/* 2行目: 件名 */}
-              <div
-                style={{
-                  fontWeight: thread.isUnread ? 600 : 400,
-                  fontSize: "var(--text-sm)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <div className={`text-[13px] truncate ${thread.isUnread ? "font-semibold" : "font-normal"}`}>
                 {thread.subject}
               </div>
 
               {/* 3行目: スニペット */}
-              <div
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "var(--color-text-secondary)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <div className="text-[11px] text-[var(--color-text-secondary)] truncate">
                 {thread.snippet}
               </div>
             </button>

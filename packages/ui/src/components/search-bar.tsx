@@ -10,7 +10,6 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 
-/** Gmail検索演算子のサジェスト候補 */
 const OPERATOR_SUGGESTIONS = [
   { operator: "from:", description: "送信者で検索", example: "from:alice@example.com" },
   { operator: "to:", description: "宛先で検索", example: "to:bob@example.com" },
@@ -26,9 +25,7 @@ const OPERATOR_SUGGESTIONS = [
 ];
 
 interface SearchBarProps {
-  /** 検索実行時のコールバック（各アカウントに対して呼ばれる） */
   onSearch: (query: string) => void;
-  /** 検索クリア時のコールバック */
   onClear: () => void;
 }
 
@@ -39,7 +36,6 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  /** 入力のマッチに基づいてサジェストをフィルタリング */
   const filteredSuggestions = query
     ? OPERATOR_SUGGESTIONS.filter(
         (s) =>
@@ -48,28 +44,17 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
       )
     : OPERATOR_SUGGESTIONS;
 
-  /** デバウンス付き検索実行 */
   const handleChange = useCallback(
     (value: string) => {
       setQuery(value);
       setShowSuggestions(value.length === 0);
-
       if (debounceRef.current) clearTimeout(debounceRef.current);
-
-      if (!value.trim()) {
-        onClear();
-        return;
-      }
-
-      // 300msデバウンスでAPI呼び出し
-      debounceRef.current = setTimeout(() => {
-        onSearch(value);
-      }, 300);
+      if (!value.trim()) { onClear(); return; }
+      debounceRef.current = setTimeout(() => onSearch(value), 300);
     },
     [onSearch, onClear],
   );
 
-  /** Enter で即座に検索実行 */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" && query.trim()) {
@@ -85,24 +70,15 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
     [query, onSearch],
   );
 
-  /** サジェストクリックで演算子を挿入 */
   const insertOperator = useCallback((operator: string) => {
-    setQuery((prev) => {
-      const newQuery = prev ? `${prev} ${operator}` : operator;
-      return newQuery;
-    });
+    setQuery((prev) => prev ? `${prev} ${operator}` : operator);
     setShowSuggestions(false);
     inputRef.current?.focus();
   }, []);
 
-  // / キーで検索バーにフォーカス
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === "/" &&
-        !(e.target instanceof HTMLInputElement) &&
-        !(e.target instanceof HTMLTextAreaElement)
-      ) {
+      if (e.key === "/" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
         e.preventDefault();
         inputRef.current?.focus();
       }
@@ -112,23 +88,14 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
   }, []);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       {/* 検索入力 */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--space-sm)",
-          padding: "var(--space-sm) var(--space-md)",
-          background: isFocused ? "var(--color-bg)" : "var(--color-bg-secondary)",
-          border: `1px solid ${isFocused ? "var(--color-accent)" : "var(--color-border-light)"}`,
-          borderRadius: "var(--radius-md)",
-          transition: "all var(--transition-fast)",
-        }}
-      >
-        <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-sm)" }}>
-          /
-        </span>
+      <div className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${
+        isFocused
+          ? "bg-[var(--color-bg)] border border-[var(--color-accent)]"
+          : "bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)]"
+      }`}>
+        <span className="text-[var(--color-text-tertiary)] text-[13px]">/</span>
         <input
           ref={inputRef}
           type="text"
@@ -138,27 +105,13 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
           onBlur={() => { setIsFocused(false); setTimeout(() => setShowSuggestions(false), 200); }}
           onKeyDown={handleKeyDown}
           placeholder="メールを検索... (Gmail演算子対応)"
-          style={{
-            flex: 1,
-            border: "none",
-            outline: "none",
-            fontSize: "var(--text-sm)",
-            background: "transparent",
-            color: "var(--color-text)",
-          }}
+          className="flex-1 border-none outline-none text-[13px] bg-transparent text-[var(--color-text)]"
         />
         {query && (
           <button
             type="button"
             onClick={() => { setQuery(""); onClear(); }}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--color-text-tertiary)",
-              cursor: "pointer",
-              fontSize: "var(--text-xs)",
-              padding: "2px 4px",
-            }}
+            className="bg-none border-none text-[var(--color-text-tertiary)] cursor-pointer text-[11px] px-1 hover:text-[var(--color-text)]"
           >
             ×
           </button>
@@ -167,30 +120,8 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
 
       {/* サジェストドロップダウン */}
       {showSuggestions && isFocused && (
-        <div
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            marginTop: 4,
-            background: "var(--color-bg)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            boxShadow: "var(--shadow-md)",
-            maxHeight: 280,
-            overflow: "auto",
-            zIndex: 100,
-          }}
-        >
-          <div
-            style={{
-              padding: "var(--space-xs) var(--space-md)",
-              fontSize: "var(--text-xs)",
-              color: "var(--color-text-tertiary)",
-              borderBottom: "1px solid var(--color-border-light)",
-            }}
-          >
+        <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md shadow-lg max-h-70 overflow-auto z-50">
+          <div className="px-3 py-1 text-[11px] text-[var(--color-text-tertiary)] border-b border-[var(--color-border-light)]">
             Gmail 検索演算子
           </div>
           {filteredSuggestions.map((suggestion) => (
@@ -199,41 +130,15 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertOperator(suggestion.operator)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-                padding: "var(--space-sm) var(--space-md)",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "var(--text-sm)",
-                textAlign: "left",
-                color: "var(--color-text)",
-              }}
+              className="flex items-center justify-between w-full px-3 py-2 bg-transparent border-none cursor-pointer text-[13px] text-left text-[var(--color-text)] hover:bg-[var(--color-bg-hover)]"
             >
               <span>
-                <code
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    background: "var(--color-bg-tertiary)",
-                    padding: "1px 4px",
-                    borderRadius: "var(--radius-sm)",
-                    fontFamily: "var(--font-mono)",
-                    marginRight: "var(--space-sm)",
-                  }}
-                >
+                <code className="text-[11px] bg-[var(--color-bg-tertiary)] px-1 py-px rounded font-mono mr-2">
                   {suggestion.operator}
                 </code>
                 {suggestion.description}
               </span>
-              <span
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "var(--color-text-tertiary)",
-                }}
-              >
+              <span className="text-[11px] text-[var(--color-text-tertiary)]">
                 {suggestion.example}
               </span>
             </button>

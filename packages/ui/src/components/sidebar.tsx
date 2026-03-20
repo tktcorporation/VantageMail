@@ -26,52 +26,25 @@ export function Sidebar() {
   const totalUnread = accounts.reduce((sum, a) => sum + a.unreadCount, 0);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className="flex flex-col h-full">
       {/* ロゴ */}
-      <div
-        style={{
-          padding: "var(--space-lg)",
-          fontWeight: 700,
-          fontSize: "var(--text-lg)",
-          letterSpacing: "-0.02em",
-        }}
-      >
+      <div className="p-4 font-bold text-base tracking-tight">
         VantageMail
       </div>
 
       {/* アカウントセレクター */}
-      <nav style={{ flex: 1, overflow: "auto" }}>
+      <nav className="flex-1 overflow-auto">
         {/* Unified Inbox */}
         <button
           type="button"
           onClick={() => handleSelectAccount(null)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-            padding: "var(--space-sm) var(--space-lg)",
-            background:
-              activeAccountId === null
-                ? "var(--color-bg-selected)"
-                : "transparent",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "var(--text-sm)",
-            color: "var(--color-text)",
-            borderRadius: "var(--radius-sm)",
-            textAlign: "left",
-          }}
+          className={`flex items-center justify-between w-full px-4 py-2 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left ${
+            activeAccountId === null ? "bg-[var(--color-bg-selected)]" : "bg-transparent hover:bg-[var(--color-bg-hover)]"
+          }`}
         >
           <span>すべての受信トレイ</span>
           {totalUnread > 0 && (
-            <span
-              style={{
-                fontSize: "var(--text-xs)",
-                color: "var(--color-accent)",
-                fontWeight: 600,
-              }}
-            >
+            <span className="text-[11px] text-[var(--color-accent)] font-semibold">
               {totalUnread}
             </span>
           )}
@@ -83,55 +56,22 @@ export function Sidebar() {
             key={account.id}
             type="button"
             onClick={() => handleSelectAccount(account.id)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "100%",
-              padding: "var(--space-sm) var(--space-lg)",
-              background:
-                activeAccountId === account.id
-                  ? "var(--color-bg-selected)"
-                  : "transparent",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "var(--text-sm)",
-              color: "var(--color-text)",
-              borderRadius: "var(--radius-sm)",
-              textAlign: "left",
-              gap: "var(--space-sm)",
-            }}
+            className={`flex items-center justify-between w-full px-4 py-2 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left gap-2 ${
+              activeAccountId === account.id ? "bg-[var(--color-bg-selected)]" : "bg-transparent hover:bg-[var(--color-bg-hover)]"
+            }`}
           >
-            <span style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
+            <span className="flex items-center gap-2">
               {/* アカウント識別カラードット */}
               <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: account.color,
-                  flexShrink: 0,
-                }}
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ background: account.color }}
               />
-              <span
-                style={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <span className="truncate">
                 {account.displayName || account.email}
               </span>
             </span>
             {account.unreadCount > 0 && (
-              <span
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "var(--color-accent)",
-                  fontWeight: 600,
-                  flexShrink: 0,
-                }}
-              >
+              <span className="text-[11px] text-[var(--color-accent)] font-semibold shrink-0">
                 {account.unreadCount}
               </span>
             )}
@@ -140,24 +80,10 @@ export function Sidebar() {
       </nav>
 
       {/* フッター: アカウント追加 */}
-      <div
-        style={{
-          padding: "var(--space-md) var(--space-lg)",
-          borderTop: "1px solid var(--color-border-light)",
-        }}
-      >
+      <div className="px-4 py-3 border-t border-[var(--color-border-light)]">
         <button
           type="button"
-          style={{
-            width: "100%",
-            padding: "var(--space-sm)",
-            background: "transparent",
-            border: "1px dashed var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            cursor: "pointer",
-            fontSize: "var(--text-sm)",
-            color: "var(--color-text-secondary)",
-          }}
+          className="w-full py-2 bg-transparent border border-dashed border-[var(--color-border)] rounded-md cursor-pointer text-[13px] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
         >
           + アカウントを追加
         </button>

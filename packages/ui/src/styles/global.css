@@ -1,27 +1,29 @@
+@import "tailwindcss";
+
 /*
  * VantageMail グローバルスタイル
  *
- * CSS変数でテーマトークンを定義し、全コンポーネントで参照する。
+ * Tailwind CSS v4 + カスタム CSS 変数でテーマトークンを定義。
  * ダークモード対応はprefers-color-schemeで自動切替。
  */
 
 :root {
-  /* Colors — Light */
+  /* Colors — Light (WCAG AA コントラスト比 4.5:1 以上) */
   --color-bg: #ffffff;
   --color-bg-secondary: #f8f9fa;
   --color-bg-tertiary: #f1f3f5;
   --color-bg-hover: #e9ecef;
-  --color-bg-selected: #e7f5ff;
-  --color-text: #212529;
-  --color-text-secondary: #868e96;
-  --color-text-tertiary: #adb5bd;
-  --color-border: #dee2e6;
-  --color-border-light: #e9ecef;
-  --color-accent: #228be6;
-  --color-accent-hover: #1c7ed6;
-  --color-danger: #fa5252;
-  --color-success: #40c057;
-  --color-warning: #fab005;
+  --color-bg-selected: #dbe4ff;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #495057;
+  --color-text-tertiary: #6c757d;
+  --color-border: #ced4da;
+  --color-border-light: #dee2e6;
+  --color-accent: #1971c2;
+  --color-accent-hover: #1864ab;
+  --color-danger: #e03131;
+  --color-success: #2f9e44;
+  --color-warning: #e67700;
 
   /* Spacing */
   --space-xs: 4px;
@@ -67,10 +69,10 @@
     --color-bg-tertiary: #2c2e33;
     --color-bg-hover: #373a40;
     --color-bg-selected: #1b3a5c;
-    --color-text: #c1c2c5;
-    --color-text-secondary: #909296;
-    --color-text-tertiary: #5c5f66;
-    --color-border: #373a40;
+    --color-text: #e1e2e5;
+    --color-text-secondary: #a6a7ab;
+    --color-text-tertiary: #7c7d82;
+    --color-border: #404348;
     --color-border-light: #2c2e33;
     --color-accent: #4dabf7;
     --color-accent-hover: #74c0fc;
