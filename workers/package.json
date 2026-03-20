@@ -1,5 +1,5 @@
 {
-  "name": "@vantagemail/worker-scheduler",
+  "name": "@vantagemail/workers",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250317.0",
-    "typescript": "^5.8.2",
+    "typescript": "catalog:",
     "wrangler": "^4.10.0"
   }
 }

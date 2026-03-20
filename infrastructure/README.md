@@ -11,7 +11,7 @@
 │                        Cloudflare（メイン）                          │
 │                                                                     │
 │  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────┐ │
-│  │ CF Pages     │  │ Workers          │  │ Storage               │ │
+│  │ CF Workers     │  │ Workers          │  │ Storage               │ │
 │  │              │  │                  │  │                       │ │
 │  │ Web App      │  │ oauth-proxy      │  │ KV: SYNC_STATE        │ │
 │  │ (React+Vite) │  │ push-relay       │  │ KV: SCHEDULED_JOBS    │ │
@@ -53,7 +53,7 @@
 
 | サービス | 用途 |
 |---------|------|
-| **Pages** | Web アプリホスティング |
+| **Workers (Static Assets)** | Web アプリホスティング |
 | **Workers** | oauth-proxy, push-relay, scheduler |
 | **KV** | 同期状態、スケジュールジョブ、watch 状態 |
 | **Durable Objects** | WebSocket 接続管理、リアルタイム通知ファンアウト |
@@ -122,7 +122,7 @@ push subscription が作成される。
 
 ```bash
 # terraform.tfvars に追記:
-# push_relay_url = "https://vantagemail-push-relay.workers.dev"
+# push_relay_url = "https://vantagemail-push-relay.onon.workers.dev"
 terraform apply
 ```
 

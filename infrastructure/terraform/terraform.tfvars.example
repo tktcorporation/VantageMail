@@ -1,16 +1,7 @@
-# このファイルを terraform.tfvars にコピーして値を設定する
 # cp terraform.tfvars.example terraform.tfvars
 
-# ─── GCP ───
-gcp_project_id = "your-gcp-project-id"
+gcp_project_id = "unified-email-client"
 
-# ─── Cloudflare ───
-cloudflare_account_id = "your-cloudflare-account-id"
-# cloudflare_api_token は環境変数 CLOUDFLARE_API_TOKEN で設定するのが安全
-# cloudflare_api_token = ""
-
-# ─── 段階的セットアップ ───
-# CF push-relay Worker デプロイ後に設定する。
-# 空文字の場合、push subscription の作成はスキップされる。
+# Worker デプロイ後に設定。空文字の場合 push subscription はスキップ。
 push_relay_url = ""
-# push_relay_url = "https://vantagemail-push-relay.workers.dev"
+# push_relay_url = "https://vantagemail.onon.workers.dev"

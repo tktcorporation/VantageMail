@@ -37,7 +37,7 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   /** 入力のマッチに基づいてサジェストをフィルタリング */
   const filteredSuggestions = query
