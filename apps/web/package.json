@@ -4,13 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp dev",
+    "dev": "vp dev --port 3000",
     "build": "vp build",
     "preview": "vp preview",
-    "typecheck": "tsc --noEmit"
+    "deploy": "vp build && wrangler deploy"
   },
   "dependencies": {
+    "@cloudflare/vite-plugin": "catalog:",
     "@tailwindcss/vite": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@tanstack/react-start": "catalog:",
+    "@tanstack/router-plugin": "catalog:",
     "@vantagemail/core": "workspace:*",
     "@vantagemail/ui": "workspace:*",
     "react": "catalog:",
@@ -23,6 +27,8 @@
     "@vitejs/plugin-react": "^4.4.1",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "vite-tsconfig-paths": "catalog:",
+    "wrangler": "catalog:"
   }
 }

@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vantagemail",
+  "compatibility_date": "2025-03-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+
+  // ビルドは CF Workers Builds の Build command で実行する（wrangler.jsonc には書かない）。
+  // 理由: @cloudflare/vite-plugin が .wrangler/deploy/config.json を生成するが、
+  // build.command 経由だと wrangler がビルド後にこのファイルを再読み込みしないため。
+  // Build command: pnpm run build → Version command: npx wrangler versions upload の順。
+
+  // Variables
+  "vars": {
+    "ALLOWED_ORIGINS": "http://localhost:3000,https://vantagemail.onon.workers.dev"
+  }
+
+  // KV — wrangler kv namespace create で作成後に有効化
+  // "kv_namespaces": [
+  //   { "binding": "SYNC_STATE", "id": "<id>" },
+  //   { "binding": "SCHEDULED_JOBS", "id": "<id>" },
+  //   { "binding": "WATCH_STATE", "id": "<id>" }
+  // ],
+
+  // Durable Objects — wrangler deploy で初回マイグレーション後に有効化
+  // "durable_objects": {
+  //   "bindings": [{ "name": "PUSH_CONNECTIONS", "class_name": "PushConnectionManager" }]
+  // },
+  // "migrations": [{ "tag": "v1", "new_classes": ["PushConnectionManager"] }],
+
+  // Cron Triggers — KV 設定後に有効化
+  // "triggers": { "crons": ["* * * * *", "0 0 */6 * *"] }
+}
