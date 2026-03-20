@@ -49,10 +49,16 @@ export function useStoreApis(): StoreContextValue {
   return useStoreContext();
 }
 
-/** ストアインスタンスを生成するヘルパー */
-export function createStores(): StoreContextValue {
+/**
+ * ストアインスタンスを生成するヘルパー。
+ *
+ * initialAccounts が渡された場合、ストアの初期値として設定する。
+ * Web版ではサーバーのloaderがセッションからアカウント一覧を復元して渡す。
+ * デスクトップ版ではOSキーチェーンから復元して渡す想定。
+ */
+export function createStores(initialAccounts?: Account[]): StoreContextValue {
   return {
-    accountsStore: createAccountsStore(),
+    accountsStore: createAccountsStore(initialAccounts ?? []),
     threadsStore: createThreadsStore(),
   };
 }

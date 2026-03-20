@@ -6,6 +6,7 @@
  * デスクトップ/Web両方で同一のコンポーネントを使う（95%コード共有）。
  */
 import { useCallback, useMemo } from "react";
+import type { Account } from "@vantagemail/core";
 import { StoreContext, createStores, useStoreApis } from "./hooks/use-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
 import { AppLayout } from "./layouts/app-layout";
@@ -17,18 +18,33 @@ import { CommandPalette } from "./components/command-palette";
 export interface AppProps {
   /**
    * OAuth 認証フローを開始するコールバック。
-   * プラットフォームごとに異なる実装を注入する（Web: useOAuth, Desktop: Electrobun IPC）。
+   * プラットフォームごとに異なる実装を注入する（Web: サーバー経由, Desktop: Electrobun IPC）。
    * 未指定の場合、アカウント追加ボタンは何もしない。
    */
   onStartAuth?: () => void;
+  /**
+   * アカウント連携を解除するコールバック。
+   * 成功時に resolve、失敗時に reject する Promise を返すこと。
+   * Web版: サーバーのセッションからアカウントを削除。
+   * Desktop版: OSキーチェーンからトークンを削除。
+   */
+  onRemoveAccount?: (accountId: string) => Promise<void>;
+  /**
+   * サーバーサイドのセッションから復元された初期アカウント一覧。
+   * SSR時にloaderから渡され、ストアの初期値として使われる。
+   */
+  initialAccounts?: Account[];
 }
 
 /**
  * アプリの内部シェル。StoreContext.Provider の内側に配置し、
  * ストアへのアクセスが必要なフック（キーボードショートカット等）を接続する。
  */
-function AppShell({ onStartAuth }: { onStartAuth?: () => void }) {
-  const { threadsStore } = useStoreApis();
+function InnerAppShell({ onStartAuth, onRemoveAccount }: {
+  onStartAuth?: () => void;
+  onRemoveAccount?: (accountId: string) => void;
+}) {
+  const { threadsStore, accountsStore } = useStoreApis();
 
   useKeyboardShortcuts({ threadsStore });
 
@@ -40,10 +56,27 @@ function AppShell({ onStartAuth }: { onStartAuth?: () => void }) {
     }
   }, [onStartAuth]);
 
+  const handleRemoveAccount = useCallback(async (accountId: string) => {
+    // サーバーサイドのセッションから先に削除し、成功後にストアを更新。
+    // 楽観的更新だとサーバー失敗時にリロードでアカウントが復活する問題を防ぐ。
+    try {
+      await onRemoveAccount?.(accountId);
+      accountsStore.getState().removeAccount(accountId);
+    } catch {
+      // サーバー失敗時はストアを変更しない（UIに反映されない）
+      alert("Failed to remove account. Please try again.");
+    }
+  }, [accountsStore, onRemoveAccount]);
+
   return (
     <>
       <AppLayout
-        sidebar={<Sidebar onAddAccount={handleAddAccount} />}
+        sidebar={
+          <Sidebar
+            onAddAccount={handleAddAccount}
+            onRemoveAccount={handleRemoveAccount}
+          />
+        }
         threadList={<ThreadList />}
         threadView={<ThreadView />}
       />
@@ -52,12 +85,12 @@ function AppShell({ onStartAuth }: { onStartAuth?: () => void }) {
   );
 }
 
-export function App({ onStartAuth }: AppProps = {}) {
-  const stores = useMemo(() => createStores(), []);
+export function App({ onStartAuth, onRemoveAccount, initialAccounts }: AppProps = {}) {
+  const stores = useMemo(() => createStores(initialAccounts), []);
 
   return (
     <StoreContext.Provider value={stores}>
-      <AppShell onStartAuth={onStartAuth} />
+      <InnerAppShell onStartAuth={onStartAuth} onRemoveAccount={onRemoveAccount} />
     </StoreContext.Provider>
   );
 }

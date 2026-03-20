@@ -13,4 +13,25 @@ export default defineConfig({
     tanstackStart(),
     react(),
   ],
+  environments: {
+    ssr: {
+      build: {
+        rolldownOptions: {
+          output: {
+            /**
+             * SSR チャンクのファイル名からハッシュを除去する。
+             *
+             * 背景: rolldown v0.x に、ハッシュプレースホルダー置換時に
+             * マルチバイト UTF-8 文字のバイト境界でパニックするバグがある。
+             * SSR チャンクはサーバー内部でのみ使われキャッシュバスティング不要のため、
+             * ハッシュを含めないことでこの問題を回避する。
+             * ref: https://github.com/rolldown/rolldown/issues
+             */
+            chunkFileNames: "[name].js",
+            entryFileNames: "[name].js",
+          },
+        },
+      },
+    },
+  },
 });
