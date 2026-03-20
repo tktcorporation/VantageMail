@@ -1,19 +1,17 @@
 /**
- * VantageMail 統合 Worker エントリーポイント。
+ * VantageMail バックグラウンド Worker エントリーポイント。
  *
- * 背景: 全機能を 1 つの Worker にルートベースで統合する。
- * 個別の Worker に分割するとそれぞれに wrangler.toml が必要になり、
- * KV namespace やシークレットの管理が分散する。
- * 1 つに統合することで設定を一元管理し、Service Bindings も不要にする。
+ * 背景: Push 通知受信・WebSocket・スケジュール処理など、
+ * SSR とは独立したバックグラウンド機能を提供する。
+ *
+ * OAuth トークン交換・リフレッシュは apps/web の TanStack Start サーバールート
+ * （/api/oauth/*）に移行済み。同一 Worker 内で処理するため CORS 問題が構造的に解消。
  *
  * ルーティング:
- *   /oauth/*   → OAuth トークン交換・リフレッシュ（oauth.ts）
  *   /push      → Gmail Pub/Sub 通知受信（push.ts）
  *   /ws        → WebSocket 接続（push.ts）
  *   /schedule  → スヌーズ・送信予約（scheduler.ts）
- *   その他      → Static Assets が自動処理
  */
-import { handleOAuth } from "./oauth";
 import { handlePush, handleWebSocket, PushConnectionManager } from "./push";
 import { handleSchedule, processScheduledJobs, reregisterGmailWatch } from "./scheduler";
 
@@ -21,7 +19,6 @@ import { handleSchedule, processScheduledJobs, reregisterGmailWatch } from "./sc
 export { PushConnectionManager };
 
 export interface Env {
-  GOOGLE_CLIENT_SECRET: string;
   ALLOWED_ORIGINS: string;
   // 以下は段階的に有効化（wrangler.toml のコメント解除に対応）
   PUSH_CONNECTIONS?: DurableObjectNamespace;
@@ -44,11 +41,6 @@ export default {
     }
 
     // ルーティング
-    // /oauth/callback は SPA のクライアントサイドで処理するため、
-    // Static Assets（index.html）にフォールスルーさせる
-    if (url.pathname.startsWith("/oauth/") && url.pathname !== "/oauth/callback") {
-      return handleOAuth(request, env, corsOrigin);
-    }
     if (url.pathname === "/push") {
       return handlePush(request, env);
     }

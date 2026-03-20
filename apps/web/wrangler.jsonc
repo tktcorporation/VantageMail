@@ -15,6 +15,11 @@
     "ALLOWED_ORIGINS": "http://localhost:3000,https://vantagemail.onon.workers.dev"
   }
 
+  // Secrets（wrangler secret put で設定、wrangler.jsonc には値を書かない）
+  // - GOOGLE_CLIENT_SECRET: OAuth トークン交換時に Google に送信する client_secret。
+  //   /api/oauth/token, /api/oauth/refresh サーバールートが process.env 経由でアクセス。
+  //   ローカル開発: apps/web/.dev.vars に GOOGLE_CLIENT_SECRET=xxx を記載。
+
   // KV — wrangler kv namespace create で作成後に有効化
   // "kv_namespaces": [
   //   { "binding": "SYNC_STATE", "id": "<id>" },

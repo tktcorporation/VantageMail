@@ -53,10 +53,9 @@ function OAuthCallback() {
       const redirectUri =
         import.meta.env.VITE_OAUTH_REDIRECT_URI ??
         `${window.location.origin}/oauth/callback`;
-      const tokenProxyUrl = import.meta.env.VITE_OAUTH_PROXY_URL;
 
       const tokens = await exchangeCodeForTokens(
-        { clientId, redirectUri, tokenProxyUrl },
+        { clientId, redirectUri },
         code,
         codeVerifier,
       );

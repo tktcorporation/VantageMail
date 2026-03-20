@@ -20,7 +20,7 @@
 | 値 | 取得先 | 設定先 |
 |---|---|---|
 | OAuth クライアント ID | [GCP > Google Auth Platform > クライアント](https://console.cloud.google.com/auth/clients?project=unified-email-client) | `packages/core` のクライアント設定, `.env` |
-| OAuth クライアントシークレット | 同上（クライアント詳細画面） | `wrangler secret put GOOGLE_CLIENT_SECRET`（oauth-proxy Worker） |
+| OAuth クライアントシークレット | 同上（クライアント詳細画面） | `wrangler secret put GOOGLE_CLIENT_SECRET`（vantagemail Worker） |
 
 ### 作成済みの OAuth クライアント
 
@@ -65,17 +65,17 @@ Account > Workers Scripts > Edit    # Workers デプロイ時に必要
 
 | Worker | シークレット名 | 値の出所 |
 |---|---|---|
-| `oauth-proxy` | `GOOGLE_CLIENT_SECRET` | GCP > OAuth クライアント詳細 |
+| `vantagemail`（TanStack Start SSR Worker） | `GOOGLE_CLIENT_SECRET` | GCP > OAuth クライアント詳細 |
 
 ```bash
 # 本番（Cloudflare に暗号化保存）
-cd workers/oauth-proxy
+cd apps/web
 wrangler secret put GOOGLE_CLIENT_SECRET
 
 # ローカル開発（wrangler dev が自動で読む、gitignore 済み）
-cd workers/oauth-proxy
-cp .dev.vars.example .dev.vars
-# .dev.vars を編集して GOOGLE_CLIENT_SECRET を設定
+cd apps/web
+echo "GOOGLE_CLIENT_SECRET=<値>" > .dev.vars
+# .dev.vars は gitignore 済み
 ```
 
 ---
@@ -88,7 +88,6 @@ cp .dev.vars.example .dev.vars
 # OAuth
 VITE_GOOGLE_CLIENT_ID=<GCP コンソールから取得>
 VITE_OAUTH_REDIRECT_URI=http://localhost:5173/oauth/callback
-VITE_OAUTH_PROXY_URL=http://localhost:8787
 
 # Gmail Push
 VITE_PUBSUB_TOPIC=projects/unified-email-client/topics/vantagemail-gmail-push
@@ -102,8 +101,8 @@ CF ダッシュボード > Workers > vantagemail > Settings > Variables and Secr
 |--------|---|
 | `VITE_GOOGLE_CLIENT_ID` | GCP コンソールから取得 |
 | `VITE_OAUTH_REDIRECT_URI` | `https://vantagemail.onon.workers.dev/oauth/callback` |
-| `VITE_OAUTH_PROXY_URL` | `https://vantagemail-oauth.onon.workers.dev` |
 | `VITE_PUBSUB_TOPIC` | `projects/unified-email-client/topics/vantagemail-gmail-push` |
+| `GOOGLE_CLIENT_SECRET` | GCP コンソールから取得（シークレットとして設定） |
 
 Vite がビルド時に `import.meta.env` 経由で読み、JS にインライン埋め込みする。
 
@@ -146,8 +145,7 @@ export CLOUDFLARE_API_TOKEN="<CF API トークン>"
 `vantagemail.onon.workers.dev` から変わった場合、以下を全て更新すること:
 
 - [ ] `apps/web/.env.production` → `VITE_OAUTH_REDIRECT_URI`
-- [ ] `workers/oauth-proxy/wrangler.toml` → `ALLOWED_ORIGINS`
-- [ ] `workers/push-relay/wrangler.toml` → `ALLOWED_ORIGINS`
+- [ ] `apps/web/wrangler.jsonc` → `ALLOWED_ORIGINS`
 - [ ] GCP OAuth クライアント → JS 生成元 + リダイレクト URI（[GCP コンソール](https://console.cloud.google.com/auth/clients?project=unified-email-client)）
 
 ---
