@@ -79,10 +79,11 @@ export const Route = createFileRoute("/oauth/callback")({
 
         try {
           // --- トークン交換（サーバーから直接 Google に送信） ---
-          const clientId = process.env.VITE_GOOGLE_CLIENT_ID!;
+          // VITE_ vars: build-time inline. GOOGLE_CLIENT_SECRET: Worker runtime secret.
+          const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID!;
           const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
           const redirectUri =
-            process.env.VITE_OAUTH_REDIRECT_URI ??
+            import.meta.env.VITE_OAUTH_REDIRECT_URI ??
             `${origin}/oauth/callback`;
 
           const tokenBody = new URLSearchParams({

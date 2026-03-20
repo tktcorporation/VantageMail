@@ -19,7 +19,9 @@ export const Route = createFileRoute("/api/auth/start")({
   server: {
     handlers: {
       POST: async () => {
-        const clientId = process.env.VITE_GOOGLE_CLIENT_ID;
+        // VITE_ prefixed vars are inlined at build time via import.meta.env.
+        // process.env.VITE_* is NOT available at Worker runtime.
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         if (!clientId) {
           return Response.json(
             { error: "VITE_GOOGLE_CLIENT_ID is not configured" },
@@ -27,10 +29,9 @@ export const Route = createFileRoute("/api/auth/start")({
           );
         }
 
-        // リクエストURLからオリジンを取得してリダイレクトURIを構築
         const requestUrl = getRequestUrl();
         const redirectUri =
-          process.env.VITE_OAUTH_REDIRECT_URI ??
+          import.meta.env.VITE_OAUTH_REDIRECT_URI ??
           `${requestUrl.origin}/oauth/callback`;
 
         const { url, codeVerifier } = await createAuthorizationUrl({
