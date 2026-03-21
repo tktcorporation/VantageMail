@@ -15,8 +15,8 @@ import {
 import { decrypt, encrypt, deriveKEK, importDEK, base64ToUint8 } from "./crypto";
 import {
   getDB,
-  findLinkedAccountsByUserId,
-  updateLinkedAccountToken,
+  findLinkedAccountsByUserIdLegacy as findLinkedAccountsByUserId,
+  updateLinkedAccountTokenLegacy as updateLinkedAccountToken,
   type LinkedAccountRow,
 } from "./db";
 

@@ -11,6 +11,12 @@
  *
  * DB漏洩だけでは復号不可（SERVER_SECRET が必要）。
  * SERVER_SECRET 漏洩だけでも復号不可（google_sub が必要）。
+ *
+ * Effect 版の暗号化関数は CryptoService（services/CryptoService.ts）で提供する。
+ * このファイルには plain な関数（後方互換）と、base64 ユーティリティ、
+ * EncryptedData インターフェースを残す。
+ *
+ * Effect 化完了後（Task 5 以降）、plain 関数は削除可能。
  */
 
 /** AES-GCM の暗号化結果。IV と暗号文を base64 で保持する */
@@ -24,6 +30,9 @@ export interface EncryptedData {
  *
  * SERVER_SECRET と google_sub の両方がないと同じキーを再現できない。
  * google_sub は Google ID Token から取得する不変のユーザー識別子。
+ *
+ * 後方互換: Effect 化されていないルートから引き続き使用される。
+ * Effect 化完了後に削除可能（CryptoService.deriveKEK を使う）。
  */
 export async function deriveKEK(
   serverSecret: string,
@@ -41,9 +50,7 @@ export async function deriveKEK(
   );
 
   // RFC 5869 準拠: salt はドメイン分離用の固定値、info にユーザー固有の識別子を配置。
-  // salt は IKM のエントロピーが十分な場合に固定でもよい（RFC 5869 §3.1）。
-  // info にユーザーバインディング（google_sub）を入れることで、
-  // 同じ SERVER_SECRET から異なるユーザーごとに異なるキーが導出される。
+  // CRITICAL: salt/info の順序を変更しないこと。既存データが復号不能になる。
   return crypto.subtle.deriveKey(
     {
       name: "HKDF",

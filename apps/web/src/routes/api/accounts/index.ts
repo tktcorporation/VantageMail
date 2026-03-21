@@ -14,8 +14,8 @@ import {
 } from "~/lib/session";
 import {
   getDB,
-  findLinkedAccountsByUserId,
-  deleteLinkedAccount,
+  findLinkedAccountsByUserIdLegacy as findLinkedAccountsByUserId,
+  deleteLinkedAccountLegacy as deleteLinkedAccount,
   type LinkedAccountRow,
 } from "~/lib/db";
 

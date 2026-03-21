@@ -15,7 +15,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSession } from "@tanstack/react-start/server";
 import type { Account } from "@vantagemail/core";
 import { getSessionConfig, type AppSessionData } from "~/lib/session";
-import { getDB, findLinkedAccountsByUserId, type LinkedAccountRow } from "~/lib/db";
+import { getDB, findLinkedAccountsByUserIdLegacy as findLinkedAccountsByUserId, type LinkedAccountRow } from "~/lib/db";
 import { AppShell } from "~/components/app-shell";
 
 /**

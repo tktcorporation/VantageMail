@@ -36,14 +36,14 @@ import {
 } from "~/lib/crypto";
 import {
   getDB,
-  findUserByGoogleSub,
-  createUser,
-  updateUserProfile,
-  findLinkedAccountByEmail,
-  findLinkedAccountsByUserId,
-  createLinkedAccount,
-  updateLinkedAccountToken,
-  updateLinkedAccountProfile,
+  findUserByGoogleSubLegacy as findUserByGoogleSub,
+  createUserLegacy as createUser,
+  updateUserProfileLegacy as updateUserProfile,
+  findLinkedAccountByEmailLegacy as findLinkedAccountByEmail,
+  findLinkedAccountsByUserIdLegacy as findLinkedAccountsByUserId,
+  createLinkedAccountLegacy as createLinkedAccount,
+  updateLinkedAccountTokenLegacy as updateLinkedAccountToken,
+  updateLinkedAccountProfileLegacy as updateLinkedAccountProfile,
   type LinkedAccountRow,
 } from "~/lib/db";
 
