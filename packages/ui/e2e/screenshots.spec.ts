@@ -110,3 +110,10 @@ test("05 - コマンドパレット", async ({ page }) => {
   }
   await page.screenshot({ path: `${SCREENSHOT_DIR}/05-command-palette.png`, fullPage: false });
 });
+
+test("06 - オンボーディング（アカウント未登録）", async ({ page }) => {
+  // API モックは不要（アカウント0件なので API コールが発生しない）
+  await page.goto("/?empty=1");
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/06-onboarding.png`, fullPage: false });
+});

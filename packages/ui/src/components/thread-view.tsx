@@ -129,6 +129,12 @@ export function ThreadView() {
         <span className="text-[13px]">
           メールを選択してください
         </span>
+        {/* キーボードショートカットヒント */}
+        <div className="mt-4 flex gap-4 text-[11px]">
+          <span><kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">J</kbd> <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">K</kbd> 移動</span>
+          <span><kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">/</kbd> 検索</span>
+          <span><kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">⌘K</kbd> コマンド</span>
+        </div>
       </div>
     );
   }
