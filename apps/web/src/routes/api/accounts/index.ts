@@ -7,6 +7,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router"
 import { Effect } from "effect"
+import { Schema } from "@effect/schema"
 import type { Account } from "@vantagemail/core"
 import { SessionService } from "~/lib/services/SessionService.ts"
 import {
@@ -56,20 +57,41 @@ export const Route = createFileRoute("/api/accounts/")({
       /** 指定IDのアカウントを削除する */
       DELETE: async ({ request }) => {
         const env = await getEnv()
-        const body = (await request
-          .json()
-          .catch(() => null)) as { accountId?: string } | null
+
+        /** DELETE リクエストボディの Schema。accountId（文字列）が必須。 */
+        const DeleteAccountBody = Schema.Struct({
+          accountId: Schema.String,
+        })
 
         const effect = Effect.gen(function* () {
           const session = yield* SessionService
 
-          const accountId = body?.accountId
-          if (!accountId || typeof accountId !== "string") {
+          // request.json() → Schema.decodeUnknown でバリデーション。
+          // JSON パース失敗・バリデーション失敗は 400 を返す。
+          const jsonResult = yield* Effect.either(
+            Effect.tryPromise({
+              try: () => request.json() as Promise<unknown>,
+              catch: () => new Error("invalid_json"),
+            }),
+          )
+          if (jsonResult._tag === "Left") {
+            return Response.json(
+              { error: "Invalid JSON body" },
+              { status: 400 },
+            )
+          }
+
+          const parseResult = yield* Effect.either(
+            Schema.decodeUnknown(DeleteAccountBody)(jsonResult.right),
+          )
+          if (parseResult._tag === "Left") {
             return Response.json(
               { error: "accountId is required" },
               { status: 400 },
             )
           }
+
+          const { accountId } = parseResult.right
 
           const auth = yield* session.requireAuth()
 
