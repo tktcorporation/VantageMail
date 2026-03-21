@@ -7,46 +7,53 @@
  *
  * フロー: クライアントがこのAPIを呼ぶ → PKCE生成 → セッションに保存 → 認可URL返却
  */
-import { createFileRoute } from "@tanstack/react-router";
-import {
-  getRequestUrl,
-  updateSession,
-} from "@tanstack/react-start/server";
-import { createAuthorizationUrl } from "@vantagemail/core";
-import { getSessionConfig, type AppSessionData } from "~/lib/session";
+import { createFileRoute } from "@tanstack/react-router"
+import { getRequestUrl } from "@tanstack/react-start/server"
+import { Effect } from "effect"
+import { createAuthorizationUrlEffect, type TokenExchangeError } from "@vantagemail/core"
+import { SessionService } from "~/lib/services/SessionService.ts"
+import { getEnv, handleEffect } from "~/lib/runtime.ts"
 
 export const Route = createFileRoute("/api/auth/start")({
   server: {
     handlers: {
       POST: async () => {
-        // VITE_ prefixed vars are inlined at build time via import.meta.env.
-        // process.env.VITE_* is NOT available at Worker runtime.
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-        if (!clientId) {
-          return Response.json(
-            { error: "VITE_GOOGLE_CLIENT_ID is not configured" },
-            { status: 500 },
-          );
-        }
+        const env = await getEnv()
 
-        const requestUrl = getRequestUrl();
-        const redirectUri =
-          import.meta.env.VITE_OAUTH_REDIRECT_URI ??
-          `${requestUrl.origin}/oauth/callback`;
+        const effect = Effect.gen(function* () {
+          const session = yield* SessionService
 
-        const { url, codeVerifier } = await createAuthorizationUrl({
-          clientId,
-          redirectUri,
-        });
+          // VITE_ prefixed vars are inlined at build time via import.meta.env.
+          // process.env.VITE_* is NOT available at Worker runtime.
+          const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+          if (!clientId) {
+            return Response.json(
+              { error: "VITE_GOOGLE_CLIENT_ID is not configured" },
+              { status: 500 },
+            )
+          }
 
-        // code_verifier を暗号化セッションに保存（コールバック時に使用）
-        await updateSession<AppSessionData>(getSessionConfig(), (prev) => ({
-          ...prev,
-          codeVerifier,
-        }));
+          const requestUrl = getRequestUrl()
+          const redirectUri =
+            import.meta.env.VITE_OAUTH_REDIRECT_URI ??
+            `${requestUrl.origin}/oauth/callback`
 
-        return Response.json({ url });
+          const { url, codeVerifier } = yield* createAuthorizationUrlEffect({
+            clientId,
+            redirectUri,
+          })
+
+          // code_verifier を暗号化セッションに保存（コールバック時に使用）
+          yield* session.update((prev) => ({
+            ...prev,
+            codeVerifier,
+          }))
+
+          return Response.json({ url })
+        })
+
+        return handleEffect(effect, env)
       },
     },
   },
-});
+})

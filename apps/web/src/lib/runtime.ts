@@ -6,27 +6,41 @@
  * makeAppLayer でリクエストスコープの Layer を組み立て、
  * handleEffect で API ルートから簡潔に Effect を実行できるようにする。
  *
- * SessionService の Layer は API ルート側で提供するため、ここでは含まない。
- * （TanStack Start のセッション API はリクエストコンテキストに依存するため）
+ * SessionService.live は TanStack Start のリクエストコンテキストに依存するため、
+ * ここで Layer に含める（サーバー関数・API ルートハンドラ内でのみ有効）。
  */
 import { Effect, Layer } from "effect"
-import { D1Service, CryptoService, ConfigService } from "./services/index.ts"
+import { D1Service, CryptoService, ConfigService, SessionService } from "./services/index.ts"
 
 /**
  * リクエストスコープの Effect Layer を構築する。
  *
- * SessionService は API ルート側で別途 provide するため、ここには含まない。
- * 呼び出し元で Layer.merge(makeAppLayer(env), SessionService.layer(impl)) のように合成する。
+ * D1Service, CryptoService, ConfigService, SessionService を全て含む。
+ * SessionService.live は TanStack Start のセッション API を使うため、
+ * サーバー関数・API ルートハンドラ内で呼ばれる前提。
  */
 export const makeAppLayer = (env: Cloudflare.Env) =>
   Layer.mergeAll(
     D1Service.layer(env.DB),
     CryptoService.live,
     ConfigService.layer(env),
+    SessionService.live,
   )
 
-/** makeAppLayer が提供する Service の union 型（SessionService を除く） */
-export type AppServices = D1Service | CryptoService | ConfigService
+/** makeAppLayer が提供する Service の union 型 */
+export type AppServices = D1Service | CryptoService | ConfigService | SessionService
+
+/**
+ * Cloudflare Workers の env bindings を取得する。
+ *
+ * 背景: TanStack Start + Cloudflare Workers では `cloudflare:workers` モジュールから
+ * env オブジェクトをインポートして D1 バインディング等にアクセスする。
+ * このモジュールはビルド時に Cloudflare のバンドラが解決する。
+ */
+export const getEnv = async (): Promise<Cloudflare.Env> => {
+  const { env } = await import("cloudflare:workers" as string)
+  return env as Cloudflare.Env
+}
 
 /**
  * API ルートで Effect を実行するヘルパー。
