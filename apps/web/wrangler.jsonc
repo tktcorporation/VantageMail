@@ -25,7 +25,7 @@
     {
       "binding": "DB",
       "database_name": "vantagemail-db",
-      "database_id": "TODO_REPLACE_WITH_ACTUAL_D1_DATABASE_ID",
+      "database_id": "a30ff9f1-df2f-494c-ab3b-9b0b6b59bd57",
       "migrations_dir": "migrations"
     }
   ]
