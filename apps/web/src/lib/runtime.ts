@@ -82,8 +82,14 @@ export const handleEffect = <E>(
           typeof (error as Record<string, unknown>)._tag === "string"
             ? ((error as Record<string, unknown>)._tag as string)
             : "InternalError"
+        const details = typeof error === "object" && error !== null
+          ? Object.fromEntries(
+              Object.entries(error as Record<string, unknown>)
+                .filter(([k]) => k !== "_tag")
+            )
+          : {}
         return Effect.succeed(
-          Response.json({ error: tag }, { status: 500 }),
+          Response.json({ error: tag, ...details }, { status: 500 }),
         )
       }),
     ),
