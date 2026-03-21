@@ -67,22 +67,5 @@ export function getSessionConfig(): SessionConfig {
   };
 }
 
-/**
- * SERVER_SECRET を取得する。
- * HKDF で KEK を導出するために使う。SESSION_SECRET とは別のシークレット。
- *
- * 背景: SESSION_SECRET はセッション Cookie の暗号化に使い、
- * SERVER_SECRET は D1 内のトークン暗号化キー（KEK）の導出に使う。
- * 分離することで、一方が漏洩しても他方のセキュリティに影響しない。
- */
-export function getServerSecret(): string {
-  const secret = process.env.SERVER_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("SERVER_SECRET must be set in production");
-    }
-    // 開発環境用フォールバック
-    return "vantagemail-dev-server-secret-min-32-chars!!";
-  }
-  return secret;
-}
+// getServerSecret() は削除済み。
+// SERVER_SECRET は ConfigService 経由で取得する（apps/web/src/lib/services/ConfigService.ts）。
