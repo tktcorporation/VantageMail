@@ -10,7 +10,15 @@ import { useAccounts } from "../hooks/use-store";
 import { useThreads } from "../hooks/use-store";
 import { useCallback, useEffect, useMemo } from "react";
 import { SearchBar } from "./search-bar";
-import type { Thread } from "@vantagemail/core";
+import type { Thread, SmartCategory } from "@vantagemail/core";
+
+/** SmartCategoryをUIに表示するための日本語名マッピング */
+const CATEGORY_DISPLAY_NAMES: Record<SmartCategory, string> = {
+  all: "すべて",
+  people: "重要",
+  notifications: "通知",
+  newsletters: "ニュースレター",
+};
 
 /** 相対時間表示（例: "3分前", "昨日"） */
 function formatRelativeTime(date: Date): string {
@@ -33,6 +41,7 @@ export function ThreadList() {
   const selectedThreadId = useThreads((s) => s.selectedThreadId);
   const selectThread = useThreads((s) => s.selectThread);
   const isLoading = useThreads((s) => s.isLoading);
+  const activeCategory = useThreads((s) => s.activeCategory);
   const accounts = useAccounts((s) => s.accounts);
 
   const threadMap = useMemo(() => {
@@ -95,7 +104,7 @@ export function ThreadList() {
       <div className="px-3 py-2 border-b border-[var(--color-border-light)] flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="font-semibold text-[13px]">
-            受信トレイ
+            {CATEGORY_DISPLAY_NAMES[activeCategory]}
             <span className="ml-2 text-[var(--color-text-secondary)] font-normal">
               {visibleThreadIds.length}
             </span>

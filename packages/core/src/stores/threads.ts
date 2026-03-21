@@ -8,6 +8,32 @@
 import { createStore } from "zustand/vanilla";
 import type { Thread } from "../types/account";
 
+/**
+ * Smart Inboxのカテゴリフィルタ。
+ * GmailのカテゴリラベルをSparkスタイルの3グループに集約する。
+ * - "people": CATEGORY_PERSONAL / IMPORTANT（人からのメール）
+ * - "notifications": CATEGORY_UPDATES / CATEGORY_SOCIAL（通知系）
+ * - "newsletters": CATEGORY_PROMOTIONS / CATEGORY_FORUMS（ニュースレター・広告）
+ * - "all": フィルタなし（全件表示）
+ */
+export type SmartCategory = "all" | "people" | "notifications" | "newsletters";
+
+/**
+ * スレッドのlabelIdsからSmartCategoryに該当するかを判定する。
+ * "all"は常にtrue。
+ */
+function matchesCategory(labelIds: readonly string[], category: SmartCategory): boolean {
+  if (category === "all") return true;
+  switch (category) {
+    case "people":
+      return labelIds.some((l) => l === "CATEGORY_PERSONAL" || l === "IMPORTANT");
+    case "notifications":
+      return labelIds.some((l) => l === "CATEGORY_UPDATES" || l === "CATEGORY_SOCIAL");
+    case "newsletters":
+      return labelIds.some((l) => l === "CATEGORY_PROMOTIONS" || l === "CATEGORY_FORUMS");
+  }
+}
+
 export interface ThreadsState {
   /** accountId -> threadId -> Thread のマップ */
   threadsByAccount: Record<string, Record<string, Thread>>;
@@ -19,6 +45,8 @@ export interface ThreadsState {
   activeLabel: string | null;
   /** フィルタ中のアカウントID（nullで全アカウント = Unified Inbox） */
   activeAccountId: string | null;
+  /** Smart Inboxのアクティブカテゴリ（"all"でフィルタなし） */
+  activeCategory: SmartCategory;
   /** ロード中フラグ */
   isLoading: boolean;
 }
@@ -29,6 +57,8 @@ export interface ThreadsActions {
   setActiveLabel: (label: string | null) => void;
   /** アカウントフィルタを設定する。nullでUnified Inbox（全アカウント表示） */
   setActiveAccountId: (accountId: string | null) => void;
+  /** Smart Inboxのカテゴリフィルタを設定する */
+  setActiveCategory: (category: SmartCategory) => void;
   setLoading: (loading: boolean) => void;
   /** スレッドのラベルを更新（アーカイブ、ゴミ箱等で使用） */
   updateThreadLabels: (
@@ -50,6 +80,7 @@ function computeVisibleThreadIds(
   threadsByAccount: Record<string, Record<string, Thread>>,
   activeLabel: string | null,
   activeAccountId: string | null,
+  activeCategory: SmartCategory = "all",
 ): string[] {
   const allThreads: Thread[] = [];
   for (const [accountId, threads] of Object.entries(threadsByAccount)) {
@@ -57,6 +88,8 @@ function computeVisibleThreadIds(
     if (activeAccountId && accountId !== activeAccountId) continue;
     for (const thread of Object.values(threads)) {
       if (activeLabel && !thread.labelIds.includes(activeLabel)) continue;
+      // Smart Inboxカテゴリフィルタ
+      if (!matchesCategory(thread.labelIds, activeCategory)) continue;
       allThreads.push(thread);
     }
   }
@@ -77,6 +110,7 @@ export const createThreadsStore = () =>
     selectedThreadId: null,
     activeLabel: null,
     activeAccountId: null,
+    activeCategory: "all",
     isLoading: false,
 
     setThreads: (accountId, threads) =>
@@ -95,6 +129,7 @@ export const createThreadsStore = () =>
             newByAccount,
             state.activeLabel,
             state.activeAccountId,
+            state.activeCategory,
           ),
         };
       }),
@@ -108,6 +143,7 @@ export const createThreadsStore = () =>
           state.threadsByAccount,
           label,
           state.activeAccountId,
+          state.activeCategory,
         ),
       })),
 
@@ -118,6 +154,18 @@ export const createThreadsStore = () =>
           state.threadsByAccount,
           state.activeLabel,
           accountId,
+          state.activeCategory,
+        ),
+      })),
+
+    setActiveCategory: (category) =>
+      set((state) => ({
+        activeCategory: category,
+        visibleThreadIds: computeVisibleThreadIds(
+          state.threadsByAccount,
+          state.activeLabel,
+          state.activeAccountId,
+          category,
         ),
       })),
 
@@ -140,6 +188,7 @@ export const createThreadsStore = () =>
             updated,
             state.activeLabel,
             state.activeAccountId,
+            state.activeCategory,
           ),
         };
       }),

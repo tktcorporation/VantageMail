@@ -127,10 +127,7 @@ export function ThreadView() {
           VantageMail
         </span>
         <span className="text-[13px]">
-          Gmail アカウントを追加して始めましょう
-        </span>
-        <span className="text-[11px]">
-          Cmd+K でコマンドパレットを開く
+          メールを選択してください
         </span>
       </div>
     );
@@ -181,11 +178,11 @@ export function ThreadView() {
         ))}
       </div>
 
-      {/* Reply bar */}
-      <div className="px-6 py-4 border-t border-[var(--color-border-light)]">
+      {/* Reply bar — 閲覧優先のため控えめなスタイル */}
+      <div className="px-6 py-3 border-t border-[var(--color-border-light)]">
         <button
           type="button"
-          className="px-4 py-2 bg-[var(--color-accent)] text-white border-none rounded-md cursor-pointer text-[13px] font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
+          className="px-3 py-1.5 bg-transparent border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded cursor-pointer text-[12px] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
         >
           返信
         </button>
