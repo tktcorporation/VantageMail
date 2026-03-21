@@ -12,10 +12,12 @@ import { ConfigMissingError } from "@vantagemail/core"
 
 /**
  * アプリケーション全体で必要な設定値。
- * Cloudflare Workers の env bindings + process.env から構築される。
+ * Cloudflare Workers の env bindings から構築される。
+ *
+ * GOOGLE_CLIENT_ID は VITE_GOOGLE_CLIENT_ID として import.meta.env でビルド時に
+ * インライン化されるため、ここには含めない。
  */
 export interface AppConfig {
-  googleClientId: string
   googleClientSecret: string
   serverSecret: string
   allowedOrigins: string[]
@@ -57,12 +59,10 @@ export class ConfigService extends Context.Tag("ConfigService")<
 
         const allowedOriginsRaw = get("ALLOWED_ORIGINS") ?? ""
 
-        const googleClientId = yield* requireKey("GOOGLE_CLIENT_ID")
         const googleClientSecret = yield* requireKey("GOOGLE_CLIENT_SECRET")
         const serverSecret = yield* requireKey("SERVER_SECRET")
 
         return {
-          googleClientId,
           googleClientSecret,
           serverSecret,
           allowedOrigins: allowedOriginsRaw
