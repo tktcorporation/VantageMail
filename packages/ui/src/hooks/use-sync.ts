@@ -42,13 +42,15 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
             console.error(`Failed to fetch threads for ${account.email}:`, res.status);
             return;
           }
-          const data = await res.json();
-          const threads: Thread[] = (data.threads ?? []).map(
-            (t: Thread & { lastMessageAt: string }) => ({
-              ...t,
-              lastMessageAt: new Date(t.lastMessageAt),
-            }),
-          );
+          // API レスポンスでは lastMessageAt が ISO 文字列で返るため、
+          // Omit<Thread, "lastMessageAt"> & { lastMessageAt: string } として受け取る
+          const data = (await res.json()) as {
+            threads?: (Omit<Thread, "lastMessageAt"> & { lastMessageAt: string })[];
+          };
+          const threads: Thread[] = (data.threads ?? []).map((t) => ({
+            ...t,
+            lastMessageAt: new Date(t.lastMessageAt),
+          }));
           threadsStore.getState().setThreads(account.id, threads);
         } catch (err) {
           console.error(`Sync error for ${account.email}:`, err);

@@ -291,12 +291,15 @@ async function handleLoginOrRegister(
     }
 
     // セッションに保存（DEK の base64 文字列）
+    // ...prev で既存セッション（他アカウントの accessTokenCache 等）を維持する
     const dekBase64 = uint8ToBase64(dekBytes);
-    await updateSession<AppSessionData>(getSessionConfig(), () => ({
+    await updateSession<AppSessionData>(getSessionConfig(), (prev) => ({
+      ...prev,
       userId: existingUser.id,
       dek: dekBase64,
       codeVerifier: undefined,
       accessTokenCache: {
+        ...prev.accessTokenCache,
         [mainAccount!.id]: {
           accessToken: tokenData.access_token,
           expiresAt: Date.now() + tokenData.expires_in * 1000,
@@ -343,8 +346,10 @@ async function handleLoginOrRegister(
     });
 
     // セッションに保存
+    // 新規ユーザーでも ...prev で codeVerifier 等の既存セッションデータを安全にクリアする
     const dekBase64 = uint8ToBase64(dekBytes);
-    await updateSession<AppSessionData>(getSessionConfig(), () => ({
+    await updateSession<AppSessionData>(getSessionConfig(), (prev) => ({
+      ...prev,
       userId,
       dek: dekBase64,
       codeVerifier: undefined,

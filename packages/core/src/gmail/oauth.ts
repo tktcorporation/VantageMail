@@ -152,7 +152,12 @@ export async function exchangeCodeForTokens(
     throw new Error(`トークン交換に失敗: ${response.status} ${error}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+    scope: string;
+  };
   return {
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
@@ -188,7 +193,12 @@ export async function refreshAccessToken(
     throw new Error(`トークン更新に失敗: ${response.status} ${error}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    expires_in: number;
+    scope: string;
+  };
   return {
     accessToken: data.access_token,
     // リフレッシュ時には新しいrefresh_tokenが返らない場合がある
