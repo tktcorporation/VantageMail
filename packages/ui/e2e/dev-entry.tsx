@@ -13,10 +13,15 @@ import "../../../apps/web/src/app.css";
 
 const runtime = ManagedRuntime.make(Layer.empty);
 
+/**
+ * ?empty=1 のとき initialAccounts を空にして、オンボーディング画面を表示する。
+ */
+const useEmptyAccounts = new URLSearchParams(window.location.search).has("empty");
+
 function ScreenshotApp() {
   return (
     <RuntimeContext.Provider value={runtime}>
-      <App initialAccounts={ACCOUNTS} />
+      <App initialAccounts={useEmptyAccounts ? [] : ACCOUNTS} />
     </RuntimeContext.Provider>
   );
 }
