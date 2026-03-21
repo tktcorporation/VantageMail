@@ -64,16 +64,26 @@ describe("Sidebar", () => {
   it("未読数が0より大きいアカウントにバッジが表示される", () => {
     renderSidebar({ accounts: MOCK_ACCOUNTS });
 
-    // Alice: 3件、Unified Inbox: 合計3件 → "3" が2つ
-    expect(screen.getAllByText("3")).toHaveLength(2);
+    // Alice: 3件 → "3" が表示される
+    expect(screen.getAllByText("3").length).toBeGreaterThanOrEqual(1);
     // Bob: 0件 → バッジなし
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("Unified Inbox がデフォルトで選択状態", () => {
+  it("Smart Inboxカテゴリが表示される", () => {
     renderSidebar({ accounts: MOCK_ACCOUNTS });
 
-    const unifiedButton = screen.getByText("すべての受信トレイ").closest("button");
+    expect(screen.getByText("Smart Inbox")).toBeInTheDocument();
+    expect(screen.getByText("すべて")).toBeInTheDocument();
+    expect(screen.getByText("重要")).toBeInTheDocument();
+    expect(screen.getByText("通知")).toBeInTheDocument();
+    expect(screen.getByText("ニュースレター")).toBeInTheDocument();
+  });
+
+  it("「すべてのアカウント」がデフォルトで選択状態", () => {
+    renderSidebar({ accounts: MOCK_ACCOUNTS });
+
+    const unifiedButton = screen.getByText("すべてのアカウント").closest("button");
     expect(unifiedButton?.className).toContain("bg-[var(--color-bg-selected)]");
   });
 
@@ -85,19 +95,19 @@ describe("Sidebar", () => {
     const aliceButton = screen.getByText("Alice").closest("button");
     expect(aliceButton?.className).toContain("bg-[var(--color-bg-selected)]");
 
-    const unifiedButton = screen.getByText("すべての受信トレイ").closest("button");
+    const unifiedButton = screen.getByText("すべてのアカウント").closest("button");
     expect(unifiedButton?.className).not.toContain("bg-[var(--color-bg-selected)]");
   });
 
-  it("Unified Inbox をクリックすると全アカウント表示に戻る", () => {
+  it("「すべてのアカウント」をクリックすると全アカウント表示に戻る", () => {
     renderSidebar({ accounts: MOCK_ACCOUNTS });
 
     // まず Alice を選択
     fireEvent.click(screen.getByText("Alice"));
-    // Unified Inbox に戻す
-    fireEvent.click(screen.getByText("すべての受信トレイ"));
+    // すべてのアカウントに戻す
+    fireEvent.click(screen.getByText("すべてのアカウント"));
 
-    const unifiedButton = screen.getByText("すべての受信トレイ").closest("button");
+    const unifiedButton = screen.getByText("すべてのアカウント").closest("button");
     expect(unifiedButton?.className).toContain("bg-[var(--color-bg-selected)]");
   });
 });

@@ -1,12 +1,38 @@
 /**
- * サイドバーコンポーネント。
+ * サイドバーコンポーネント（Spark風 Smart Inbox対応）。
  *
- * 背景: アカウントセレクター（未読バッジ付き）とラベルナビゲーションを表示。
- * 「すべて」選択でUnified Inbox、個別アカウントでフィルタリング（spec §5.1）。
- * アカウント識別はカラードットで行う（spec §10 Design未決事項あり）。
+ * 背景: Smart Inboxカテゴリフィルタ（すべて/重要/通知/ニュースレター）を
+ * 上部に配置し、カテゴリごとの未読カウントを表示する。
+ * アカウントセレクターはカテゴリの下に配置。
+ * カテゴリとアカウントの両方でフィルタを組み合わせられる。
  */
 import { useAccounts, useThreads } from "../hooks/use-store";
-import { useCallback, type MouseEvent } from "react";
+import { useCallback, useMemo, type MouseEvent } from "react";
+import type { SmartCategory } from "@vantagemail/core";
+
+/** カテゴリ定義: 表示名とGmailラベルのマッピング */
+const CATEGORIES: { key: SmartCategory; label: string }[] = [
+  { key: "all", label: "すべて" },
+  { key: "people", label: "重要" },
+  { key: "notifications", label: "通知" },
+  { key: "newsletters", label: "ニュースレター" },
+];
+
+/**
+ * スレッドのlabelIdsがカテゴリに該当するか判定する。
+ * サイドバーの未読カウント計算に使用。
+ */
+function threadMatchesCategory(labelIds: readonly string[], category: SmartCategory): boolean {
+  if (category === "all") return true;
+  switch (category) {
+    case "people":
+      return labelIds.some((l) => l === "CATEGORY_PERSONAL" || l === "IMPORTANT");
+    case "notifications":
+      return labelIds.some((l) => l === "CATEGORY_UPDATES" || l === "CATEGORY_SOCIAL");
+    case "newsletters":
+      return labelIds.some((l) => l === "CATEGORY_PROMOTIONS" || l === "CATEGORY_FORUMS");
+  }
+}
 
 interface SidebarProps {
   onAddAccount?: () => void;
@@ -18,6 +44,9 @@ export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
   const activeAccountId = useAccounts((s) => s.activeAccountId);
   const setActiveAccount = useAccounts((s) => s.setActiveAccount);
   const setActiveAccountFilter = useThreads((s) => s.setActiveAccountId);
+  const activeCategory = useThreads((s) => s.activeCategory);
+  const setActiveCategory = useThreads((s) => s.setActiveCategory);
+  const threadsByAccount = useThreads((s) => s.threadsByAccount);
 
   /** アカウント選択時に、accountsストアとthreadsストアの両方を更新する */
   const handleSelectAccount = useCallback(
@@ -28,7 +57,30 @@ export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
     [setActiveAccount, setActiveAccountFilter],
   );
 
-  const totalUnread = accounts.reduce((sum, a) => sum + a.unreadCount, 0);
+  /**
+   * カテゴリごとの未読スレッド数を計算する。
+   * activeAccountIdが設定されている場合、そのアカウントのみカウントする。
+   */
+  const categoryCounts = useMemo(() => {
+    const counts: Record<SmartCategory, number> = {
+      all: 0,
+      people: 0,
+      notifications: 0,
+      newsletters: 0,
+    };
+    for (const [accountId, threads] of Object.entries(threadsByAccount)) {
+      if (activeAccountId && accountId !== activeAccountId) continue;
+      for (const thread of Object.values(threads)) {
+        if (!thread.isUnread) continue;
+        for (const cat of CATEGORIES) {
+          if (threadMatchesCategory(thread.labelIds, cat.key)) {
+            counts[cat.key]++;
+          }
+        }
+      }
+    }
+    return counts;
+  }, [threadsByAccount, activeAccountId]);
 
   return (
     <div className="flex flex-col h-full">
@@ -37,22 +89,52 @@ export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
         VantageMail
       </div>
 
+      {/* Smart Inbox カテゴリフィルタ */}
+      <div className="px-2 mb-2">
+        <div className="px-2 py-1 text-[11px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">
+          Smart Inbox
+        </div>
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat.key}
+            type="button"
+            onClick={() => setActiveCategory(cat.key)}
+            className={`flex items-center justify-between w-full px-3 py-1.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left ${
+              activeCategory === cat.key
+                ? "bg-[var(--color-bg-selected)] font-medium"
+                : "bg-transparent hover:bg-[var(--color-bg-hover)]"
+            }`}
+          >
+            <span>{cat.label}</span>
+            {categoryCounts[cat.key] > 0 && (
+              <span className="text-[11px] text-[var(--color-text-tertiary)] font-normal">
+                {categoryCounts[cat.key]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* 区切り線 */}
+      <div className="mx-4 border-t border-[var(--color-border-light)]" />
+
       {/* アカウントセレクター */}
-      <nav className="flex-1 overflow-auto">
-        {/* Unified Inbox */}
+      <nav className="flex-1 overflow-auto px-2 mt-2">
+        <div className="px-2 py-1 text-[11px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">
+          アカウント
+        </div>
+
+        {/* Unified Inbox（すべてのアカウント） */}
         <button
           type="button"
           onClick={() => handleSelectAccount(null)}
-          className={`flex items-center justify-between w-full px-4 py-2 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left ${
-            activeAccountId === null ? "bg-[var(--color-bg-selected)]" : "bg-transparent hover:bg-[var(--color-bg-hover)]"
+          className={`flex items-center justify-between w-full px-3 py-1.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left ${
+            activeAccountId === null
+              ? "bg-[var(--color-bg-selected)] font-medium"
+              : "bg-transparent hover:bg-[var(--color-bg-hover)]"
           }`}
         >
-          <span>すべての受信トレイ</span>
-          {totalUnread > 0 && (
-            <span className="text-[11px] text-[var(--color-accent)] font-semibold">
-              {totalUnread}
-            </span>
-          )}
+          <span>すべてのアカウント</span>
         </button>
 
         {/* 各アカウント */}
@@ -64,8 +146,10 @@ export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
             <button
               type="button"
               onClick={() => handleSelectAccount(account.id)}
-              className={`flex items-center justify-between w-full px-4 py-2 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left gap-2 ${
-                activeAccountId === account.id ? "bg-[var(--color-bg-selected)]" : "bg-transparent hover:bg-[var(--color-bg-hover)]"
+              className={`flex items-center justify-between w-full px-3 py-1.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left gap-2 ${
+                activeAccountId === account.id
+                  ? "bg-[var(--color-bg-selected)] font-medium"
+                  : "bg-transparent hover:bg-[var(--color-bg-hover)]"
               }`}
             >
               <span className="flex items-center gap-2 min-w-0">
@@ -79,7 +163,7 @@ export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
                 </span>
               </span>
               {account.unreadCount > 0 && (
-                <span className="text-[11px] text-[var(--color-accent)] font-semibold shrink-0">
+                <span className="text-[11px] text-[var(--color-text-tertiary)] font-normal shrink-0">
                   {account.unreadCount}
                 </span>
               )}
