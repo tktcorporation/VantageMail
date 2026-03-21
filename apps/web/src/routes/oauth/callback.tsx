@@ -40,6 +40,7 @@ import {
 
 import { getEnv, handleEffect } from "~/lib/runtime.ts"
 import { uint8ToBase64 } from "~/lib/crypto.ts"
+import { GOOGLE_CLIENT_ID, OAUTH_REDIRECT_URI_OVERRIDE } from "~/lib/constants.ts"
 
 /** アカウントに割り当てるカラーのプール */
 const ACCOUNT_COLORS = [
@@ -87,12 +88,13 @@ const exchangeCode = (
   code: string,
   codeVerifier: string,
   origin: string,
-): Effect.Effect<VerifiedTokenData, TokenExchangeError | RefreshTokenMissing> =>
+): Effect.Effect<VerifiedTokenData, TokenExchangeError | RefreshTokenMissing, ConfigService> =>
   Effect.gen(function* () {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID!
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET!
+    const config = yield* ConfigService
+    const clientId = GOOGLE_CLIENT_ID
+    const clientSecret = config.googleClientSecret
     const redirectUri =
-      import.meta.env.VITE_OAUTH_REDIRECT_URI ?? `${origin}/oauth/callback`
+      OAUTH_REDIRECT_URI_OVERRIDE ?? `${origin}/oauth/callback`
 
     const tokenBody = new URLSearchParams({
       client_id: clientId,
@@ -201,7 +203,7 @@ const extractGoogleSub = (
     })
 
     // aud が自分のクライアントID と一致することを確認
-    const expectedClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    const expectedClientId = GOOGLE_CLIENT_ID
     if (data.aud !== expectedClientId) {
       return yield* Effect.fail(
         new GoogleSubExtractionError({

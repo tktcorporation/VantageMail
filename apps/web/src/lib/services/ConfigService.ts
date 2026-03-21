@@ -20,6 +20,8 @@ import { ConfigMissingError } from "@vantagemail/core"
 export interface AppConfig {
   googleClientSecret: string
   serverSecret: string
+  /** セッション Cookie の暗号化パスワード。wrangler secret put SESSION_SECRET で設定 */
+  sessionSecret: string
   allowedOrigins: string[]
 }
 
@@ -62,9 +64,17 @@ export class ConfigService extends Context.Tag("ConfigService")<
         const googleClientSecret = yield* requireKey("GOOGLE_CLIENT_SECRET")
         const serverSecret = yield* requireKey("SERVER_SECRET")
 
+        // 開発環境ではフォールバック値を提供し、本番では必須
+        const sessionSecret =
+          get("SESSION_SECRET") ??
+          (get("NODE_ENV") === "production"
+            ? yield* Effect.fail(new ConfigMissingError({ key: "SESSION_SECRET" }))
+            : "vantagemail-dev-session-secret-min-32-chars!!")
+
         return {
           googleClientSecret,
           serverSecret,
+          sessionSecret,
           allowedOrigins: allowedOriginsRaw
             .split(",")
             .map((s) => s.trim())

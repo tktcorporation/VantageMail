@@ -22,6 +22,8 @@ import {
 } from "@vantagemail/core"
 import { SessionService } from "./services/SessionService.ts"
 import { CryptoService } from "./services/CryptoService.ts"
+import { ConfigService } from "./services/ConfigService.ts"
+import { GOOGLE_CLIENT_ID } from "./constants.ts"
 import { findLinkedAccountsByUserId, updateLinkedAccountToken } from "./db.ts"
 import type { LinkedAccountRow } from "./db.ts"
 import type { AppServices } from "./runtime.ts"
@@ -39,65 +41,69 @@ interface RefreshResult {
 
 /**
  * Google Token Endpoint で access_token をリフレッシュする。
- * 外部 API 呼び出しなので Effect.tryPromise でラップする。
+ * ConfigService から clientSecret を取得し、constants.ts から clientId を取得する。
  */
 const refreshGoogleToken = (
   refreshToken: string,
-): Effect.Effect<RefreshResult, GmailApiError> => {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  if (!clientId || !clientSecret) {
-    return Effect.fail(
-      new GmailApiError({
-        status: 0,
-        path: GOOGLE_TOKEN_ENDPOINT,
-        body: "Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET",
-      }),
-    )
-  }
+): Effect.Effect<RefreshResult, GmailApiError, ConfigService> =>
+  Effect.gen(function* () {
+    const config = yield* ConfigService
+    const clientId = GOOGLE_CLIENT_ID
+    const clientSecret = config.googleClientSecret
+    if (!clientId || !clientSecret) {
+      return yield* Effect.fail(
+        new GmailApiError({
+          status: 0,
+          path: GOOGLE_TOKEN_ENDPOINT,
+          body: "Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET",
+        }),
+      )
+    }
 
-  return Effect.tryPromise({
-    try: async () => {
-      const body = new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: refreshToken,
-        grant_type: "refresh_token",
-      })
+    return yield* Effect.tryPromise({
+      try: async () => {
+        const body = new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: refreshToken,
+          grant_type: "refresh_token",
+        })
 
-      const response = await fetch(GOOGLE_TOKEN_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
-      })
+        const response = await fetch(GOOGLE_TOKEN_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: body.toString(),
+        })
 
-      if (!response.ok) {
-        const errText = await response.text()
-        throw new Error(`Token refresh failed: ${response.status} ${errText}`)
-      }
+        if (!response.ok) {
+          const errText = await response.text()
+          throw new Error(
+            `Token refresh failed: ${response.status} ${errText}`,
+          )
+        }
 
-      const data = (await response.json()) as {
-        access_token: string
-        expires_in: number
-        scope: string
-        refresh_token?: string
-      }
-      return {
-        accessToken: data.access_token,
-        expiresAt: Date.now() + data.expires_in * 1000,
-        scope: data.scope,
-        // Google はトークンローテーション時のみ新しい refresh_token を返す
-        newRefreshToken: data.refresh_token ?? undefined,
-      }
-    },
-    catch: (e) =>
-      new GmailApiError({
-        status: 0,
-        path: GOOGLE_TOKEN_ENDPOINT,
-        body: String(e),
-      }),
+        const data = (await response.json()) as {
+          access_token: string
+          expires_in: number
+          scope: string
+          refresh_token?: string
+        }
+        return {
+          accessToken: data.access_token,
+          expiresAt: Date.now() + data.expires_in * 1000,
+          scope: data.scope,
+          // Google はトークンローテーション時のみ新しい refresh_token を返す
+          newRefreshToken: data.refresh_token ?? undefined,
+        }
+      },
+      catch: (e) =>
+        new GmailApiError({
+          status: 0,
+          path: GOOGLE_TOKEN_ENDPOINT,
+          body: String(e),
+        }),
+    })
   })
-}
 
 /**
  * 指定アカウントの有効な access_token を取得する Effect。

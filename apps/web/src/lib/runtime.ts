@@ -16,16 +16,31 @@ import { D1Service, CryptoService, ConfigService, SessionService } from "./servi
  * リクエストスコープの Effect Layer を構築する。
  *
  * D1Service, CryptoService, ConfigService, SessionService を全て含む。
- * SessionService.live は TanStack Start のセッション API を使うため、
+ * SessionService.live は ConfigService から sessionSecret を受け取り、
+ * TanStack Start のセッション API を使う。
  * サーバー関数・API ルートハンドラ内で呼ばれる前提。
+ *
+ * SessionService は ConfigService に依存するため、ConfigService.layer を
+ * SessionService の構築に使い、最終的に全 Layer をマージする。
  */
-export const makeAppLayer = (env: Cloudflare.Env) =>
-  Layer.mergeAll(
+export const makeAppLayer = (env: Cloudflare.Env) => {
+  const configLayer = ConfigService.layer(env)
+
+  // ConfigService から sessionSecret を取得して SessionService を構築する Layer
+  const sessionLayer = Layer.unwrapEffect(
+    Effect.gen(function* () {
+      const config = yield* ConfigService
+      return SessionService.live(config.sessionSecret)
+    }),
+  ).pipe(Layer.provide(configLayer))
+
+  return Layer.mergeAll(
     D1Service.layer(env.DB),
     CryptoService.live,
-    ConfigService.layer(env),
-    SessionService.live,
+    configLayer,
+    sessionLayer,
   )
+}
 
 /** makeAppLayer が提供する Service の union 型 */
 export type AppServices = D1Service | CryptoService | ConfigService | SessionService

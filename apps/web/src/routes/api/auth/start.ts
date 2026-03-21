@@ -13,6 +13,7 @@ import { Effect } from "effect"
 import { createAuthorizationUrlEffect, type TokenExchangeError } from "@vantagemail/core"
 import { SessionService } from "~/lib/services/SessionService.ts"
 import { getEnv, handleEffect } from "~/lib/runtime.ts"
+import { GOOGLE_CLIENT_ID, OAUTH_REDIRECT_URI_OVERRIDE } from "~/lib/constants.ts"
 
 export const Route = createFileRoute("/api/auth/start")({
   server: {
@@ -23,9 +24,7 @@ export const Route = createFileRoute("/api/auth/start")({
         const effect = Effect.gen(function* () {
           const session = yield* SessionService
 
-          // VITE_ prefixed vars are inlined at build time via import.meta.env.
-          // process.env.VITE_* is NOT available at Worker runtime.
-          const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+          const clientId = GOOGLE_CLIENT_ID
           if (!clientId) {
             return Response.json(
               { error: "VITE_GOOGLE_CLIENT_ID is not configured" },
@@ -35,7 +34,7 @@ export const Route = createFileRoute("/api/auth/start")({
 
           const requestUrl = getRequestUrl()
           const redirectUri =
-            import.meta.env.VITE_OAUTH_REDIRECT_URI ??
+            OAUTH_REDIRECT_URI_OVERRIDE ??
             `${requestUrl.origin}/oauth/callback`
 
           const { url, codeVerifier } = yield* createAuthorizationUrlEffect({
