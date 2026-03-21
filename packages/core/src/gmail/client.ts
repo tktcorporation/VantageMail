@@ -416,6 +416,3 @@ export function listHistory(
   })
 }
 
-// ─── 型の再エクスポート（後方互換） ───
-
-export type { GmailThread, GmailMessage, GmailLabel, GmailSearchResult }

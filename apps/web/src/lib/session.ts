@@ -35,27 +35,17 @@ export interface AppSessionData {
 }
 
 /**
- * セッションの暗号化パスワード。
+ * セッション設定を構築する。
  *
- * GOOGLE_CLIENT_SECRET と同じく、サーバーサイドのシークレットとして管理する。
- * 未設定時はフォールバック値を使うが、本番では必ず SESSION_SECRET を設定すること。
+ * 背景: SESSION_SECRET は ConfigService 経由で注入される。
+ * process.env を直接参照せず、呼び出し元から password を受け取ることで
+ * 環境変数アクセスの Single Source of Truth を ConfigService に統一する。
+ *
+ * process.env.NODE_ENV は bundler/runtime が自動設定する特殊変数なので直接参照を許容する。
  */
-function getSessionPassword(): string {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("SESSION_SECRET must be set in production");
-    }
-    // 開発環境用フォールバック。本番では SESSION_SECRET を wrangler secret で設定する
-    return "vantagemail-dev-session-secret-min-32-chars!!";
-  }
-  return secret;
-}
-
-/** セッション設定（全サーバールートで共有） */
-export function getSessionConfig(): SessionConfig {
+export function getSessionConfig(password: string): SessionConfig {
   return {
-    password: getSessionPassword(),
+    password,
     name: "vantagemail-session",
     maxAge: 60 * 60 * 24 * 30, // 30日
     cookie: {

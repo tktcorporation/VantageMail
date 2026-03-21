@@ -36,50 +36,60 @@ export class SessionService extends Context.Tag("SessionService")<
    *
    * 背景: getSession / updateSession は TanStack Start のリクエストコンテキストに依存し、
    * サーバー関数・API ルートハンドラ内でのみ呼び出せる。
-   * この Layer はリクエストごとに Layer.succeed で構築され、
-   * makeAppLayer と合成して Effect に provide する。
+   * sessionSecret は ConfigService から注入され、process.env を直接参照しない。
+   *
+   * 呼び出し元: runtime.ts の makeAppLayer
    */
-  static live = Layer.succeed(SessionService, {
-    get: () =>
-      Effect.tryPromise({
-        try: async () => {
-          const session = await getSession<AppSessionData>(getSessionConfig())
-          return session.data
-        },
-        catch: (e) => new SessionError({ reason: String(e) }),
-      }),
-
-    update: (fn) =>
-      Effect.tryPromise({
-        try: () => updateSession<AppSessionData>(getSessionConfig(), fn),
-        catch: (e) => new SessionError({ reason: String(e) }),
-      }),
-
-    clear: () =>
-      Effect.tryPromise({
-        try: () =>
-          updateSession<AppSessionData>(getSessionConfig(), () => ({
-            userId: undefined,
-            dek: undefined,
-            codeVerifier: undefined,
-            accessTokenCache: undefined,
-          })),
-        catch: (e) => new SessionError({ reason: String(e) }),
-      }),
-
-    requireAuth: () =>
-      Effect.gen(function* () {
-        const data = yield* Effect.tryPromise({
+  static live = (sessionSecret: string) =>
+    Layer.succeed(SessionService, {
+      get: () =>
+        Effect.tryPromise({
           try: async () => {
-            const session = await getSession<AppSessionData>(getSessionConfig())
+            const session = await getSession<AppSessionData>(
+              getSessionConfig(sessionSecret),
+            )
             return session.data
           },
-          catch: (e) => new NotAuthenticated(),
-        })
-        if (!data.userId || !data.dek) {
-          return yield* Effect.fail(new NotAuthenticated())
-        }
-        return { userId: data.userId, dek: data.dek }
-      }),
-  })
+          catch: (e) => new SessionError({ reason: String(e) }),
+        }),
+
+      update: (fn) =>
+        Effect.tryPromise({
+          try: () =>
+            updateSession<AppSessionData>(getSessionConfig(sessionSecret), fn),
+          catch: (e) => new SessionError({ reason: String(e) }),
+        }),
+
+      clear: () =>
+        Effect.tryPromise({
+          try: () =>
+            updateSession<AppSessionData>(
+              getSessionConfig(sessionSecret),
+              () => ({
+                userId: undefined,
+                dek: undefined,
+                codeVerifier: undefined,
+                accessTokenCache: undefined,
+              }),
+            ),
+          catch: (e) => new SessionError({ reason: String(e) }),
+        }),
+
+      requireAuth: () =>
+        Effect.gen(function* () {
+          const data = yield* Effect.tryPromise({
+            try: async () => {
+              const session = await getSession<AppSessionData>(
+                getSessionConfig(sessionSecret),
+              )
+              return session.data
+            },
+            catch: () => new NotAuthenticated(),
+          })
+          if (!data.userId || !data.dek) {
+            return yield* Effect.fail(new NotAuthenticated())
+          }
+          return { userId: data.userId, dek: data.dek }
+        }),
+    })
 }
