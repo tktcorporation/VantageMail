@@ -9,15 +9,18 @@
  * 1. startAuth() → code_verifier生成 → Google認可画面にリダイレクト
  * 2. コールバック → URLから code を読み取り
  * 3. handleCallback() → CF Worker経由でトークン交換 → ユーザー情報取得 → アカウント登録
+ *
+ * Effect 統合: 各非同期操作を Effect パイプラインで記述し、
+ * Effect.runPromise で実行する。エラーハンドリングが統一される。
  */
 import { useState, useCallback, useEffect } from "react";
+import { Effect } from "effect";
 import {
-  createAuthorizationUrl,
-  exchangeCodeForTokens,
-  fetchUserInfo,
-  type OAuthConfig,
+  createAuthorizationUrlEffect,
+  exchangeCodeForTokensEffect,
+  fetchUserInfoEffect,
 } from "@vantagemail/core";
-import type { Account } from "@vantagemail/core";
+import type { OAuthConfig, Account } from "@vantagemail/core";
 
 /** アカウントに割り当てるカラーのプール */
 const ACCOUNT_COLORS = [
@@ -37,18 +40,22 @@ export function useOAuth({ oauthConfig, onAccountAdded, existingAccountCount }: 
 
   /**
    * OAuth認証フローを開始する。
-   * Google認可画面を新しいウィンドウ/タブで開く。
+   * Effect パイプラインで認可URL生成 → sessionStorage 保存 → リダイレクトを実行。
    */
   const startAuth = useCallback(async () => {
     setError(null);
     setIsAuthenticating(true);
 
-    try {
-      const { url, codeVerifier } = await createAuthorizationUrl(oauthConfig);
+    const program = Effect.gen(function* () {
+      const { url, codeVerifier } = yield* createAuthorizationUrlEffect(oauthConfig);
       // PKCE code_verifier をセッションに保存（コールバック時に使用）
       sessionStorage.setItem("vantagemail_code_verifier", codeVerifier);
       // 同じタブでリダイレクト
       window.location.href = url;
+    });
+
+    try {
+      await Effect.runPromise(program);
     } catch (err) {
       setError(err instanceof Error ? err.message : "認証の開始に失敗しました");
       setIsAuthenticating(false);
@@ -57,7 +64,8 @@ export function useOAuth({ oauthConfig, onAccountAdded, existingAccountCount }: 
 
   /**
    * OAuthコールバックを処理する。
-   * URLのクエリパラメータから authorization code を読み取り、トークン交換を行う。
+   * URLのクエリパラメータから authorization code を読み取り、
+   * Effect パイプラインでトークン交換 → ユーザー情報取得 → アカウント登録を行う。
    */
   const handleCallback = useCallback(async () => {
     const params = new URLSearchParams(window.location.search);
@@ -83,13 +91,13 @@ export function useOAuth({ oauthConfig, onAccountAdded, existingAccountCount }: 
 
     setIsAuthenticating(true);
 
-    try {
+    const program = Effect.gen(function* () {
       // トークン交換
-      const tokens = await exchangeCodeForTokens(oauthConfig, code, codeVerifier);
+      const tokens = yield* exchangeCodeForTokensEffect(oauthConfig, code, codeVerifier);
       sessionStorage.removeItem("vantagemail_code_verifier");
 
       // ユーザー情報取得
-      const userInfo = await fetchUserInfo(tokens.accessToken);
+      const userInfo = yield* fetchUserInfoEffect(tokens.accessToken);
 
       // アカウント作成
       const account: Account = {
@@ -106,6 +114,10 @@ export function useOAuth({ oauthConfig, onAccountAdded, existingAccountCount }: 
 
       // URLからパラメータをクリーン
       window.history.replaceState({}, "", window.location.pathname);
+    });
+
+    try {
+      await Effect.runPromise(program);
     } catch (err) {
       setError(err instanceof Error ? err.message : "トークン交換に失敗しました");
     } finally {

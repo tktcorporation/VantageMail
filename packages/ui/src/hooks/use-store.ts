@@ -18,6 +18,9 @@ import { createContext, useContext } from "react";
 import type { StoreApi } from "zustand";
 import type { Account, Thread } from "@vantagemail/core";
 
+// RuntimeContext を re-export（use-runtime.ts が正規の定義元）
+export { RuntimeContext, useRuntime } from "./use-runtime.js";
+
 /** ストアのインスタンスをReactツリーに注入するContext */
 export interface StoreContextValue {
   accountsStore: StoreApi<AccountsStore>;

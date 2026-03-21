@@ -20,6 +20,8 @@ export { PushConnectionManager };
 
 export interface Env {
   ALLOWED_ORIGINS: string;
+  // OAuth トークン交換・watch 再登録で使用
+  GOOGLE_CLIENT_SECRET?: string;
   // 以下は段階的に有効化（wrangler.toml のコメント解除に対応）
   PUSH_CONNECTIONS?: DurableObjectNamespace;
   SYNC_STATE?: KVNamespace;

@@ -189,6 +189,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@effect/schema':
+        specifier: 'catalog:'
+        version: 0.75.5(effect@3.21.0)
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.2.2(vite@6.4.1(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))
@@ -213,6 +216,9 @@ importers:
       dompurify:
         specifier: 'catalog:'
         version: 3.3.3
+      effect:
+        specifier: 'catalog:'
+        version: 3.21.0
       react:
         specifier: 'catalog:'
         version: 19.2.4

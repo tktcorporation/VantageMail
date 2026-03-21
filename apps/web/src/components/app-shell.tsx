@@ -7,9 +7,19 @@
  * アカウント削除もサーバーサイドの /api/accounts で処理する。
  * クライアントには秘密情報を一切保持しない。
  */
-import { App } from "@vantagemail/ui";
+import { App, RuntimeContext } from "@vantagemail/ui";
 import type { Account } from "@vantagemail/core";
 import { useCallback } from "react";
+import { ManagedRuntime, Layer } from "effect";
+
+/**
+ * Effect ManagedRuntime のシングルトンインスタンス。
+ *
+ * 背景: 現時点では Layer.empty で十分だが、将来的に HttpClient 等を追加する際に
+ * ここで Layer を構成できる。コンポーネントの外で生成し、再レンダリングで
+ * インスタンスが変わらないようにする。
+ */
+const runtime = ManagedRuntime.make(Layer.empty);
 
 interface AppShellProps {
   initialAccounts?: Account[];
@@ -57,10 +67,12 @@ export function AppShell({ initialAccounts }: AppShellProps) {
   }, []);
 
   return (
-    <App
-      onStartAuth={handleStartAuth}
-      onRemoveAccount={handleRemoveAccount}
-      initialAccounts={initialAccounts}
-    />
+    <RuntimeContext.Provider value={runtime}>
+      <App
+        onStartAuth={handleStartAuth}
+        onRemoveAccount={handleRemoveAccount}
+        initialAccounts={initialAccounts}
+      />
+    </RuntimeContext.Provider>
   );
 }
