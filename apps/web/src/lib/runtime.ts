@@ -59,13 +59,17 @@ export const handleEffect = <E>(
   Effect.runPromise(
     effect.pipe(
       Effect.provide(makeAppLayer(env)),
-      Effect.catchAll((error) =>
-        Effect.succeed(
-          Response.json(
-            { error: (error as { _tag?: string })._tag ?? "InternalError" },
-            { status: 500 },
-          ),
-        ),
-      ),
+      Effect.catchAll((error: unknown) => {
+        const tag =
+          typeof error === "object" &&
+          error !== null &&
+          "_tag" in error &&
+          typeof (error as Record<string, unknown>)._tag === "string"
+            ? ((error as Record<string, unknown>)._tag as string)
+            : "InternalError"
+        return Effect.succeed(
+          Response.json({ error: tag }, { status: 500 }),
+        )
+      }),
     ),
   )

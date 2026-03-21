@@ -31,7 +31,7 @@ export * from "./stores/threads.js"
 export {
   GmailClient,
   makeGmailClient,
-  GmailApiErrorLegacy,
+
   listThreads,
   getThread,
   modifyThread,

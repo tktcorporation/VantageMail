@@ -10,6 +10,7 @@ import { useAccounts } from "../hooks/use-store";
 import { useThreads } from "../hooks/use-store";
 import { useCallback, useEffect, useMemo } from "react";
 import { SearchBar } from "./search-bar";
+import type { Thread } from "@vantagemail/core";
 
 /** 相対時間表示（例: "3分前", "昨日"） */
 function formatRelativeTime(date: Date): string {
@@ -35,7 +36,7 @@ export function ThreadList() {
   const accounts = useAccounts((s) => s.accounts);
 
   const threadMap = useMemo(() => {
-    const map = new Map<string, { thread: ReturnType<typeof Object.values<Record<string, any>>>[number]; accountColor: string }>();
+    const map = new Map<string, { thread: Thread; accountColor: string }>();
     for (const account of accounts) {
       const threads = threadsByAccount[account.id];
       if (!threads) continue;
