@@ -1,5 +1,5 @@
 /**
- * Google OAuth 2.0 PKCE フローの実装。
+ * Google OAuth 2.0 PKCE フローの実装（Effect 版）。
  *
  * 背景: Gmail APIへのアクセスにはOAuth 2.0認証が必要。パブリッククライアント
  * （デスクトップ/Webアプリ）ではPKCEフローを使い、client_secretなしで
@@ -12,9 +12,16 @@
  * 3. ユーザーが認可
  * 4. コールバックでauthorization_codeを受け取る
  * 5. CF Workerのプロキシ経由でcode → トークン交換
+ *
+ * ブラウザの crypto API を使用するため、tsconfig の DOM lib が必要。
  */
 
-import type { OAuthTokens } from "../types/account";
+import { Effect } from "effect"
+import { Schema } from "@effect/schema"
+import type { OAuthTokens } from "../schemas/account.js"
+import { OAuthTokenResponseSchema, GoogleUserInfoSchema } from "../schemas/gmail-api.js"
+import type { GoogleUserInfo } from "../schemas/gmail-api.js"
+import { TokenExchangeError } from "../errors.js"
 
 /**
  * Gmail APIに必要なOAuthスコープ。
@@ -32,30 +39,21 @@ const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.labels",
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
-];
+]
 
-const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
-const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
-const GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
+const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+const GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 export interface OAuthConfig {
-  clientId: string;
-  redirectUri: string;
+  clientId: string
+  redirectUri: string
   /**
    * OAuth プロキシの基底URL。
    *
    * 省略時は同一オリジンの /api/oauth/* を使用する（TanStack Start サーバールート）。
    * 別オリジンの Worker を使う場合のみ設定する（例: "https://api.example.com"）。
    */
-  proxyBaseUrl?: string;
-}
-
-/** ユーザーのGoogleプロフィール情報 */
-export interface GoogleUserInfo {
-  id: string;
-  email: string;
-  name: string;
-  picture?: string;
+  proxyBaseUrl?: string
 }
 
 /**
@@ -66,28 +64,40 @@ export interface GoogleUserInfo {
  * 認可リクエスト時にchallengeを、トークン交換時にverifierを送ることで、
  * 認可コードの横取り攻撃を防ぐ。
  */
-async function generatePKCEPair(): Promise<{
-  codeVerifier: string;
-  codeChallenge: string;
-}> {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  const codeVerifier = base64UrlEncode(array);
+function generatePKCEPair(): Effect.Effect<
+  { codeVerifier: string; codeChallenge: string },
+  TokenExchangeError
+> {
+  return Effect.tryPromise({
+    try: async () => {
+      const array = new Uint8Array(32)
+      crypto.getRandomValues(array)
+      const codeVerifier = base64UrlEncode(array)
 
-  const encoder = new TextEncoder();
-  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(codeVerifier));
-  const codeChallenge = base64UrlEncode(new Uint8Array(digest));
+      const encoder = new TextEncoder()
+      const digest = await crypto.subtle.digest(
+        "SHA-256",
+        encoder.encode(codeVerifier),
+      )
+      const codeChallenge = base64UrlEncode(new Uint8Array(digest))
 
-  return { codeVerifier, codeChallenge };
+      return { codeVerifier, codeChallenge }
+    },
+    catch: (error) =>
+      new TokenExchangeError({
+        status: 0,
+        details: `PKCE pair generation failed: ${String(error)}`,
+      }),
+  })
 }
 
 /** Base64urlエンコード（RFC 7636準拠） */
 function base64UrlEncode(buffer: Uint8Array): string {
-  let str = "";
+  let str = ""
   for (const byte of buffer) {
-    str += String.fromCharCode(byte);
+    str += String.fromCharCode(byte)
   }
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
 }
 
 /**
@@ -96,27 +106,29 @@ function base64UrlEncode(buffer: Uint8Array): string {
  *
  * @returns 認可URLとPKCE code_verifier（トークン交換時に必要なのでセッションに保存すること）
  */
-export async function createAuthorizationUrl(
+export function createAuthorizationUrl(
   config: OAuthConfig,
-): Promise<{ url: string; codeVerifier: string }> {
-  const { codeVerifier, codeChallenge } = await generatePKCEPair();
+): Effect.Effect<{ url: string; codeVerifier: string }, TokenExchangeError> {
+  return Effect.gen(function* () {
+    const { codeVerifier, codeChallenge } = yield* generatePKCEPair()
 
-  const params = new URLSearchParams({
-    client_id: config.clientId,
-    redirect_uri: config.redirectUri,
-    response_type: "code",
-    scope: GMAIL_SCOPES.join(" "),
-    code_challenge: codeChallenge,
-    code_challenge_method: "S256",
-    access_type: "offline",
-    // 毎回リフレッシュトークンを発行させる
-    prompt: "consent",
-  });
+    const params = new URLSearchParams({
+      client_id: config.clientId,
+      redirect_uri: config.redirectUri,
+      response_type: "code",
+      scope: GMAIL_SCOPES.join(" "),
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
+      access_type: "offline",
+      // 毎回リフレッシュトークンを発行させる
+      prompt: "consent",
+    })
 
-  return {
-    url: `${GOOGLE_AUTH_ENDPOINT}?${params.toString()}`,
-    codeVerifier,
-  };
+    return {
+      url: `${GOOGLE_AUTH_ENDPOINT}?${params.toString()}`,
+      codeVerifier,
+    }
+  })
 }
 
 /**
@@ -126,102 +138,207 @@ export async function createAuthorizationUrl(
  * サーバー側で client_secret を付与するため、クライアントに秘密情報は不要。
  * proxyBaseUrl が設定されている場合はそのオリジンの API を使用する。
  */
-export async function exchangeCodeForTokens(
+export function exchangeCodeForTokens(
   config: OAuthConfig,
   code: string,
   codeVerifier: string,
-): Promise<OAuthTokens> {
-  const tokenUrl = `${config.proxyBaseUrl ?? ""}/api/oauth/token`;
+): Effect.Effect<OAuthTokens, TokenExchangeError> {
+  return Effect.gen(function* () {
+    const tokenUrl = `${config.proxyBaseUrl ?? ""}/api/oauth/token`
 
-  const body = new URLSearchParams({
-    client_id: config.clientId,
-    code,
-    code_verifier: codeVerifier,
-    grant_type: "authorization_code",
-    redirect_uri: config.redirectUri,
-  });
+    const body = new URLSearchParams({
+      client_id: config.clientId,
+      code,
+      code_verifier: codeVerifier,
+      grant_type: "authorization_code",
+      redirect_uri: config.redirectUri,
+    })
 
-  const response = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+    const response = yield* Effect.tryPromise({
+      try: () =>
+        fetch(tokenUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: body.toString(),
+        }),
+      catch: (error) =>
+        new TokenExchangeError({
+          status: 0,
+          details: `Token exchange fetch failed: ${String(error)}`,
+        }),
+    })
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`トークン交換に失敗: ${response.status} ${error}`);
-  }
+    if (!response.ok) {
+      const errorText = yield* Effect.tryPromise({
+        try: () => response.text(),
+        catch: () =>
+          new TokenExchangeError({
+            status: response.status,
+            details: "Failed to read error response body",
+          }),
+      })
+      return yield* Effect.fail(
+        new TokenExchangeError({
+          status: response.status,
+          details: `トークン交換に失敗: ${errorText}`,
+        }),
+      )
+    }
 
-  const data = (await response.json()) as {
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-    scope: string;
-  };
-  return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresAt: Date.now() + data.expires_in * 1000,
-    scope: data.scope,
-  };
+    const json = yield* Effect.tryPromise({
+      try: () => response.json(),
+      catch: (error) =>
+        new TokenExchangeError({
+          status: response.status,
+          details: `JSON parse error: ${String(error)}`,
+        }),
+    })
+
+    const data = yield* Schema.decodeUnknown(OAuthTokenResponseSchema)(json).pipe(
+      Effect.mapError(
+        (parseError) =>
+          new TokenExchangeError({
+            status: response.status,
+            details: `Token response validation failed: ${String(parseError)}`,
+          }),
+      ),
+    )
+
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? "",
+      expiresAt: Date.now() + data.expires_in * 1000,
+      scope: data.scope,
+    }
+  })
 }
 
 /**
  * リフレッシュトークンを使ってアクセストークンを更新する。
  * トークンの有効期限切れ時に自動的に呼ばれる。
  */
-export async function refreshAccessToken(
+export function refreshAccessToken(
   config: OAuthConfig,
   refreshToken: string,
-): Promise<OAuthTokens> {
-  const refreshUrl = `${config.proxyBaseUrl ?? ""}/api/oauth/refresh`;
+): Effect.Effect<OAuthTokens, TokenExchangeError> {
+  return Effect.gen(function* () {
+    const refreshUrl = `${config.proxyBaseUrl ?? ""}/api/oauth/refresh`
 
-  const body = new URLSearchParams({
-    client_id: config.clientId,
-    refresh_token: refreshToken,
-    grant_type: "refresh_token",
-  });
+    const body = new URLSearchParams({
+      client_id: config.clientId,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    })
 
-  const response = await fetch(refreshUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+    const response = yield* Effect.tryPromise({
+      try: () =>
+        fetch(refreshUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: body.toString(),
+        }),
+      catch: (error) =>
+        new TokenExchangeError({
+          status: 0,
+          details: `Token refresh fetch failed: ${String(error)}`,
+        }),
+    })
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`トークン更新に失敗: ${response.status} ${error}`);
-  }
+    if (!response.ok) {
+      const errorText = yield* Effect.tryPromise({
+        try: () => response.text(),
+        catch: () =>
+          new TokenExchangeError({
+            status: response.status,
+            details: "Failed to read error response body",
+          }),
+      })
+      return yield* Effect.fail(
+        new TokenExchangeError({
+          status: response.status,
+          details: `トークン更新に失敗: ${errorText}`,
+        }),
+      )
+    }
 
-  const data = (await response.json()) as {
-    access_token: string;
-    refresh_token?: string;
-    expires_in: number;
-    scope: string;
-  };
-  return {
-    accessToken: data.access_token,
-    // リフレッシュ時には新しいrefresh_tokenが返らない場合がある
-    refreshToken: data.refresh_token ?? refreshToken,
-    expiresAt: Date.now() + data.expires_in * 1000,
-    scope: data.scope,
-  };
+    const json = yield* Effect.tryPromise({
+      try: () => response.json(),
+      catch: (error) =>
+        new TokenExchangeError({
+          status: response.status,
+          details: `JSON parse error: ${String(error)}`,
+        }),
+    })
+
+    const data = yield* Schema.decodeUnknown(OAuthTokenResponseSchema)(json).pipe(
+      Effect.mapError(
+        (parseError) =>
+          new TokenExchangeError({
+            status: response.status,
+            details: `Token response validation failed: ${String(parseError)}`,
+          }),
+      ),
+    )
+
+    return {
+      accessToken: data.access_token,
+      // リフレッシュ時には新しいrefresh_tokenが返らない場合がある
+      refreshToken: data.refresh_token ?? refreshToken,
+      expiresAt: Date.now() + data.expires_in * 1000,
+      scope: data.scope,
+    }
+  })
 }
 
 /**
  * Googleユーザー情報を取得する。
  * OAuth認証後にアカウントのdisplayNameとavatarUrlを設定するために使用。
  */
-export async function fetchUserInfo(
+export function fetchUserInfo(
   accessToken: string,
-): Promise<GoogleUserInfo> {
-  const response = await fetch(GOOGLE_USERINFO_ENDPOINT, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+): Effect.Effect<GoogleUserInfo, TokenExchangeError> {
+  return Effect.gen(function* () {
+    const response = yield* Effect.tryPromise({
+      try: () =>
+        fetch(GOOGLE_USERINFO_ENDPOINT, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }),
+      catch: (error) =>
+        new TokenExchangeError({
+          status: 0,
+          details: `UserInfo fetch failed: ${String(error)}`,
+        }),
+    })
 
-  if (!response.ok) {
-    throw new Error(`ユーザー情報の取得に失敗: ${response.status}`);
-  }
+    if (!response.ok) {
+      return yield* Effect.fail(
+        new TokenExchangeError({
+          status: response.status,
+          details: `ユーザー情報の取得に失敗: ${response.status}`,
+        }),
+      )
+    }
 
-  return response.json();
+    const json = yield* Effect.tryPromise({
+      try: () => response.json(),
+      catch: (error) =>
+        new TokenExchangeError({
+          status: response.status,
+          details: `JSON parse error: ${String(error)}`,
+        }),
+    })
+
+    return yield* Schema.decodeUnknown(GoogleUserInfoSchema)(json).pipe(
+      Effect.mapError(
+        (parseError) =>
+          new TokenExchangeError({
+            status: response.status,
+            details: `UserInfo validation failed: ${String(parseError)}`,
+          }),
+      ),
+    )
+  })
 }
+
+// Re-export types for backward compatibility
+export type { OAuthConfig as OAuthConfigType, GoogleUserInfo as GoogleUserInfoType }

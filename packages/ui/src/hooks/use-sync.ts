@@ -4,10 +4,43 @@
  * Triggers initial thread fetch for all connected accounts after mount.
  * Calls the server-side /api/threads endpoint which handles token management,
  * then populates the threads store with the results.
+ *
+ * Schema.decodeUnknownSync を使って API レスポンスの ISO 日時文字列を
+ * Date オブジェクトにデコードする。手動の型アサーション + new Date() を排除。
  */
 import { useEffect, useRef } from "react";
+import { Schema } from "@effect/schema";
 import type { StoreApi } from "zustand";
-import type { AccountsStore, ThreadsStore, Thread } from "@vantagemail/core";
+import type { AccountsStore, ThreadsStore } from "@vantagemail/core";
+
+/**
+ * /api/threads レスポンス用のスキーマ。
+ *
+ * 背景: API レスポンスでは lastMessageAt / snoozedUntil が ISO 文字列で返るため、
+ * DateFromString で自動的に Date へデコードする。
+ * ThreadSchema (DateFromSelf) とは異なり、JSON シリアライズ境界のデコードに使う。
+ */
+const ApiThreadSchema = Schema.Struct({
+  id: Schema.String,
+  accountId: Schema.String,
+  subject: Schema.String,
+  snippet: Schema.String,
+  lastMessageAt: Schema.DateFromString,
+  participants: Schema.Array(Schema.String),
+  messageCount: Schema.Number,
+  labelIds: Schema.Array(Schema.String),
+  isUnread: Schema.Boolean,
+  isStarred: Schema.Boolean,
+  snoozedUntil: Schema.optional(Schema.DateFromString),
+  isPinned: Schema.Boolean,
+});
+
+/** /api/threads のレスポンス全体 */
+const ApiThreadsResponseSchema = Schema.Struct({
+  threads: Schema.optional(Schema.Array(ApiThreadSchema)),
+});
+
+const decodeThreadsResponse = Schema.decodeUnknownSync(ApiThreadsResponseSchema);
 
 interface UseSyncOptions {
   accountsStore: StoreApi<AccountsStore>;
@@ -42,15 +75,11 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
             console.error(`Failed to fetch threads for ${account.email}:`, res.status);
             return;
           }
-          // API レスポンスでは lastMessageAt が ISO 文字列で返るため、
-          // Omit<Thread, "lastMessageAt"> & { lastMessageAt: string } として受け取る
-          const data = (await res.json()) as {
-            threads?: (Omit<Thread, "lastMessageAt"> & { lastMessageAt: string })[];
-          };
-          const threads: Thread[] = (data.threads ?? []).map((t) => ({
-            ...t,
-            lastMessageAt: new Date(t.lastMessageAt),
-          }));
+          const data = await res.json();
+          const { threads: rawThreads } = decodeThreadsResponse(data);
+          // Schema.decodeUnknownSync は readonly 配列を返すため、
+          // ストアの mutable Thread[] に合わせてスプレッドでコピーする。
+          const threads = [...(rawThreads ?? [])];
           threadsStore.getState().setThreads(account.id, threads);
         } catch (err) {
           console.error(`Sync error for ${account.email}:`, err);

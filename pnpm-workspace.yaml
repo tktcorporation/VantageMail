@@ -5,6 +5,8 @@ packages:
 
 catalog:
   '@cloudflare/vite-plugin': ^1.30.0
+  '@effect/eslint-plugin': ^0.3.2
+  '@effect/schema': ^0.75.5
   '@tailwindcss/vite': ^4.2.2
   '@tanstack/react-router': ^1.168.1
   '@tanstack/react-start': ^1.167.1
@@ -16,7 +18,9 @@ catalog:
   "@types/react": ^19
   "@types/react-dom": ^19
   dompurify: ^3.3.3
+  effect: ^3.21.0
   jsdom: ^29.0.1
+  oxlint: ^1.56.0
   react: ^19.1.0
   react-dom: ^19.1.0
   tailwindcss: ^4.2.2

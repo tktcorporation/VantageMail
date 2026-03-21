@@ -16,6 +16,7 @@
     "@tanstack/react-start": "catalog:",
     "@tanstack/router-plugin": "catalog:",
     "@vantagemail/core": "workspace:*",
+    "effect": "catalog:",
     "@vantagemail/ui": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",

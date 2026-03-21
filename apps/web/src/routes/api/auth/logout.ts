@@ -5,24 +5,26 @@
  * D1 のユーザーデータやアカウントデータは削除しない（次回ログイン時に復元するため）。
  * セッションの DEK が消えることで、D1 のデータにアクセスできなくなる。
  */
-import { createFileRoute } from "@tanstack/react-router";
-import { updateSession } from "@tanstack/react-start/server";
-import { getSessionConfig, type AppSessionData } from "~/lib/session";
+import { createFileRoute } from "@tanstack/react-router"
+import { Effect } from "effect"
+import { SessionService } from "~/lib/services/SessionService.ts"
+import { getEnv, handleEffect } from "~/lib/runtime.ts"
 
 export const Route = createFileRoute("/api/auth/logout")({
   server: {
     handlers: {
       POST: async () => {
-        // セッションを空にする（Cookie は残るが中身が空になる）
-        await updateSession<AppSessionData>(getSessionConfig(), () => ({
-          userId: undefined,
-          dek: undefined,
-          codeVerifier: undefined,
-          accessTokenCache: undefined,
-        }));
+        const env = await getEnv()
 
-        return Response.json({ ok: true });
+        const effect = Effect.gen(function* () {
+          const session = yield* SessionService
+          // セッションを空にする（Cookie は残るが中身が空になる）
+          yield* session.clear()
+          return Response.json({ ok: true })
+        })
+
+        return handleEffect(effect, env)
       },
     },
   },
-});
+})

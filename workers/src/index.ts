@@ -20,6 +20,8 @@ export { PushConnectionManager };
 
 export interface Env {
   ALLOWED_ORIGINS: string;
+  // OAuth トークン交換・watch 再登録で使用
+  GOOGLE_CLIENT_SECRET?: string;
   // 以下は段階的に有効化（wrangler.toml のコメント解除に対応）
   PUSH_CONNECTIONS?: DurableObjectNamespace;
   SYNC_STATE?: KVNamespace;
@@ -60,7 +62,7 @@ export default {
    * 毎分: スヌーズ・送信予約のジョブ処理
    * 6日ごと: Gmail watch() の再登録
    */
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
     // 毎分のジョブ処理
     ctx.waitUntil(processScheduledJobs(env, ctx));
     // 6日ごとの watch 再登録（Cron の分離はイベント内で判定）

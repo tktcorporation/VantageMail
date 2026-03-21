@@ -4,9 +4,14 @@
  * 背景: Gmail APIのレスポンスは生のMIME構造を含む複雑な形式。
  * UIコンポーネントが扱いやすい Thread / Message 型に変換する。
  * この変換層により、将来的に別のメールプロバイダ対応が容易になる。
+ *
+ * 変換自体は純粋関数であり失敗しないため、Effect でラップする必要はない。
+ * Schema 版の GmailThread / GmailMessage 型と、旧 types/ の型の両方を受け付ける
+ * （構造的に同じ形状のため型互換）。
  */
-import type { GmailThread, GmailMessage, GmailMessagePart } from "../types/gmail";
-import type { Thread, Message, Attachment } from "../types/account";
+import type { GmailThread, GmailMessage, GmailMessagePart } from "../schemas/gmail-api.js"
+import type { Thread } from "../schemas/thread.js"
+import type { Message, Attachment } from "../schemas/message.js"
 
 /**
  * GmailThreadをアプリ内のThread型に変換する。
@@ -41,7 +46,7 @@ export function adaptGmailThread(
     lastMessageAt: new Date(Number(latestMessage?.internalDate ?? Date.now())),
     participants: [...participants],
     messageCount: messages.length,
-    labelIds,
+    labelIds: [...labelIds],
     isUnread: labelIds.includes("UNREAD"),
     isStarred: labelIds.includes("STARRED"),
     isPinned: false,
@@ -80,7 +85,7 @@ export function adaptGmailMessage(
     bodyHtml: html,
     bodyText: text,
     date: new Date(Number(gmailMessage.internalDate)),
-    labelIds: gmailMessage.labelIds,
+    labelIds: [...gmailMessage.labelIds],
     isUnread: gmailMessage.labelIds.includes("UNREAD"),
     isStarred: gmailMessage.labelIds.includes("STARRED"),
     attachments,
@@ -92,7 +97,8 @@ export function adaptGmailMessage(
 /** メッセージヘッダーから値を抽出する */
 function extractHeader(message: GmailMessage | undefined, name: string): string | undefined {
   if (!message?.payload?.headers) return undefined;
-  return message.payload.headers.find(
+  const headers = message.payload.headers as ReadonlyArray<{ name: string; value: string }>;
+  return headers.find(
     (h) => h.name.toLowerCase() === name.toLowerCase(),
   )?.value;
 }
