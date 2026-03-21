@@ -56,12 +56,16 @@ export class ConfigService extends Context.Tag("ConfigService")<
         const requireKey = (key: string) => {
           const value = get(key)
           if (value) return Effect.succeed(value)
+          // デバッグ: env の keys とその型を出力
+          const envKeys = Object.keys(env)
+          const envTypes = envKeys.map(k => `${k}:${typeof (env as Record<string, unknown>)[k]}`)
+          const rawVal = (env as Record<string, unknown>)[key]
           console.error(
             `[ConfigService] Missing key: ${key}`,
-            `| env keys: [${Object.keys(env).join(", ")}]`,
-            `| process.env sample: [${Object.keys(process.env).filter(k => !k.startsWith("npm_")).slice(0, 10).join(", ")}]`,
+            `| raw value: ${JSON.stringify(rawVal)} (type: ${typeof rawVal})`,
+            `| env: [${envTypes.join(", ")}]`,
           )
-          return Effect.fail(new ConfigMissingError({ key }))
+          return Effect.fail(new ConfigMissingError({ key, envKeys: envKeys.join(",") } as { key: string }))
         }
 
         const allowedOriginsRaw = get("ALLOWED_ORIGINS") ?? ""
