@@ -27,12 +27,18 @@ catalogs:
     '@testing-library/react':
       specifier: ^16.3.2
       version: 16.3.2
+    '@types/dompurify':
+      specifier: ^3.2.0
+      version: 3.2.0
     '@types/react':
       specifier: ^19
       version: 19.2.14
     '@types/react-dom':
       specifier: ^19
       version: 19.2.3
+    dompurify:
+      specifier: ^3.3.3
+      version: 3.3.3
     jsdom:
       specifier: ^29.0.1
       version: 29.0.1
@@ -123,7 +129,7 @@ importers:
         version: '@voidzero-dev/vite-plus-core@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3)'
       vite-plus:
         specifier: 'catalog:'
-        version: 0.1.13(esbuild@0.27.3)(jiti@2.6.1)(jsdom@29.0.1)(tsx@4.21.0)(typescript@5.9.3)(vite@6.4.1(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))
+        version: 0.1.13(@voidzero-dev/vite-plus-core@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3))(esbuild@0.27.3)(jiti@2.6.1)(jsdom@29.0.1)(tsx@4.21.0)(typescript@5.9.3)
       vite-tsconfig-paths:
         specifier: 'catalog:'
         version: 6.1.1(@voidzero-dev/vite-plus-core@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3))(typescript@5.9.3)
@@ -167,6 +173,9 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      dompurify:
+        specifier: 'catalog:'
+        version: 3.3.3
       react:
         specifier: 'catalog:'
         version: 19.2.4
@@ -186,6 +195,9 @@ importers:
       '@testing-library/react':
         specifier: 'catalog:'
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@types/dompurify':
+        specifier: 'catalog:'
+        version: 3.2.0
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.14
@@ -1963,6 +1975,10 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
+  '@types/dompurify@3.2.0':
+    resolution: {integrity: sha512-Fgg31wv9QbLDA0SpTOXO3MaxySc4DKGLi8sna4/Utjo4r3ZRPdCt4UQee8BWr+Q5z21yifghREPJGYaEOEIACg==}
+    deprecated: This is a stub types definition. dompurify provides its own type definitions, so you do not need this installed.
+
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
@@ -1982,6 +1998,9 @@ packages:
 
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
+
+  '@types/trusted-types@2.0.7':
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
@@ -2292,6 +2311,9 @@ packages:
   domhandler@5.0.3:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
+
+  dompurify@3.3.3:
+    resolution: {integrity: sha512-Oj6pzI2+RqBfFG+qOaOLbFXLQ90ARpcGG6UePL82bJLtdsa6CYJD7nmiU8MW9nQNOtCHV3lZ/Bzq1X0QYbBZCA==}
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
@@ -4612,6 +4634,10 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
+  '@types/dompurify@3.2.0':
+    dependencies:
+      dompurify: 3.3.3
+
   '@types/estree@1.0.8': {}
 
   '@types/linkify-it@5.0.0': {}
@@ -4630,6 +4656,9 @@ snapshots:
   '@types/react@19.2.14':
     dependencies:
       csstype: 3.2.3
+
+  '@types/trusted-types@2.0.7':
+    optional: true
 
   '@types/use-sync-external-store@0.0.6': {}
 
@@ -4669,6 +4698,45 @@ snapshots:
 
   '@voidzero-dev/vite-plus-linux-x64-gnu@0.1.13':
     optional: true
+
+  '@voidzero-dev/vite-plus-test@0.1.13(@voidzero-dev/vite-plus-core@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3))(esbuild@0.27.3)(jiti@2.6.1)(jsdom@29.0.1)(tsx@4.21.0)(typescript@5.9.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      '@types/chai': 5.2.3
+      '@voidzero-dev/vite-plus-core': 0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3)
+      es-module-lexer: 1.7.0
+      obug: 2.1.1
+      pixelmatch: 7.1.0
+      pngjs: 7.0.0
+      sirv: 3.0.2
+      std-env: 4.0.0
+      tinybench: 2.9.0
+      tinyexec: 1.0.4
+      tinyglobby: 0.2.15
+      vite: '@voidzero-dev/vite-plus-core@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3)'
+      ws: 8.19.0
+    optionalDependencies:
+      jsdom: 29.0.1
+    transitivePeerDependencies:
+      - '@arethetypeswrong/core'
+      - '@tsdown/css'
+      - '@tsdown/exe'
+      - '@vitejs/devtools'
+      - bufferutil
+      - esbuild
+      - jiti
+      - less
+      - publint
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - typescript
+      - unplugin-unused
+      - utf-8-validate
+      - yaml
 
   '@voidzero-dev/vite-plus-test@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(jsdom@29.0.1)(tsx@4.21.0)(typescript@5.9.3)(vite@6.4.1(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0))':
     dependencies:
@@ -4899,6 +4967,10 @@ snapshots:
   domhandler@5.0.3:
     dependencies:
       domelementtype: 2.3.0
+
+  dompurify@3.3.3:
+    optionalDependencies:
+      '@types/trusted-types': 2.0.7
 
   domutils@3.2.2:
     dependencies:
@@ -5703,6 +5775,52 @@ snapshots:
   use-sync-external-store@1.6.0(react@19.2.4):
     dependencies:
       react: 19.2.4
+
+  vite-plus@0.1.13(@voidzero-dev/vite-plus-core@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3))(esbuild@0.27.3)(jiti@2.6.1)(jsdom@29.0.1)(tsx@4.21.0)(typescript@5.9.3):
+    dependencies:
+      '@oxc-project/types': 0.120.0
+      '@voidzero-dev/vite-plus-core': 0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3)
+      '@voidzero-dev/vite-plus-test': 0.1.13(@voidzero-dev/vite-plus-core@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(typescript@5.9.3))(esbuild@0.27.3)(jiti@2.6.1)(jsdom@29.0.1)(tsx@4.21.0)(typescript@5.9.3)
+      cac: 7.0.0
+      cross-spawn: 7.0.6
+      oxfmt: 0.41.0
+      oxlint: 1.56.0(oxlint-tsgolint@0.17.1)
+      oxlint-tsgolint: 0.17.1
+      picocolors: 1.1.1
+    optionalDependencies:
+      '@voidzero-dev/vite-plus-darwin-arm64': 0.1.13
+      '@voidzero-dev/vite-plus-darwin-x64': 0.1.13
+      '@voidzero-dev/vite-plus-linux-arm64-gnu': 0.1.13
+      '@voidzero-dev/vite-plus-linux-x64-gnu': 0.1.13
+      '@voidzero-dev/vite-plus-win32-arm64-msvc': 0.1.13
+      '@voidzero-dev/vite-plus-win32-x64-msvc': 0.1.13
+    transitivePeerDependencies:
+      - '@arethetypeswrong/core'
+      - '@edge-runtime/vm'
+      - '@opentelemetry/api'
+      - '@tsdown/css'
+      - '@tsdown/exe'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - '@vitest/ui'
+      - bufferutil
+      - esbuild
+      - happy-dom
+      - jiti
+      - jsdom
+      - less
+      - publint
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - typescript
+      - unplugin-unused
+      - utf-8-validate
+      - vite
+      - yaml
 
   vite-plus@0.1.13(esbuild@0.27.3)(jiti@2.6.1)(jsdom@29.0.1)(tsx@4.21.0)(typescript@5.9.3)(vite@6.4.1(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)):
     dependencies:

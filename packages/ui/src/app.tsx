@@ -9,6 +9,7 @@ import { useCallback, useMemo } from "react";
 import type { Account } from "@vantagemail/core";
 import { StoreContext, createStores, useStoreApis } from "./hooks/use-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
+import { useSync } from "./hooks/use-sync";
 import { AppLayout } from "./layouts/app-layout";
 import { Sidebar } from "./components/sidebar";
 import { ThreadList } from "./components/thread-list";
@@ -47,6 +48,8 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
   const { threadsStore, accountsStore } = useStoreApis();
 
   useKeyboardShortcuts({ threadsStore });
+  // Mount 時に全アカウントのスレッドを Gmail API から取得
+  useSync({ accountsStore, threadsStore });
 
   const handleAddAccount = useCallback(() => {
     if (onStartAuth) {
