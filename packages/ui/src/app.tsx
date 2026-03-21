@@ -7,19 +7,19 @@
  *
  * showSettings が true のとき、右ペインに AccountSettings を表示する。
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Account } from "@vantagemail/core";
 import { StoreContext, createStores, useStoreApis } from "./hooks/use-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
 import { useSync } from "./hooks/use-sync";
-import { AppLayout } from "./layouts/app-layout";
+import { AppLayout, type MobileView } from "./layouts/app-layout";
 import { Sidebar } from "./components/sidebar";
 import { ThreadList } from "./components/thread-list";
 import { ThreadView } from "./components/thread-view";
 import { AccountSettings } from "./components/account-settings";
 import { CommandPalette } from "./components/command-palette";
 import { Onboarding } from "./components/onboarding";
-import { useAccounts } from "./hooks/use-store";
+import { useAccounts, useThreads } from "./hooks/use-store";
 
 export interface AppProps {
   /**
@@ -52,7 +52,17 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
 }) {
   const { threadsStore, accountsStore } = useStoreApis();
   const [showSettings, setShowSettings] = useState(false);
+  const [mobileView, setMobileView] = useState<MobileView>("list");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const accounts = useAccounts((s) => s.accounts);
+  const selectedThreadId = useThreads((s) => s.selectedThreadId);
+
+  // スレッド選択時にモバイルでは詳細画面に自動遷移
+  useEffect(() => {
+    if (selectedThreadId) {
+      setMobileView("detail");
+    }
+  }, [selectedThreadId]);
 
   useKeyboardShortcuts({ threadsStore });
   // Mount 時に全アカウントのスレッドを Gmail API から取得
@@ -80,7 +90,19 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
 
   const handleToggleSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
+    // モバイルで設定を開くときは詳細ペインに切り替え
+    setMobileView("detail");
   }, []);
+
+  /** モバイルで詳細画面からリストに戻る */
+  const handleMobileBack = useCallback(() => {
+    setMobileView("list");
+    threadsStore.getState().selectThread(null);
+    setShowSettings(false);
+  }, [threadsStore]);
+
+  const handleOpenSidebar = useCallback(() => setIsSidebarOpen(true), []);
+  const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
   // アカウント未登録時はオンボーディング画面を表示
   if (accounts.length === 0) {
@@ -90,23 +112,29 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
   return (
     <>
       <AppLayout
+        mobileView={mobileView}
+        isSidebarOpen={isSidebarOpen}
+        onCloseSidebar={handleCloseSidebar}
         sidebar={
           <Sidebar
             onAddAccount={handleAddAccount}
             onRemoveAccount={handleRemoveAccount}
-            onToggleSettings={handleToggleSettings}
+            onToggleSettings={() => { handleToggleSettings(); handleCloseSidebar(); }}
             isSettingsActive={showSettings}
           />
         }
-        threadList={<ThreadList />}
+        threadList={
+          <ThreadList onOpenSidebar={handleOpenSidebar} />
+        }
         threadView={
           showSettings ? (
             <AccountSettings
               onAddAccount={handleAddAccount}
               onRemoveAccount={handleRemoveAccount}
+              onBack={handleMobileBack}
             />
           ) : (
-            <ThreadView />
+            <ThreadView onBack={handleMobileBack} />
           )
         }
       />

@@ -176,7 +176,12 @@ function CategoryCard({
   );
 }
 
-export function ThreadList() {
+interface ThreadListProps {
+  /** モバイルでサイドバーを開くコールバック */
+  onOpenSidebar?: () => void;
+}
+
+export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
   const visibleThreadIds = useThreads((s) => s.visibleThreadIds);
   const threadsByAccount = useThreads((s) => s.threadsByAccount);
   const selectedThreadId = useThreads((s) => s.selectedThreadId);
@@ -289,9 +294,24 @@ export function ThreadList() {
       {/* ヘッダー + 検索バー */}
       <div className="px-3 py-2 border-b border-[var(--color-border-light)] flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-[13px]">
+          <span className="flex items-center gap-2 font-semibold text-[13px]">
+            {/* モバイル: ハンバーガーメニューボタン */}
+            {onOpenSidebar && (
+              <button
+                type="button"
+                onClick={onOpenSidebar}
+                className="md:hidden flex items-center justify-center w-7 h-7 border-none bg-transparent cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-text)] rounded hover:bg-[var(--color-bg-hover)] transition-colors"
+                aria-label="メニューを開く"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+            )}
             {CATEGORY_DISPLAY_NAMES[activeCategory]}
-            <span className="ml-2 text-[var(--color-text-secondary)] font-normal">
+            <span className="text-[var(--color-text-secondary)] font-normal">
               {visibleThreadIds.length}
             </span>
           </span>
