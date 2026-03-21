@@ -165,9 +165,9 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
         ))}
       </nav>
 
-      {/* フッター: 設定 + アカウント追加 */}
-      <div className="px-4 py-3 border-t border-[var(--color-border-light)] flex flex-col gap-2">
-        {onToggleSettings && (
+      {/* フッター: 設定（アカウント追加は設定画面に集約） */}
+      {onToggleSettings && (
+        <div className="px-4 py-3 border-t border-[var(--color-border-light)]">
           <button
             type="button"
             onClick={onToggleSettings}
@@ -178,22 +178,14 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
                 : "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
             }`}
           >
-            {/* ギアアイコン（SVGインライン） */}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
             <span>設定</span>
           </button>
-        )}
-        <button
-          type="button"
-          onClick={onAddAccount}
-          className="w-full py-2 bg-transparent border border-dashed border-[var(--color-border)] rounded-md cursor-pointer text-[13px] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
-        >
-          + アカウントを追加
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

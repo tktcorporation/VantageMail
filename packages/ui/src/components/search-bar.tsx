@@ -104,7 +104,7 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
           onFocus={() => { setIsFocused(true); setShowSuggestions(true); }}
           onBlur={() => { setIsFocused(false); setTimeout(() => setShowSuggestions(false), 200); }}
           onKeyDown={handleKeyDown}
-          placeholder="メールを検索... (Gmail演算子対応)"
+          placeholder="メールを検索..."
           className="flex-1 border-none outline-none text-[13px] bg-transparent text-[var(--color-text)]"
         />
         {query && (

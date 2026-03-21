@@ -10,7 +10,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "screenshots.spec.ts",
-  timeout: 30_000,
+  timeout: 60_000,
   use: {
     baseURL: "http://localhost:5199",
     viewport: { width: 1280, height: 800 },

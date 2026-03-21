@@ -3,113 +3,121 @@
  *
  * 背景: 接続済みGmailアカウントの一覧表示・追加・削除を行う。
  * サイドバーの「設定」ボタンから遷移し、ThreadViewの代わりに右ペインに表示される。
- * 各アカウントはカラードット・メール・表示名・接続状態・削除ボタンを持つ。
+ *
+ * メインアカウント（最初に登録したアカウント）は大きく表示し、削除不可。
+ * その他のアカウントはコンパクトな1行表示で、削除可能。
+ * メインアカウントは途中で変更できない設計判断（docs/design-decisions.md 参照）。
  */
 import { useAccounts } from "../hooks/use-store";
 import type { MouseEvent } from "react";
-import type { AccountConnectionStatus } from "@vantagemail/core";
 
 export interface AccountSettingsProps {
   onAddAccount?: () => void;
   onRemoveAccount?: (accountId: string) => void;
+  /** モバイルでリスト画面に戻るコールバック */
+  onBack?: () => void;
 }
 
-/** 接続状態の日本語表示マッピング */
-const CONNECTION_STATUS_LABELS: Record<AccountConnectionStatus, string> = {
-  connected: "接続済み",
-  refreshing: "更新中...",
-  token_expired: "再認証が必要",
-  error: "エラー",
-};
-
-/** 接続状態に応じたカラー。正常時は緑、エラー系は赤/黄で視覚的に区別する。 */
-const CONNECTION_STATUS_COLORS: Record<AccountConnectionStatus, string> = {
-  connected: "var(--color-success, #40c057)",
-  refreshing: "var(--color-warning, #fab005)",
-  token_expired: "var(--color-danger, #fa5252)",
-  error: "var(--color-danger, #fa5252)",
-};
-
-export function AccountSettings({ onAddAccount, onRemoveAccount }: AccountSettingsProps) {
+export function AccountSettings({ onAddAccount, onRemoveAccount, onBack }: AccountSettingsProps) {
   const accounts = useAccounts((s) => s.accounts);
-  const connectionStatuses = useAccounts((s) => s.connectionStatuses);
+
+  const mainAccount = accounts[0] ?? null;
+  const otherAccounts = accounts.slice(1);
 
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* ヘッダー */}
       <div className="px-6 py-4 border-b border-[var(--color-border-light)]">
+        {/* モバイル: 戻るボタン */}
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="md:hidden flex items-center gap-1 mb-2 px-0 py-0 border-none bg-transparent cursor-pointer text-[13px] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            戻る
+          </button>
+        )}
         <h1 className="text-[16px] font-semibold m-0">設定</h1>
         <p className="text-[13px] text-[var(--color-text-secondary)] mt-1 mb-0">
-          接続済みアカウントの管理
+          アカウント
         </p>
       </div>
 
-      {/* アカウント一覧 */}
-      <div className="px-6 py-4 flex flex-col gap-3">
-        <h2 className="text-[13px] font-medium text-[var(--color-text-secondary)] uppercase tracking-wider m-0">
-          アカウント
-        </h2>
-
-        {accounts.length === 0 ? (
-          <div className="text-[13px] text-[var(--color-text-tertiary)] py-4">
-            接続されたアカウントはありません
-          </div>
-        ) : (
-          accounts.map((account) => {
-            const status: AccountConnectionStatus =
-              connectionStatuses[account.id] ?? "connected";
-            return (
-              <div
-                key={account.id}
-                className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)]"
-              >
-                {/* カラードット */}
+      <div className="px-6 py-4 flex flex-col gap-5">
+        {/* メインアカウント */}
+        {mainAccount && (
+          <div>
+            <h2 className="text-[11px] font-medium text-[var(--color-text-tertiary)] uppercase tracking-wider m-0 mb-2">
+              メインアカウント
+            </h2>
+            <div className="p-4 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)]">
+              <div className="flex items-center gap-3">
                 <span
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ background: account.color }}
+                  className="w-4 h-4 rounded-full shrink-0"
+                  style={{ background: mainAccount.color }}
                 />
-
-                {/* アカウント情報 */}
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium truncate">
-                    {account.displayName || account.email}
+                <div>
+                  <div className="text-[14px] font-semibold">
+                    {mainAccount.displayName || mainAccount.email}
                   </div>
-                  <div className="text-[11px] text-[var(--color-text-secondary)] truncate">
-                    {account.email}
-                  </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: CONNECTION_STATUS_COLORS[status] }}
-                    />
-                    <span className="text-[11px] text-[var(--color-text-tertiary)]">
-                      {CONNECTION_STATUS_LABELS[status]}
-                    </span>
+                  <div className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
+                    {mainAccount.email}
                   </div>
                 </div>
-
-                {/* 削除ボタン */}
-                {onRemoveAccount && (
-                  <button
-                    type="button"
-                    onClick={(e: MouseEvent) => {
-                      e.stopPropagation();
-                      if (confirm(`${account.email} の連携を解除しますか？`)) {
-                        onRemoveAccount(account.id);
-                      }
-                    }}
-                    className="shrink-0 px-3 py-1 rounded text-[12px] border border-[var(--color-border)] bg-transparent cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-danger,#fa5252)] hover:border-[var(--color-danger,#fa5252)] transition-colors"
-                  >
-                    削除
-                  </button>
-                )}
               </div>
-            );
-          })
+            </div>
+          </div>
+        )}
+
+        {/* その他のアカウント */}
+        {otherAccounts.length > 0 && (
+          <div>
+            <h2 className="text-[11px] font-medium text-[var(--color-text-tertiary)] uppercase tracking-wider m-0 mb-2">
+              その他のアカウント
+            </h2>
+            <div className="flex flex-col gap-1.5">
+              {otherAccounts.map((account) => (
+                <div
+                  key={account.id}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)]"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: account.color }}
+                  />
+                  <span className="text-[13px] font-medium truncate">
+                    {account.displayName || account.email}
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-tertiary)] truncate">
+                    {account.email}
+                  </span>
+                  <div className="flex-1" />
+                  {onRemoveAccount && (
+                    <button
+                      type="button"
+                      onClick={(e: MouseEvent) => {
+                        e.stopPropagation();
+                        if (confirm(`${account.email} の連携を解除しますか？`)) {
+                          onRemoveAccount(account.id);
+                        }
+                      }}
+                      className="shrink-0 px-2.5 py-1 rounded text-[11px] border border-[var(--color-danger,#fa5252)] bg-transparent cursor-pointer text-[var(--color-danger,#fa5252)] hover:bg-[var(--color-danger,#fa5252)] hover:text-white transition-colors"
+                    >
+                      削除
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* アカウント追加ボタン（コールバックが提供されている場合のみ表示） */}
+      {/* アカウント追加ボタン */}
       {onAddAccount && (
         <div className="px-6 py-4">
           <button

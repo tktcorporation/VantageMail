@@ -41,18 +41,7 @@ function renderSidebar(options?: {
 }
 
 describe("Sidebar", () => {
-  it("アカウント未接続時に「アカウントを追加」ボタンが表示される", () => {
-    renderSidebar();
-    expect(screen.getByText("+ アカウントを追加")).toBeInTheDocument();
-  });
-
-  it("「アカウントを追加」ボタンをクリックすると onAddAccount が呼ばれる", () => {
-    const onAddAccount = vi.fn();
-    renderSidebar({ onAddAccount });
-
-    fireEvent.click(screen.getByText("+ アカウントを追加"));
-    expect(onAddAccount).toHaveBeenCalledTimes(1);
-  });
+  // 「+ アカウントを追加」ボタンは設定画面に集約したため、サイドバーのテストからは削除
 
   it("接続済みアカウントが表示される", () => {
     renderSidebar({ accounts: MOCK_ACCOUNTS });
