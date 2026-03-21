@@ -55,7 +55,7 @@ export {
 } from "./gmail/oauth.js"
 
 // Gmail API — OAuth（Promise 版、後方互換ラッパー）
-// 背景: 既存の呼び出し元（use-oauth.ts, api/auth/start.ts）は await で使用しているため、
+// 背景: 既存の呼び出し元（api/auth/start.ts 等）は await で使用しているため、
 // Effect.runPromise でラップした Promise 版を同名でエクスポートする。
 // Task 5/6 で呼び出し元が Effect 化されたら、これらは削除可能。
 

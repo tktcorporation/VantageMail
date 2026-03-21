@@ -17,7 +17,7 @@ import type { Thread } from "../schemas/thread.js"
 import type { StoreApi } from "zustand"
 import type { ThreadsStore } from "../stores/threads.js"
 
-export interface SyncOptions {
+interface SyncOptions {
   /** 取得する最大スレッド数（デフォルト50） */
   maxResults?: number
   /** 受信トレイのみ同期するか（デフォルトtrue） */

@@ -9,10 +9,12 @@
     "lint": "vp lint",
     "fmt": "vp fmt",
     "test": "vp test",
-    "typecheck": "vp run typecheck -r"
+    "typecheck": "vp run typecheck -r",
+    "knip": "knip"
   },
   "devDependencies": {
     "@effect/eslint-plugin": "catalog:",
+    "knip": "catalog:",
     "oxlint": "catalog:",
     "vite-plus": "catalog:"
   },

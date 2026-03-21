@@ -340,5 +340,3 @@ export function fetchUserInfo(
   })
 }
 
-// Re-export types for backward compatibility
-export type { OAuthConfig as OAuthConfigType, GoogleUserInfo as GoogleUserInfoType }
