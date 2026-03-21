@@ -148,7 +148,7 @@ export class PushConnectionManager implements DurableObject {
   }
 
   private async handleNotify(request: Request): Promise<Response> {
-    const notification = await request.json()
+    const notification = await request.json() as Record<string, unknown>
     const message = JSON.stringify({ type: "gmail.sync", ...notification })
 
     for (const ws of this.sessions) {

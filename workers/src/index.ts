@@ -62,7 +62,7 @@ export default {
    * 毎分: スヌーズ・送信予約のジョブ処理
    * 6日ごと: Gmail watch() の再登録
    */
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
     // 毎分のジョブ処理
     ctx.waitUntil(processScheduledJobs(env, ctx));
     // 6日ごとの watch 再登録（Cron の分離はイベント内で判定）
