@@ -5,16 +5,22 @@
  * プラットフォーム固有のコードは含まない。
  */
 
-// 型定義
-export * from "./types/gmail";
-export * from "./types/account";
+// Schema 定義 + 型（schemas/ が正規の定義元）
+export * from "./schemas/index.js"
+
+// エラー型
+export * from "./errors.js"
+
+// 型定義（後方互換：schemas/ からの re-export）
+export * from "./types/gmail.js"
+export * from "./types/account.js"
 
 // 状態管理ストア
-export * from "./stores/accounts";
-export * from "./stores/threads";
+export * from "./stores/accounts.js"
+export * from "./stores/threads.js"
 
 // Gmail API
-export { GmailClient, GmailApiError } from "./gmail/client";
+export { GmailClient, GmailApiError as GmailApiErrorLegacy } from "./gmail/client.js"
 export {
   createAuthorizationUrl,
   exchangeCodeForTokens,
@@ -22,6 +28,6 @@ export {
   fetchUserInfo,
   type OAuthConfig,
   type GoogleUserInfo,
-} from "./gmail/oauth";
-export { adaptGmailThread, adaptGmailMessage } from "./gmail/adapter";
-export { syncAccountThreads, incrementalSync } from "./gmail/sync";
+} from "./gmail/oauth.js"
+export { adaptGmailThread, adaptGmailMessage } from "./gmail/adapter.js"
+export { syncAccountThreads, incrementalSync } from "./gmail/sync.js"
