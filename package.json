@@ -10,7 +10,8 @@
     "fmt": "vp fmt",
     "test": "vp test",
     "typecheck": "vp run typecheck -r",
-    "knip": "knip"
+    "knip": "knip",
+    "screenshot": "pnpm --filter @vantagemail/ui run screenshot"
   },
   "devDependencies": {
     "@effect/eslint-plugin": "catalog:",
