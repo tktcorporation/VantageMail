@@ -4,30 +4,41 @@
  * 背景: TanStack Start のファイルベースルーティングにより、
  * このファイルが / パスに自動マッピングされる。
  *
- * loader でサーバーサイドの暗号化セッションからアカウント一覧を取得し、
- * クライアントに渡す。トークンはサーバー側に残り、クライアントには
- * 表示用の Account 情報のみが届く。
+ * loader でサーバーサイドのセッションからユーザーID を取得し、
+ * D1 からアカウント一覧を取得してクライアントに渡す。
+ * トークンはサーバー側に残り、クライアントには表示用の Account 情報のみが届く。
+ *
+ * 未ログインの場合は空のアカウント一覧を返す（UI 側でログインボタンを表示）。
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getSession } from "@tanstack/react-start/server";
 import type { Account } from "@vantagemail/core";
-import {
-  getSessionConfig,
-  type AppSessionData,
-  type StoredAccount,
-} from "~/lib/session";
+import { getSessionConfig, type AppSessionData } from "~/lib/session";
+import { getDB, findLinkedAccountsByUserId, type LinkedAccountRow } from "~/lib/db";
 import { AppShell } from "~/components/app-shell";
 
 /**
- * セッションからアカウント一覧を取得するサーバー関数。
+ * セッションからユーザーIDを取得し、D1 からアカウント一覧を取得するサーバー関数。
  * トークンは除外し、表示用の Account のみ返す。
  */
 const getAccounts = createServerFn({ method: "GET" }).handler(
   async (): Promise<Account[]> => {
     const session = await getSession<AppSessionData>(getSessionConfig());
-    const stored: StoredAccount[] = session.data.accounts ?? [];
-    return stored.map((sa) => sa.account);
+    const userId = session.data.userId;
+    if (!userId) return [];
+
+    const db = await getDB();
+    const rows = await findLinkedAccountsByUserId(db, userId);
+    return rows.map((row: LinkedAccountRow) => ({
+      id: row.id,
+      email: row.email,
+      displayName: row.display_name,
+      avatarUrl: row.avatar_url ?? undefined,
+      color: row.color,
+      unreadCount: 0,
+      notificationsEnabled: true,
+    }));
   },
 );
 

@@ -16,7 +16,19 @@
   // Variables
   "vars": {
     "ALLOWED_ORIGINS": "http://localhost:3000,https://vantagemail.onon.workers.dev"
-  }
+  },
+
+  // D1 Database — マルチアカウント認証のユーザー・アカウント情報を永続化する。
+  // wrangler d1 create vantagemail-db で作成後、id を差し替えること。
+  // マイグレーション: wrangler d1 migrations apply vantagemail-db
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vantagemail-db",
+      "database_id": "a30ff9f1-df2f-494c-ab3b-9b0b6b59bd57",
+      "migrations_dir": "migrations"
+    }
+  ]
 
   // Secrets（wrangler secret put で設定、wrangler.jsonc には値を書かない）
   // - GOOGLE_CLIENT_SECRET: OAuth トークン交換時に Google に送信する client_secret。

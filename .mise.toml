@@ -11,6 +11,9 @@ jj = "latest"
 
 "npm:@antfu/ni" = "latest"
 
+# Cloudflare
+"npm:wrangler" = "latest"
+
 # Browser automation
 "npm:playwright" = "latest"
 

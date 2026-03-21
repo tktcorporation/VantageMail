@@ -15,6 +15,7 @@ import { Route as ApiThreadsIndexRouteImport } from './routes/api/threads/index'
 import { Route as ApiAccountsIndexRouteImport } from './routes/api/accounts/index'
 import { Route as ApiThreadsThreadIdRouteImport } from './routes/api/threads/$threadId'
 import { Route as ApiAuthStartRouteImport } from './routes/api/auth/start'
+import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,11 +47,17 @@ const ApiAuthStartRoute = ApiAuthStartRouteImport.update({
   path: '/api/auth/start',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
+  id: '/api/auth/logout',
+  path: '/api/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
   '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/threads/$threadId': typeof ApiThreadsThreadIdRoute
   '/api/accounts/': typeof ApiAccountsIndexRoute
   '/api/threads/': typeof ApiThreadsIndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
   '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/threads/$threadId': typeof ApiThreadsThreadIdRoute
   '/api/accounts': typeof ApiAccountsIndexRoute
   '/api/threads': typeof ApiThreadsIndexRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
   '/api/auth/start': typeof ApiAuthStartRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/threads/$threadId': typeof ApiThreadsThreadIdRoute
   '/api/accounts/': typeof ApiAccountsIndexRoute
   '/api/threads/': typeof ApiThreadsIndexRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/oauth/callback'
     | '/api/auth/start'
+    | '/api/auth/logout'
     | '/api/threads/$threadId'
     | '/api/accounts/'
     | '/api/threads/'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/oauth/callback'
     | '/api/auth/start'
+    | '/api/auth/logout'
     | '/api/threads/$threadId'
     | '/api/accounts'
     | '/api/threads'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/oauth/callback'
     | '/api/auth/start'
+    | '/api/auth/logout'
     | '/api/threads/$threadId'
     | '/api/accounts/'
     | '/api/threads/'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OauthCallbackRoute: typeof OauthCallbackRoute
   ApiAuthStartRoute: typeof ApiAuthStartRoute
+  ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiThreadsThreadIdRoute: typeof ApiThreadsThreadIdRoute
   ApiAccountsIndexRoute: typeof ApiAccountsIndexRoute
   ApiThreadsIndexRoute: typeof ApiThreadsIndexRoute
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthStartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/logout': {
+      id: '/api/auth/logout'
+      path: '/api/auth/logout'
+      fullPath: '/api/auth/logout'
+      preLoaderRoute: typeof ApiAuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OauthCallbackRoute: OauthCallbackRoute,
   ApiAuthStartRoute: ApiAuthStartRoute,
+  ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiThreadsThreadIdRoute: ApiThreadsThreadIdRoute,
   ApiAccountsIndexRoute: ApiAccountsIndexRoute,
   ApiThreadsIndexRoute: ApiThreadsIndexRoute,
