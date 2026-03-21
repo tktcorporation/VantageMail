@@ -28,7 +28,7 @@ const getAccounts = createServerFn({ method: "GET" }).handler(
     const userId = session.data.userId;
     if (!userId) return [];
 
-    const db = getDB();
+    const db = await getDB();
     const rows = await findLinkedAccountsByUserId(db, userId);
     return rows.map((row: LinkedAccountRow) => ({
       id: row.id,

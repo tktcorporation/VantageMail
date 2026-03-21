@@ -43,7 +43,7 @@ export const Route = createFileRoute("/api/accounts/")({
           return Response.json({ accounts: [] });
         }
 
-        const db = getDB();
+        const db = await getDB();
         const rows = await findLinkedAccountsByUserId(db, userId);
         const accounts: Account[] = rows.map(toAccount);
         return Response.json({ accounts });
@@ -51,7 +51,7 @@ export const Route = createFileRoute("/api/accounts/")({
 
       /** 指定IDのアカウントを削除する */
       DELETE: async ({ request }) => {
-        const body = await request.json().catch(() => null);
+        const body = (await request.json().catch(() => null)) as { accountId?: string } | null;
         const accountId = body?.accountId;
         if (!accountId || typeof accountId !== "string") {
           return Response.json(
@@ -66,7 +66,7 @@ export const Route = createFileRoute("/api/accounts/")({
           return Response.json({ error: "not authenticated" }, { status: 401 });
         }
 
-        const db = getDB();
+        const db = await getDB();
         const deleted = await deleteLinkedAccount(db, userId, accountId);
         if (!deleted) {
           return Response.json(

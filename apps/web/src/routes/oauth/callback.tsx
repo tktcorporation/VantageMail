@@ -31,6 +31,8 @@ import {
   encrypt,
   encryptDEK,
   decryptDEK,
+  uint8ToBase64,
+  base64ToUint8,
 } from "~/lib/crypto";
 import {
   getDB,
@@ -42,6 +44,7 @@ import {
   createLinkedAccount,
   updateLinkedAccountToken,
   updateLinkedAccountProfile,
+  type LinkedAccountRow,
 } from "~/lib/db";
 
 /** アカウントに割り当てるカラーのプール */
@@ -126,16 +129,31 @@ export const Route = createFileRoute("/oauth/callback")({
             throw new Error("token_exchange_failed");
           }
 
-          const tokenData = await tokenResponse.json();
+          const tokenData = (await tokenResponse.json()) as {
+            access_token: string;
+            refresh_token?: string;
+            id_token: string;
+            expires_in: number;
+            scope: string;
+          };
 
           if (!tokenData.refresh_token) {
             throw new Error("refresh_token_missing");
           }
 
+          // refresh_token の存在が確認されたので、型を確定させる
+          const verifiedTokenData = {
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            id_token: tokenData.id_token,
+            expires_in: tokenData.expires_in,
+            scope: tokenData.scope,
+          };
+
           // --- id_token から google_sub を取得 ---
           // id_token は JWT。Google の tokeninfo エンドポイントで検証・デコードする。
           // クライアントサイドで JWT をパースするより安全。
-          const googleSub = await extractGoogleSub(tokenData.id_token);
+          const googleSub = await extractGoogleSub(verifiedTokenData.id_token);
           if (!googleSub) {
             throw new Error("google_sub_extraction_failed");
           }
@@ -143,13 +161,17 @@ export const Route = createFileRoute("/oauth/callback")({
           // --- ユーザー情報取得 ---
           const userInfoResponse = await fetch(GOOGLE_USERINFO_ENDPOINT, {
             headers: {
-              Authorization: `Bearer ${tokenData.access_token}`,
+              Authorization: `Bearer ${verifiedTokenData.access_token}`,
             },
           });
           if (!userInfoResponse.ok) {
             throw new Error("userinfo_fetch_failed");
           }
-          const userInfo = await userInfoResponse.json();
+          const userInfo = (await userInfoResponse.json()) as {
+            email: string;
+            name: string;
+            picture?: string;
+          };
 
           // --- 3パターンの分岐 ---
           const isAddAccountMode = !!session.data.userId && !!session.data.dek;
@@ -161,14 +183,14 @@ export const Route = createFileRoute("/oauth/callback")({
               session.data.dek!,
               googleSub,
               userInfo,
-              tokenData,
+              verifiedTokenData,
             );
           } else {
             // ケース1 or 2: 新規登録 or 既存ユーザーのログイン
             await handleLoginOrRegister(
               googleSub,
               userInfo,
-              tokenData,
+              verifiedTokenData,
             );
           }
 
@@ -203,7 +225,7 @@ async function handleLoginOrRegister(
   userInfo: { email: string; name: string; picture?: string },
   tokenData: { access_token: string; refresh_token: string; scope: string; expires_in: number },
 ): Promise<void> {
-  const db = getDB();
+  const db = await getDB();
   const serverSecret = getServerSecret();
   const existingUser = await findUserByGoogleSub(db, googleSub);
 
@@ -224,14 +246,17 @@ async function handleLoginOrRegister(
       avatar_url: userInfo.picture ?? null,
     });
 
-    // メインアカウントの refresh_token を更新
-    const mainAccount = await findLinkedAccountByEmail(
+    // メインアカウントの refresh_token を更新（または再作成）
+    let mainAccount = await findLinkedAccountByEmail(
       db,
       existingUser.id,
       userInfo.email,
     );
+
+    const encryptedToken = await encrypt(dekKey, tokenData.refresh_token);
+
     if (mainAccount) {
-      const encryptedToken = await encrypt(dekKey, tokenData.refresh_token);
+      // 既存のメインアカウントを更新
       await updateLinkedAccountToken(db, mainAccount.id, {
         encrypted_refresh_token: encryptedToken.ciphertext,
         refresh_token_iv: encryptedToken.iv,
@@ -241,6 +266,28 @@ async function handleLoginOrRegister(
         display_name: userInfo.name,
         avatar_url: userInfo.picture ?? null,
       });
+    } else {
+      // linked_accounts 行が欠損している場合（手動DB操作等で消えた場合）に再作成。
+      // ユーザー行は存在するがアカウント行がない不整合状態を修復する。
+      const existingAccounts = await findLinkedAccountsByUserId(db, existingUser.id);
+      const colorIndex = existingAccounts.length % ACCOUNT_COLORS.length;
+      const newAccountId = crypto.randomUUID();
+
+      await createLinkedAccount(db, {
+        id: newAccountId,
+        user_id: existingUser.id,
+        email: userInfo.email,
+        google_sub: googleSub,
+        display_name: userInfo.name,
+        avatar_url: userInfo.picture ?? null,
+        color: ACCOUNT_COLORS[colorIndex],
+        encrypted_refresh_token: encryptedToken.ciphertext,
+        refresh_token_iv: encryptedToken.iv,
+        token_scope: tokenData.scope,
+      });
+
+      // 再作成したアカウントを後続処理で使えるようにする
+      mainAccount = { id: newAccountId } as LinkedAccountRow;
     }
 
     // セッションに保存（DEK の base64 文字列）
@@ -250,15 +297,10 @@ async function handleLoginOrRegister(
       dek: dekBase64,
       codeVerifier: undefined,
       accessTokenCache: {
-        // ログイン時に取得した access_token をキャッシュ
-        ...(mainAccount
-          ? {
-              [mainAccount.id]: {
-                accessToken: tokenData.access_token,
-                expiresAt: Date.now() + tokenData.expires_in * 1000,
-              },
-            }
-          : {}),
+        [mainAccount!.id]: {
+          accessToken: tokenData.access_token,
+          expiresAt: Date.now() + tokenData.expires_in * 1000,
+        },
       },
     }));
   } else {
@@ -329,7 +371,7 @@ async function handleAddAccount(
   userInfo: { email: string; name: string; picture?: string },
   tokenData: { access_token: string; refresh_token: string; scope: string; expires_in: number },
 ): Promise<void> {
-  const db = getDB();
+  const db = await getDB();
   const dekBytes = base64ToUint8(dekBase64);
   const dekKey = await importDEK(dekBytes);
 
@@ -398,24 +440,36 @@ async function handleAddAccount(
 }
 
 /**
- * Google ID Token から google_sub（不変ユーザーID）を抽出する。
+ * Google ID Token を検証し、google_sub（不変ユーザーID）を取得する。
  *
- * 背景: id_token は JWT 形式。ペイロードの `sub` フィールドが google_sub。
- * JWT のペイロード部分を base64 デコードするだけで取得できる。
- * トークン自体は Google の Token Endpoint から直接取得したものなので、
- * 署名検証は不要（サーバー間通信で改ざんリスクなし）。
+ * 背景: id_token は JWT 形式だが、ローカルで署名検証するのではなく
+ * Google の tokeninfo エンドポイントに検証を委譲する。
+ * このエンドポイントは署名を検証し、クレームを返す。
+ * aud（audience）も検証し、自分のクライアントID向けのトークンであることを確認する。
  */
 async function extractGoogleSub(idToken: string): Promise<string | null> {
   try {
-    // JWT は header.payload.signature の3パート構成
-    const parts = idToken.split(".");
-    if (parts.length !== 3) return null;
+    const response = await fetch(
+      `${GOOGLE_TOKENINFO_ENDPOINT}?id_token=${encodeURIComponent(idToken)}`,
+    );
+    if (!response.ok) {
+      console.error("tokeninfo verification failed:", response.status);
+      return null;
+    }
 
-    // payload を base64url デコード
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return payload.sub ?? null;
-  } catch {
-    console.error("Failed to extract google_sub from id_token");
+    const data = (await response.json()) as { sub?: string; aud?: string };
+
+    // aud が自分のクライアントID と一致することを確認
+    // 他のアプリ向けに発行された id_token の流用を防ぐ
+    const expectedClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (data.aud !== expectedClientId) {
+      console.error("id_token aud mismatch:", data.aud, "expected:", expectedClientId);
+      return null;
+    }
+
+    return data.sub ?? null;
+  } catch (err) {
+    console.error("Failed to verify id_token:", err);
     return null;
   }
 }
@@ -429,21 +483,3 @@ function redirectWithError(origin: string, error: string): Response {
   });
 }
 
-// --- base64 ユーティリティ ---
-
-function uint8ToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-}
-
-function base64ToUint8(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}

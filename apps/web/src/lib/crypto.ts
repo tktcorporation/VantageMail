@@ -40,13 +40,16 @@ export async function deriveKEK(
     ["deriveKey"],
   );
 
-  // google_sub を salt として使用し、AES-GCM 256bit キーを導出
+  // RFC 5869 準拠: salt はドメイン分離用の固定値、info にユーザー固有の識別子を配置。
+  // salt は IKM のエントロピーが十分な場合に固定でもよい（RFC 5869 §3.1）。
+  // info にユーザーバインディング（google_sub）を入れることで、
+  // 同じ SERVER_SECRET から異なるユーザーごとに異なるキーが導出される。
   return crypto.subtle.deriveKey(
     {
       name: "HKDF",
       hash: "SHA-256",
-      salt: encoder.encode(googleSub),
-      info: encoder.encode("vantagemail-kek"),
+      salt: encoder.encode("vantagemail-kek"),
+      info: encoder.encode(googleSub),
     },
     ikm,
     { name: "AES-GCM", length: 256 },
@@ -64,7 +67,7 @@ export function generateDEK(): Uint8Array {
 export async function importDEK(rawKey: Uint8Array): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    rawKey,
+    rawKey.buffer as ArrayBuffer,
     { name: "AES-GCM", length: 256 },
     true, // extractable: KEKで再暗号化するために export できる必要がある
     ["encrypt", "decrypt"],
@@ -80,7 +83,7 @@ export async function encrypt(
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
     key,
     encoder.encode(plaintext),
   );
@@ -101,9 +104,9 @@ export async function decrypt(
   const iv = base64ToUint8(data.iv);
 
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
     key,
-    ciphertext,
+    ciphertext.buffer as ArrayBuffer,
   );
 
   return decoder.decode(plaintext);
@@ -117,9 +120,9 @@ export async function encryptDEK(
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
     kek,
-    dek,
+    dek.buffer as ArrayBuffer,
   );
 
   return {
@@ -137,17 +140,17 @@ export async function decryptDEK(
   const iv = base64ToUint8(data.iv);
 
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
     kek,
-    ciphertext,
+    ciphertext.buffer as ArrayBuffer,
   );
 
   return new Uint8Array(plaintext);
 }
 
-// --- base64 ユーティリティ ---
+// --- base64 ユーティリティ（他モジュールからも使う） ---
 
-function uint8ToBase64(bytes: Uint8Array): string {
+export function uint8ToBase64(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
@@ -155,7 +158,7 @@ function uint8ToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-function base64ToUint8(base64: string): Uint8Array {
+export function base64ToUint8(base64: string): Uint8Array {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {

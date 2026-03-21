@@ -12,7 +12,7 @@ import {
   getServerSecret,
   type AppSessionData,
 } from "./session";
-import { decrypt, encrypt, deriveKEK, importDEK } from "./crypto";
+import { decrypt, encrypt, deriveKEK, importDEK, base64ToUint8 } from "./crypto";
 import {
   getDB,
   findLinkedAccountsByUserId,
@@ -46,7 +46,7 @@ export async function getAccessToken(
   }
 
   // 2. D1 からアカウント情報を取得
-  const db = getDB();
+  const db = await getDB();
   const accounts = await findLinkedAccountsByUserId(db, userId);
   const account = accounts.find((a: LinkedAccountRow) => a.id === accountId);
   if (!account) return null;
@@ -82,7 +82,7 @@ export async function getAccessToken(
       encrypted_refresh_token: encrypted.ciphertext,
       refresh_token_iv: encrypted.iv,
       token_scope: refreshed.scope,
-    });
+    }, userId);
   }
 
   return refreshed.accessToken;
@@ -125,7 +125,12 @@ async function refreshGoogleToken(
     return null;
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as {
+    access_token: string;
+    expires_in: number;
+    scope: string;
+    refresh_token?: string;
+  };
   return {
     accessToken: data.access_token,
     expiresAt: Date.now() + data.expires_in * 1000,
@@ -161,13 +166,3 @@ export async function gmailFetch<T>(
   return response.json();
 }
 
-// --- ユーティリティ ---
-
-function base64ToUint8(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}

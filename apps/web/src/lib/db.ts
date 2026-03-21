@@ -5,6 +5,9 @@
  * Cloudflare Workers の D1 バインディングを直接使用し、ORM は使わない。
  * 型安全性は TypeScript のインターフェースで担保する。
  *
+ * D1Database 型は worker-configuration.d.ts（wrangler types で生成）で
+ * グローバルに宣言されている。
+ *
  * アクセスパターン:
  * - ユーザー検索: google_sub で（OAuthログイン時）
  * - アカウント一覧: user_id で（ページロード時）
@@ -45,16 +48,11 @@ export interface LinkedAccountRow {
  *
  * TanStack Start + Cloudflare Workers では `cloudflare:workers` モジュールから
  * env オブジェクトをインポートして D1 バインディングにアクセスする。
+ * このモジュールはビルド時に Cloudflare のバンドラが解決する。
  */
-export function getDB(): D1Database {
-  // cloudflare:workers はビルド時に解決される Cloudflare 固有モジュール。
-  // 動的 import にすると開発時のモジュール解決エラーを回避できるが、
-  // TanStack Start の SSR ではサーバールートでのみ呼ばれるため問題ない。
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { env } = require("cloudflare:workers") as {
-    env: { DB: D1Database };
-  };
-  return env.DB;
+export async function getDB(): Promise<D1Database> {
+  const { env } = await import("cloudflare:workers" as string);
+  return (env as Cloudflare.Env).DB;
 }
 
 // --- User 操作 ---
@@ -158,40 +156,75 @@ export async function createLinkedAccount(
     .run();
 }
 
-/** refresh_token の更新（トークンローテーション時） */
+/**
+ * refresh_token の更新（トークンローテーション時）。
+ * userId チェック付きで、他ユーザーのアカウントを誤って更新するのを防ぐ。
+ */
 export async function updateLinkedAccountToken(
   db: D1Database,
   accountId: string,
   encrypted: { encrypted_refresh_token: string; refresh_token_iv: string; token_scope: string },
+  userId?: string,
 ): Promise<void> {
-  await db
-    .prepare(
-      `UPDATE linked_accounts
-       SET encrypted_refresh_token = ?, refresh_token_iv = ?, token_scope = ?, updated_at = ?
-       WHERE id = ?`,
-    )
-    .bind(
-      encrypted.encrypted_refresh_token,
-      encrypted.refresh_token_iv,
-      encrypted.token_scope,
-      Date.now(),
-      accountId,
-    )
-    .run();
+  if (userId) {
+    await db
+      .prepare(
+        `UPDATE linked_accounts
+         SET encrypted_refresh_token = ?, refresh_token_iv = ?, token_scope = ?, updated_at = ?
+         WHERE id = ? AND user_id = ?`,
+      )
+      .bind(
+        encrypted.encrypted_refresh_token,
+        encrypted.refresh_token_iv,
+        encrypted.token_scope,
+        Date.now(),
+        accountId,
+        userId,
+      )
+      .run();
+  } else {
+    await db
+      .prepare(
+        `UPDATE linked_accounts
+         SET encrypted_refresh_token = ?, refresh_token_iv = ?, token_scope = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .bind(
+        encrypted.encrypted_refresh_token,
+        encrypted.refresh_token_iv,
+        encrypted.token_scope,
+        Date.now(),
+        accountId,
+      )
+      .run();
+  }
 }
 
-/** アカウントのプロフィール情報を更新する（再認証時） */
+/**
+ * アカウントのプロフィール情報を更新する（再認証時）。
+ * userId チェック付きで、他ユーザーのアカウントを誤って更新するのを防ぐ。
+ */
 export async function updateLinkedAccountProfile(
   db: D1Database,
   accountId: string,
   profile: { display_name: string; avatar_url: string | null },
+  userId?: string,
 ): Promise<void> {
-  await db
-    .prepare(
-      `UPDATE linked_accounts SET display_name = ?, avatar_url = ?, updated_at = ? WHERE id = ?`,
-    )
-    .bind(profile.display_name, profile.avatar_url, Date.now(), accountId)
-    .run();
+  if (userId) {
+    await db
+      .prepare(
+        `UPDATE linked_accounts SET display_name = ?, avatar_url = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
+      )
+      .bind(profile.display_name, profile.avatar_url, Date.now(), accountId, userId)
+      .run();
+  } else {
+    await db
+      .prepare(
+        `UPDATE linked_accounts SET display_name = ?, avatar_url = ?, updated_at = ? WHERE id = ?`,
+      )
+      .bind(profile.display_name, profile.avatar_url, Date.now(), accountId)
+      .run();
+  }
 }
 
 export async function deleteLinkedAccount(
