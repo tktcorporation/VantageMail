@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OauthCallbackRouteImport } from './routes/oauth/callback'
+import { Route as ApiDebugEnvRouteImport } from './routes/api/debug-env'
 import { Route as ApiThreadsIndexRouteImport } from './routes/api/threads/index'
 import { Route as ApiAccountsIndexRouteImport } from './routes/api/accounts/index'
 import { Route as ApiThreadsThreadIdRouteImport } from './routes/api/threads/$threadId'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const OauthCallbackRoute = OauthCallbackRouteImport.update({
   id: '/oauth/callback',
   path: '/oauth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDebugEnvRoute = ApiDebugEnvRouteImport.update({
+  id: '/api/debug-env',
+  path: '/api/debug-env',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiThreadsIndexRoute = ApiThreadsIndexRouteImport.update({
@@ -55,6 +61,7 @@ const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/debug-env': typeof ApiDebugEnvRoute
   '/oauth/callback': typeof OauthCallbackRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/start': typeof ApiAuthStartRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/debug-env': typeof ApiDebugEnvRoute
   '/oauth/callback': typeof OauthCallbackRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/start': typeof ApiAuthStartRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/debug-env': typeof ApiDebugEnvRoute
   '/oauth/callback': typeof OauthCallbackRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/start': typeof ApiAuthStartRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/api/debug-env'
     | '/oauth/callback'
     | '/api/auth/logout'
     | '/api/auth/start'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/api/debug-env'
     | '/oauth/callback'
     | '/api/auth/logout'
     | '/api/auth/start'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/api/debug-env'
     | '/oauth/callback'
     | '/api/auth/logout'
     | '/api/auth/start'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiDebugEnvRoute: typeof ApiDebugEnvRoute
   OauthCallbackRoute: typeof OauthCallbackRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiAuthStartRoute: typeof ApiAuthStartRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/oauth/callback'
       fullPath: '/oauth/callback'
       preLoaderRoute: typeof OauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/debug-env': {
+      id: '/api/debug-env'
+      path: '/api/debug-env'
+      fullPath: '/api/debug-env'
+      preLoaderRoute: typeof ApiDebugEnvRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/threads/': {
@@ -177,6 +197,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiDebugEnvRoute: ApiDebugEnvRoute,
   OauthCallbackRoute: OauthCallbackRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiAuthStartRoute: ApiAuthStartRoute,
