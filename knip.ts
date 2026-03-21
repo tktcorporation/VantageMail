@@ -29,11 +29,12 @@ const config: KnipConfig = {
       // デフォルト entry (src/index.ts) で OK
     },
     "packages/ui": {
-      // デフォルト entry (src/index.ts) で OK
+      // Playwright スクリーンショットスクリプトのエントリーポイントも含む
+      entry: ["e2e/**/*.{ts,tsx}"],
+      project: ["src/**/*.{ts,tsx}", "e2e/**/*.{ts,tsx}"],
       ignoreDependencies: [
         // Tailwind は PostCSS プラグインとして使用、直接 import されない
         "tailwindcss",
-        "@tailwindcss/vite",
         // dompurify の型定義、thread-view.tsx で使用
         "@types/dompurify",
       ],
