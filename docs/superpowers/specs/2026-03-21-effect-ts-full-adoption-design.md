@@ -38,27 +38,31 @@ ConfigService         — 環境変数の型安全な取得
 ```typescript
 // packages/core/src/errors.ts
 class TokenExchangeError extends Data.TaggedError("TokenExchangeError")<{
-  status: number; details: string
+  status: number;
+  details: string;
 }> {}
 
 class DecryptionError extends Data.TaggedError("DecryptionError")<{
-  reason: string
+  reason: string;
 }> {}
 
 class DbNotFoundError extends Data.TaggedError("DbNotFoundError")<{
-  table: string; key: string
+  table: string;
+  key: string;
 }> {}
 
 class GmailApiError extends Data.TaggedError("GmailApiError")<{
-  status: number; path: string; body: string
+  status: number;
+  path: string;
+  body: string;
 }> {}
 
 class SessionError extends Data.TaggedError("SessionError")<{
-  reason: string
+  reason: string;
 }> {}
 
 class ConfigError extends Data.TaggedError("ConfigError")<{
-  key: string
+  key: string;
 }> {}
 ```
 
@@ -73,7 +77,7 @@ const Account = Schema.Struct({
   displayName: Schema.String,
   avatarUrl: Schema.NullOr(Schema.String),
   color: Schema.String,
-})
+});
 
 const Thread = Schema.Struct({
   id: Schema.String,
@@ -82,13 +86,13 @@ const Thread = Schema.Struct({
   snippet: Schema.String,
   lastMessageAt: Schema.Date,
   // ...
-})
+});
 
 // API レスポンスの decode
 const GmailThreadListResponse = Schema.Struct({
   threads: Schema.optional(Schema.Array(GmailThreadSchema)),
   nextPageToken: Schema.optional(Schema.String),
-})
+});
 ```
 
 ### Cloudflare Workers 統合パターン
@@ -103,23 +107,23 @@ const makeAppLayer = (env: CloudflareEnv) =>
     CryptoService.layer(env),
     SessionService.layer,
     ConfigService.layer(env),
-  )
+  );
 
 // API ルートで使用
 export const handleWithEffect = <A, E>(
   effect: Effect.Effect<Response, E, AppServices>,
   env: CloudflareEnv,
-) =>
-  Effect.runPromise(
-    effect.pipe(Effect.provide(makeAppLayer(env)))
-  )
+) => Effect.runPromise(effect.pipe(Effect.provide(makeAppLayer(env))));
 ```
 
 ### DB 層 (apps/web/src/lib/db.ts)
 
 ```typescript
 // Before
-export async function findUserByGoogleSub(db: D1Database, googleSub: string): Promise<UserRow | null> {
+export async function findUserByGoogleSub(
+  db: D1Database,
+  googleSub: string,
+): Promise<UserRow | null> {
   return db.prepare("SELECT * FROM users WHERE google_sub = ?").bind(googleSub).first<UserRow>();
 }
 
@@ -128,15 +132,17 @@ export const findUserByGoogleSub = (googleSub: string) =>
   D1Service.pipe(
     Effect.flatMap((db) =>
       Effect.tryPromise({
-        try: () => db.prepare("SELECT * FROM users WHERE google_sub = ?")
-          .bind(googleSub).first<UserRow>(),
+        try: () =>
+          db.prepare("SELECT * FROM users WHERE google_sub = ?").bind(googleSub).first<UserRow>(),
         catch: (e) => new DbQueryError({ query: "findUserByGoogleSub", reason: String(e) }),
-      })
+      }),
     ),
     Effect.flatMap((row) =>
-      row ? Effect.succeed(row) : Effect.fail(new DbNotFoundError({ table: "users", key: googleSub }))
+      row
+        ? Effect.succeed(row)
+        : Effect.fail(new DbNotFoundError({ table: "users", key: googleSub })),
     ),
-  )
+  );
 ```
 
 ### OAuth コールバック (apps/web/src/routes/oauth/callback.tsx)
@@ -145,31 +151,31 @@ export const findUserByGoogleSub = (googleSub: string) =>
 // 3つのフローを Effect.gen で表現
 const handleOAuthCallback = (code: string, state: string) =>
   Effect.gen(function* () {
-    const config = yield* ConfigService
-    const crypto = yield* CryptoService
-    const db = yield* D1Service
-    const session = yield* SessionService
+    const config = yield* ConfigService;
+    const crypto = yield* CryptoService;
+    const db = yield* D1Service;
+    const session = yield* SessionService;
 
     // トークン交換
-    const tokenData = yield* exchangeCode(config, code)
+    const tokenData = yield* exchangeCode(config, code);
 
     // Google ユーザー情報取得
-    const userInfo = yield* fetchUserInfo(tokenData.access_token)
-    const googleSub = yield* extractGoogleSub(tokenData.id_token)
+    const userInfo = yield* fetchUserInfo(tokenData.access_token);
+    const googleSub = yield* extractGoogleSub(tokenData.id_token);
 
     // 既存ユーザー判定 → 分岐
     const existingUser = yield* findUserByGoogleSub(googleSub).pipe(
-      Effect.catchTag("DbNotFoundError", () => Effect.succeed(null))
-    )
+      Effect.catchTag("DbNotFoundError", () => Effect.succeed(null)),
+    );
 
     if (existingUser) {
-      yield* handleReturningUser(existingUser, tokenData, userInfo)
+      yield* handleReturningUser(existingUser, tokenData, userInfo);
     } else {
-      yield* handleNewUser(googleSub, tokenData, userInfo)
+      yield* handleNewUser(googleSub, tokenData, userInfo);
     }
 
-    return redirectToHome()
-  })
+    return redirectToHome();
+  });
 ```
 
 ### Gmail API クライアント (packages/core)
@@ -236,8 +242,8 @@ const useSync = () => {
   "jsPlugins": ["@effect/eslint-plugin"],
   "rules": {
     "@effect/dprint": "off",
-    "@effect/no-curry-arrow": "error"
-  }
+    "@effect/no-curry-arrow": "error",
+  },
 }
 ```
 

@@ -9,8 +9,8 @@
  * SessionService.live は TanStack Start のリクエストコンテキストに依存するため、
  * ここで Layer に含める（サーバー関数・API ルートハンドラ内でのみ有効）。
  */
-import { Effect, Layer } from "effect"
-import { D1Service, CryptoService, ConfigService, SessionService } from "./services/index.ts"
+import { Effect, Layer } from "effect";
+import { D1Service, CryptoService, ConfigService, SessionService } from "./services/index.ts";
 
 /**
  * リクエストスコープの Effect Layer を構築する。
@@ -24,26 +24,21 @@ import { D1Service, CryptoService, ConfigService, SessionService } from "./servi
  * SessionService の構築に使い、最終的に全 Layer をマージする。
  */
 export const makeAppLayer = (env: Cloudflare.Env) => {
-  const configLayer = ConfigService.layer(env)
+  const configLayer = ConfigService.layer(env);
 
   // ConfigService から sessionSecret を取得して SessionService を構築する Layer
   const sessionLayer = Layer.unwrapEffect(
     Effect.gen(function* () {
-      const config = yield* ConfigService
-      return SessionService.live(config.sessionSecret)
+      const config = yield* ConfigService;
+      return SessionService.live(config.sessionSecret);
     }),
-  ).pipe(Layer.provide(configLayer))
+  ).pipe(Layer.provide(configLayer));
 
-  return Layer.mergeAll(
-    D1Service.layer(env.DB),
-    CryptoService.live,
-    configLayer,
-    sessionLayer,
-  )
-}
+  return Layer.mergeAll(D1Service.layer(env.DB), CryptoService.live, configLayer, sessionLayer);
+};
 
 /** makeAppLayer が提供する Service の union 型 */
-export type AppServices = D1Service | CryptoService | ConfigService | SessionService
+export type AppServices = D1Service | CryptoService | ConfigService | SessionService;
 
 /**
  * Cloudflare Workers の env bindings を取得する。
@@ -53,9 +48,9 @@ export type AppServices = D1Service | CryptoService | ConfigService | SessionSer
  * このモジュールはビルド時に Cloudflare のバンドラが解決する。
  */
 export const getEnv = async (): Promise<Cloudflare.Env> => {
-  const { env } = await import("cloudflare:workers" as string)
-  return env as Cloudflare.Env
-}
+  const { env } = await import("cloudflare:workers" as string);
+  return env as Cloudflare.Env;
+};
 
 /**
  * API ルートで Effect を実行するヘルパー。
@@ -81,10 +76,8 @@ export const handleEffect = <E>(
           "_tag" in error &&
           typeof (error as Record<string, unknown>)._tag === "string"
             ? ((error as Record<string, unknown>)._tag as string)
-            : "InternalError"
-        return Effect.succeed(
-          Response.json({ error: tag }, { status: 500 }),
-        )
+            : "InternalError";
+        return Effect.succeed(Response.json({ error: tag }, { status: 500 }));
       }),
     ),
-  )
+  );

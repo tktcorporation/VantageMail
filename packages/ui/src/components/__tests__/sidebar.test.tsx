@@ -25,10 +25,7 @@ const MOCK_ACCOUNTS: Account[] = [
   },
 ];
 
-function renderSidebar(options?: {
-  accounts?: Account[];
-  onAddAccount?: () => void;
-}) {
+function renderSidebar(options?: { accounts?: Account[]; onAddAccount?: () => void }) {
   const stores = options?.accounts?.length
     ? createStoresWithData(options.accounts, [])
     : createStores();

@@ -45,27 +45,33 @@ export function AppLayout({
           <div
             className="md:hidden fixed inset-0 bg-black/30 z-40"
             onClick={onCloseSidebar}
-            onKeyDown={(e) => { if (e.key === "Escape") onCloseSidebar?.(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onCloseSidebar?.();
+            }}
             role="presentation"
           />
           {/* サイドバー本体 */}
-          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-[280px] bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-light)] flex flex-col overflow-hidden z-50 shadow-xl">
+          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-[300px] bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-light)] flex flex-col overflow-hidden z-50 shadow-xl">
             {sidebar}
           </aside>
         </>
       )}
 
       {/* --- スレッドリスト --- */}
-      <div className={`${
-        mobileView === "list" ? "flex" : "hidden"
-      } md:flex w-full md:w-[var(--thread-list-width)] md:min-w-[var(--thread-list-width)] border-r border-[var(--color-border-light)] flex-col overflow-hidden`}>
+      <div
+        className={`${
+          mobileView === "list" ? "flex" : "hidden"
+        } md:flex w-full md:w-[var(--thread-list-width)] md:min-w-[var(--thread-list-width)] border-r border-[var(--color-border-light)] flex-col overflow-hidden`}
+      >
         {threadList}
       </div>
 
       {/* --- スレッド詳細 / 設定 --- */}
-      <main className={`${
-        mobileView === "detail" ? "flex" : "hidden"
-      } md:flex flex-1 flex-col overflow-hidden`}>
+      <main
+        className={`${
+          mobileView === "detail" ? "flex" : "hidden"
+        } md:flex flex-1 flex-col overflow-hidden`}
+      >
         {threadView}
       </main>
     </div>

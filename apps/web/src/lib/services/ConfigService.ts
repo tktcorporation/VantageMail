@@ -7,8 +7,8 @@
  *
  * 使用箇所: OAuth 設定、暗号化キー導出、CORS 設定
  */
-import { Context, Effect, Layer } from "effect"
-import { ConfigMissingError } from "@vantagemail/core"
+import { Context, Effect, Layer } from "effect";
+import { ConfigMissingError } from "@vantagemail/core";
 
 /**
  * アプリケーション全体で必要な設定値。
@@ -18,17 +18,14 @@ import { ConfigMissingError } from "@vantagemail/core"
  * インライン化されるため、ここには含めない。
  */
 export interface AppConfig {
-  googleClientSecret: string
-  serverSecret: string
+  googleClientSecret: string;
+  serverSecret: string;
   /** セッション Cookie の暗号化パスワード。wrangler secret put SESSION_SECRET で設定 */
-  sessionSecret: string
-  allowedOrigins: string[]
+  sessionSecret: string;
+  allowedOrigins: string[];
 }
 
-export class ConfigService extends Context.Tag("ConfigService")<
-  ConfigService,
-  AppConfig
->() {
+export class ConfigService extends Context.Tag("ConfigService")<ConfigService, AppConfig>() {
   /**
    * Cloudflare Workers の env から設定値を抽出して Layer を構築する。
    *
@@ -50,27 +47,26 @@ export class ConfigService extends Context.Tag("ConfigService")<
       Effect.gen(function* () {
         // env オブジェクト → process.env の順でフォールバック
         const get = (key: string): string | undefined =>
-          (env as Record<string, unknown>)[key] as string | undefined ??
-          process.env[key]
+          ((env as Record<string, unknown>)[key] as string | undefined) ?? process.env[key];
 
         const requireKey = (key: string) => {
-          const value = get(key)
+          const value = get(key);
           // 空文字列も missing として扱う（wrangler secret が空で設定されるケースを防ぐ）
-          if (value) return Effect.succeed(value)
-          return Effect.fail(new ConfigMissingError({ key }))
-        }
+          if (value) return Effect.succeed(value);
+          return Effect.fail(new ConfigMissingError({ key }));
+        };
 
-        const allowedOriginsRaw = get("ALLOWED_ORIGINS") ?? ""
+        const allowedOriginsRaw = get("ALLOWED_ORIGINS") ?? "";
 
-        const googleClientSecret = yield* requireKey("GOOGLE_CLIENT_SECRET")
-        const serverSecret = yield* requireKey("SERVER_SECRET")
+        const googleClientSecret = yield* requireKey("GOOGLE_CLIENT_SECRET");
+        const serverSecret = yield* requireKey("SERVER_SECRET");
 
         // 開発環境ではフォールバック値を提供し、本番では必須
         const sessionSecret =
           get("SESSION_SECRET") ??
           (get("NODE_ENV") === "production"
             ? yield* Effect.fail(new ConfigMissingError({ key: "SESSION_SECRET" }))
-            : "vantagemail-dev-session-secret-min-32-chars!!")
+            : "vantagemail-dev-session-secret-min-32-chars!!");
 
         return {
           googleClientSecret,
@@ -80,7 +76,7 @@ export class ConfigService extends Context.Tag("ConfigService")<
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean),
-        }
+        };
       }),
-    )
+    );
 }

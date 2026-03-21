@@ -51,9 +51,7 @@ export function useKeyboardShortcuts({
           e.preventDefault();
           if (!state.selectedThreadId) return;
           // 選択中のスレッドを見つけてINBOXラベルを除去
-          for (const [accountId, threads] of Object.entries(
-            state.threadsByAccount,
-          )) {
+          for (const [accountId, threads] of Object.entries(state.threadsByAccount)) {
             const thread = threads[state.selectedThreadId];
             if (thread) {
               state.updateThreadLabels(
@@ -72,9 +70,7 @@ export function useKeyboardShortcuts({
           if (e.metaKey || e.ctrlKey) return;
           e.preventDefault();
           if (!state.selectedThreadId) return;
-          for (const [accountId, threads] of Object.entries(
-            state.threadsByAccount,
-          )) {
+          for (const [accountId, threads] of Object.entries(state.threadsByAccount)) {
             if (threads[state.selectedThreadId]) {
               state.toggleStar(accountId, state.selectedThreadId);
               break;
@@ -87,9 +83,7 @@ export function useKeyboardShortcuts({
         case "#": {
           e.preventDefault();
           if (!state.selectedThreadId) return;
-          for (const [accountId, threads] of Object.entries(
-            state.threadsByAccount,
-          )) {
+          for (const [accountId, threads] of Object.entries(state.threadsByAccount)) {
             const thread = threads[state.selectedThreadId];
             if (thread) {
               state.updateThreadLabels(accountId, thread.id, [

@@ -13,28 +13,26 @@ interface OnboardingProps {
 export function Onboarding({ onStartAuth }: OnboardingProps) {
   return (
     <div className="flex items-center justify-center h-full bg-[var(--color-bg)]">
-      <div className="flex flex-col items-center gap-6 max-w-sm text-center">
+      <div className="flex flex-col items-center gap-8 max-w-sm text-center">
         {/* ロゴ */}
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-4xl">✉</span>
-          <span className="text-xl font-bold tracking-tight">VantageMail</span>
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-4xl">V</span>
+          <span className="text-2xl font-bold tracking-tight">VantageMail</span>
         </div>
 
         {/* 説明 */}
-        <div className="flex flex-col gap-1">
-          <p className="text-[15px] font-medium text-[var(--color-text)] m-0">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[16px] font-medium text-[var(--color-text)] m-0">
             メールアカウントを接続して
           </p>
-          <p className="text-[15px] font-medium text-[var(--color-text)] m-0">
-            はじめましょう
-          </p>
+          <p className="text-[16px] font-medium text-[var(--color-text)] m-0">はじめましょう</p>
         </div>
 
         {/* CTA */}
         <button
           type="button"
           onClick={onStartAuth}
-          className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-[var(--color-accent)] text-white border-none rounded-lg cursor-pointer text-[14px] font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
+          className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-[var(--color-accent)] text-white border-none rounded-2xl cursor-pointer text-[15px] font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />

@@ -8,11 +8,13 @@
 ## 動機
 
 現状の問題:
+
 - セッションCookieにアカウント情報とOAuthトークンを直接格納している
 - セッション切れ（30日）で全アカウントの再認証が必要
 - 新デバイスでは全アカウントを一つずつ手動で追加し直す必要がある
 
 目標:
+
 - Spark Mail のように、メインアカウントでログインすれば全アカウントが復元される体験
 - OAuthトークンのサーバーサイド暗号化によるセキュリティ確保
 
@@ -37,45 +39,45 @@ DEK (Data Encryption Key, ランダム生成)
 
 ### セキュリティ特性
 
-| 攻撃シナリオ | 復号可能？ | 理由 |
-|---|---|---|
-| DB漏洩のみ | 不可 | SERVER_SECRET がない |
-| 環境変数漏洩のみ | 不可 | google_sub がない |
-| DB + 環境変数の両方 | 可能 | だがこの時点でサーバー全体が侵害されている |
-| 正規ユーザーのOAuth認証 | 可能 | 正常動作 |
+| 攻撃シナリオ            | 復号可能？ | 理由                                       |
+| ----------------------- | ---------- | ------------------------------------------ |
+| DB漏洩のみ              | 不可       | SERVER_SECRET がない                       |
+| 環境変数漏洩のみ        | 不可       | google_sub がない                          |
+| DB + 環境変数の両方     | 可能       | だがこの時点でサーバー全体が侵害されている |
+| 正規ユーザーのOAuth認証 | 可能       | 正常動作                                   |
 
 ## データモデル（D1スキーマ）
 
 ### users テーブル
 
-| カラム | 型 | 説明 |
-|---|---|---|
-| id | TEXT PK | UUID v4 |
-| google_sub | TEXT UNIQUE | Google の不変ユーザーID |
-| email | TEXT | メインアカウントのメールアドレス |
-| display_name | TEXT | 表示名 |
-| avatar_url | TEXT | プロフィール画像URL |
-| encrypted_dek | TEXT | KEKで暗号化されたDEK（base64） |
-| dek_iv | TEXT | DEK暗号化時のIV（base64） |
-| created_at | INTEGER | 作成日時（Unix ms） |
-| updated_at | INTEGER | 更新日時（Unix ms） |
+| カラム        | 型          | 説明                             |
+| ------------- | ----------- | -------------------------------- |
+| id            | TEXT PK     | UUID v4                          |
+| google_sub    | TEXT UNIQUE | Google の不変ユーザーID          |
+| email         | TEXT        | メインアカウントのメールアドレス |
+| display_name  | TEXT        | 表示名                           |
+| avatar_url    | TEXT        | プロフィール画像URL              |
+| encrypted_dek | TEXT        | KEKで暗号化されたDEK（base64）   |
+| dek_iv        | TEXT        | DEK暗号化時のIV（base64）        |
+| created_at    | INTEGER     | 作成日時（Unix ms）              |
+| updated_at    | INTEGER     | 更新日時（Unix ms）              |
 
 ### linked_accounts テーブル
 
-| カラム | 型 | 説明 |
-|---|---|---|
-| id | TEXT PK | UUID v4 |
-| user_id | TEXT FK | users.id への外部キー |
-| email | TEXT | Gmailアドレス |
-| google_sub | TEXT | このアカウントの Google sub |
-| display_name | TEXT | 表示名 |
-| avatar_url | TEXT | プロフィール画像URL |
-| color | TEXT | UI表示用カラー |
-| encrypted_refresh_token | TEXT | DEKで暗号化（base64） |
-| refresh_token_iv | TEXT | 暗号化時のIV（base64） |
-| token_scope | TEXT | OAuthスコープ |
-| created_at | INTEGER | 作成日時 |
-| updated_at | INTEGER | 更新日時 |
+| カラム                  | 型      | 説明                        |
+| ----------------------- | ------- | --------------------------- |
+| id                      | TEXT PK | UUID v4                     |
+| user_id                 | TEXT FK | users.id への外部キー       |
+| email                   | TEXT    | Gmailアドレス               |
+| google_sub              | TEXT    | このアカウントの Google sub |
+| display_name            | TEXT    | 表示名                      |
+| avatar_url              | TEXT    | プロフィール画像URL         |
+| color                   | TEXT    | UI表示用カラー              |
+| encrypted_refresh_token | TEXT    | DEKで暗号化（base64）       |
+| refresh_token_iv        | TEXT    | 暗号化時のIV（base64）      |
+| token_scope             | TEXT    | OAuthスコープ               |
+| created_at              | INTEGER | 作成日時                    |
+| updated_at              | INTEGER | 更新日時                    |
 
 ## 認証フロー
 
@@ -125,13 +127,16 @@ GET /oauth/callback
 
 ```typescript
 interface AppSessionData {
-  userId?: string;           // users.id（ログイン済み）
-  dek?: string;              // 平文 DEK（base64、ログイン済み）
-  codeVerifier?: string;     // PKCE（認証フロー中のみ）
-  accessTokenCache?: Record<string, {
-    accessToken: string;
-    expiresAt: number;
-  }>;
+  userId?: string; // users.id（ログイン済み）
+  dek?: string; // 平文 DEK（base64、ログイン済み）
+  codeVerifier?: string; // PKCE（認証フロー中のみ）
+  accessTokenCache?: Record<
+    string,
+    {
+      accessToken: string;
+      expiresAt: number;
+    }
+  >;
 }
 ```
 
@@ -148,11 +153,13 @@ interface AppSessionData {
 ## 影響範囲
 
 ### 新規作成
+
 - `apps/web/src/lib/crypto.ts` — HKDF, AES-GCM 暗号化ユーティリティ
 - `apps/web/src/lib/db.ts` — D1 スキーマ定義（Drizzle）と接続
 - `apps/web/src/lib/auth.ts` — 認証ヘルパー（ユーザー検索、作成、トークン管理）
 
 ### 変更
+
 - `apps/web/src/lib/session.ts` — AppSessionData の型変更
 - `apps/web/src/lib/gmail-server.ts` — D1からトークン取得に変更
 - `apps/web/src/routes/oauth/callback.tsx` — 3パターン分岐
@@ -162,6 +169,7 @@ interface AppSessionData {
 - `apps/web/wrangler.jsonc` — D1バインディング追加
 
 ### 変更なし
+
 - `packages/core/` — 型定義・ストア・アダプターは変更不要
 - `packages/ui/` — UIコンポーネントは変更不要
 - `apps/web/src/routes/api/threads/` — gmailFetch のインターフェースは維持

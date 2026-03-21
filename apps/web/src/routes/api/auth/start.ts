@@ -7,52 +7,50 @@
  *
  * フロー: クライアントがこのAPIを呼ぶ → PKCE生成 → セッションに保存 → 認可URL返却
  */
-import { createFileRoute } from "@tanstack/react-router"
-import { getRequestUrl } from "@tanstack/react-start/server"
-import { Effect } from "effect"
-import { createAuthorizationUrlEffect, type TokenExchangeError } from "@vantagemail/core"
-import { SessionService } from "~/lib/services/SessionService.ts"
-import { getEnv, handleEffect } from "~/lib/runtime.ts"
-import { GOOGLE_CLIENT_ID, OAUTH_REDIRECT_URI_OVERRIDE } from "~/lib/constants.ts"
+import { createFileRoute } from "@tanstack/react-router";
+import { getRequestUrl } from "@tanstack/react-start/server";
+import { Effect } from "effect";
+import { createAuthorizationUrlEffect, type TokenExchangeError } from "@vantagemail/core";
+import { SessionService } from "~/lib/services/SessionService.ts";
+import { getEnv, handleEffect } from "~/lib/runtime.ts";
+import { GOOGLE_CLIENT_ID, OAUTH_REDIRECT_URI_OVERRIDE } from "~/lib/constants.ts";
 
 export const Route = createFileRoute("/api/auth/start")({
   server: {
     handlers: {
       POST: async () => {
-        const env = await getEnv()
+        const env = await getEnv();
 
         const effect = Effect.gen(function* () {
-          const session = yield* SessionService
+          const session = yield* SessionService;
 
-          const clientId = GOOGLE_CLIENT_ID
+          const clientId = GOOGLE_CLIENT_ID;
           if (!clientId) {
             return Response.json(
               { error: "VITE_GOOGLE_CLIENT_ID is not configured" },
               { status: 500 },
-            )
+            );
           }
 
-          const requestUrl = getRequestUrl()
-          const redirectUri =
-            OAUTH_REDIRECT_URI_OVERRIDE ??
-            `${requestUrl.origin}/oauth/callback`
+          const requestUrl = getRequestUrl();
+          const redirectUri = OAUTH_REDIRECT_URI_OVERRIDE ?? `${requestUrl.origin}/oauth/callback`;
 
           const { url, codeVerifier } = yield* createAuthorizationUrlEffect({
             clientId,
             redirectUri,
-          })
+          });
 
           // code_verifier を暗号化セッションに保存（コールバック時に使用）
           yield* session.update((prev) => ({
             ...prev,
             codeVerifier,
-          }))
+          }));
 
-          return Response.json({ url })
-        })
+          return Response.json({ url });
+        });
 
-        return handleEffect(effect, env)
+        return handleEffect(effect, env);
       },
     },
   },
-})
+});

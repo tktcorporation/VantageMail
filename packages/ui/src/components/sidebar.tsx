@@ -30,7 +30,12 @@ interface SidebarProps {
   isSettingsActive?: boolean;
 }
 
-export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSettingsActive }: SidebarProps = {}) {
+export function Sidebar({
+  onAddAccount,
+  onRemoveAccount,
+  onToggleSettings,
+  isSettingsActive,
+}: SidebarProps = {}) {
   const accounts = useAccounts((s) => s.accounts);
   const activeAccountId = useAccounts((s) => s.activeAccountId);
   const setActiveAccount = useAccounts((s) => s.setActiveAccount);
@@ -77,13 +82,11 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
   return (
     <div className="flex flex-col h-full">
       {/* ロゴ */}
-      <div className="p-4 font-bold text-base tracking-tight">
-        VantageMail
-      </div>
+      <div className="px-5 pt-6 pb-4 font-bold text-base tracking-tight">VantageMail</div>
 
       {/* Smart Inbox カテゴリフィルタ */}
-      <div className="px-2 mb-2">
-        <div className="px-2 py-1 text-[11px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">
+      <div className="px-3 mb-3">
+        <div className="px-3 py-1.5 text-[11px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">
           Smart Inbox
         </div>
         {CATEGORIES.map((cat) => (
@@ -91,7 +94,7 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
             key={cat.key}
             type="button"
             onClick={() => setActiveCategory(cat.key)}
-            className={`flex items-center justify-between w-full px-3 py-1.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left ${
+            className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded-xl text-left ${
               activeCategory === cat.key
                 ? "bg-[var(--color-bg-selected)] font-medium"
                 : "bg-transparent hover:bg-[var(--color-bg-hover)]"
@@ -108,11 +111,11 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
       </div>
 
       {/* 区切り線 */}
-      <div className="mx-4 border-t border-[var(--color-border-light)]" />
+      <div className="mx-5 border-t border-[var(--color-border-light)]" />
 
       {/* アカウントセレクター */}
-      <nav className="flex-1 overflow-auto px-2 mt-2">
-        <div className="px-2 py-1 text-[11px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">
+      <nav className="flex-1 overflow-auto px-3 mt-3">
+        <div className="px-3 py-1.5 text-[11px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">
           アカウント
         </div>
 
@@ -120,7 +123,7 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
         <button
           type="button"
           onClick={() => handleSelectAccount(null)}
-          className={`flex items-center justify-between w-full px-3 py-1.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left ${
+          className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded-xl text-left ${
             activeAccountId === null
               ? "bg-[var(--color-bg-selected)] font-medium"
               : "bg-transparent hover:bg-[var(--color-bg-hover)]"
@@ -131,14 +134,11 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
 
         {/* 各アカウント */}
         {accounts.map((account) => (
-          <div
-            key={account.id}
-            className="group relative"
-          >
+          <div key={account.id} className="group relative">
             <button
               type="button"
               onClick={() => handleSelectAccount(account.id)}
-              className={`flex items-center justify-between w-full px-3 py-1.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded text-left gap-2 ${
+              className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded-xl text-left gap-2 ${
                 activeAccountId === account.id
                   ? "bg-[var(--color-bg-selected)] font-medium"
                   : "bg-transparent hover:bg-[var(--color-bg-hover)]"
@@ -150,9 +150,7 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ background: account.color }}
                 />
-                <span className="truncate">
-                  {account.displayName || account.email}
-                </span>
+                <span className="truncate">{account.displayName || account.email}</span>
               </span>
               {account.unreadCount > 0 && (
                 <span className="text-[11px] text-[var(--color-text-tertiary)] font-normal shrink-0">
@@ -167,18 +165,27 @@ export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSet
 
       {/* フッター: 設定（アカウント追加は設定画面に集約） */}
       {onToggleSettings && (
-        <div className="px-4 py-3 border-t border-[var(--color-border-light)]">
+        <div className="px-4 py-4 border-t border-[var(--color-border-light)]">
           <button
             type="button"
             onClick={onToggleSettings}
             aria-pressed={isSettingsActive}
-            className={`flex items-center gap-2 w-full px-3 py-1.5 border-none cursor-pointer text-[13px] rounded text-left transition-colors ${
+            className={`flex items-center gap-2 w-full px-3 py-2.5 border-none cursor-pointer text-[13px] rounded-xl text-left transition-colors ${
               isSettingsActive
                 ? "bg-[var(--color-bg-selected)] font-medium text-[var(--color-text)]"
                 : "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
             }`}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>

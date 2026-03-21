@@ -5,7 +5,7 @@
  * 複数アカウントをまたいでUnified Inboxに表示するため、
  * accountIdフィールドでどのアカウントのスレッドかを識別する。
  */
-import { Schema } from "@effect/schema"
+import { Schema } from "@effect/schema";
 
 /** アプリ内で表示するメールスレッドの正規化された形 */
 export const ThreadSchema = Schema.Struct({
@@ -30,6 +30,6 @@ export const ThreadSchema = Schema.Struct({
   snoozedUntil: Schema.optional(Schema.DateFromSelf),
   /** ピン留めされているか */
   isPinned: Schema.Boolean,
-})
+});
 
-export type Thread = typeof ThreadSchema.Type
+export type Thread = typeof ThreadSchema.Type;

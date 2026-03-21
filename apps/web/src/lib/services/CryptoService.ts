@@ -8,14 +8,10 @@
  * EncryptedData インターフェースや base64 ユーティリティは plain な関数として
  * crypto.ts に残し、このファイルからインポートして使用する。
  */
-import { Context, Effect, Layer } from "effect"
-import {
-  DecryptionError,
-  EncryptionError,
-  KeyDerivationError,
-} from "@vantagemail/core"
-import type { EncryptedData } from "../crypto.ts"
-import { uint8ToBase64, base64ToUint8 } from "../crypto.ts"
+import { Context, Effect, Layer } from "effect";
+import { DecryptionError, EncryptionError, KeyDerivationError } from "@vantagemail/core";
+import type { EncryptedData } from "../crypto.ts";
+import { uint8ToBase64, base64ToUint8 } from "../crypto.ts";
 
 export interface CryptoServiceImpl {
   /**
@@ -26,37 +22,25 @@ export interface CryptoServiceImpl {
   deriveKEK: (
     serverSecret: string,
     googleSub: string,
-  ) => Effect.Effect<CryptoKey, KeyDerivationError>
+  ) => Effect.Effect<CryptoKey, KeyDerivationError>;
 
   /** ランダムな DEK（Data Encryption Key）を生成する */
-  generateDEK: () => Effect.Effect<Uint8Array>
+  generateDEK: () => Effect.Effect<Uint8Array>;
 
   /** DEK の raw bytes を AES-GCM CryptoKey としてインポートする */
-  importDEK: (rawKey: Uint8Array) => Effect.Effect<CryptoKey, KeyDerivationError>
+  importDEK: (rawKey: Uint8Array) => Effect.Effect<CryptoKey, KeyDerivationError>;
 
   /** AES-GCM で平文を暗号化する */
-  encrypt: (
-    key: CryptoKey,
-    plaintext: string,
-  ) => Effect.Effect<EncryptedData, EncryptionError>
+  encrypt: (key: CryptoKey, plaintext: string) => Effect.Effect<EncryptedData, EncryptionError>;
 
   /** AES-GCM で暗号文を復号する */
-  decrypt: (
-    key: CryptoKey,
-    data: EncryptedData,
-  ) => Effect.Effect<string, DecryptionError>
+  decrypt: (key: CryptoKey, data: EncryptedData) => Effect.Effect<string, DecryptionError>;
 
   /** DEK の raw bytes を KEK で暗号化する（DB 保存用） */
-  encryptDEK: (
-    kek: CryptoKey,
-    dek: Uint8Array,
-  ) => Effect.Effect<EncryptedData, EncryptionError>
+  encryptDEK: (kek: CryptoKey, dek: Uint8Array) => Effect.Effect<EncryptedData, EncryptionError>;
 
   /** 暗号化された DEK を KEK で復号する（DB 読み出し用） */
-  decryptDEK: (
-    kek: CryptoKey,
-    data: EncryptedData,
-  ) => Effect.Effect<Uint8Array, DecryptionError>
+  decryptDEK: (kek: CryptoKey, data: EncryptedData) => Effect.Effect<Uint8Array, DecryptionError>;
 }
 
 export class CryptoService extends Context.Tag("CryptoService")<
@@ -71,14 +55,14 @@ export class CryptoService extends Context.Tag("CryptoService")<
     deriveKEK: (serverSecret, googleSub) =>
       Effect.tryPromise({
         try: async () => {
-          const encoder = new TextEncoder()
+          const encoder = new TextEncoder();
           const ikm = await crypto.subtle.importKey(
             "raw",
             encoder.encode(serverSecret),
             "HKDF",
             false,
             ["deriveKey"],
-          )
+          );
           // CRITICAL: salt と info の順序を変更しないこと。
           // salt: 固定のドメイン分離値、info: ユーザー固有の識別子（RFC 5869 準拠）
           return crypto.subtle.deriveKey(
@@ -92,14 +76,12 @@ export class CryptoService extends Context.Tag("CryptoService")<
             { name: "AES-GCM", length: 256 },
             false,
             ["encrypt", "decrypt"],
-          )
+          );
         },
-        catch: (e) =>
-          new KeyDerivationError({ reason: String(e) }),
+        catch: (e) => new KeyDerivationError({ reason: String(e) }),
       }),
 
-    generateDEK: () =>
-      Effect.sync(() => crypto.getRandomValues(new Uint8Array(32))),
+    generateDEK: () => Effect.sync(() => crypto.getRandomValues(new Uint8Array(32))),
 
     importDEK: (rawKey) =>
       Effect.tryPromise({
@@ -111,78 +93,73 @@ export class CryptoService extends Context.Tag("CryptoService")<
             true,
             ["encrypt", "decrypt"],
           ),
-        catch: (e) =>
-          new KeyDerivationError({ reason: String(e) }),
+        catch: (e) => new KeyDerivationError({ reason: String(e) }),
       }),
 
     encrypt: (key, plaintext) =>
       Effect.tryPromise({
         try: async () => {
-          const encoder = new TextEncoder()
-          const iv = crypto.getRandomValues(new Uint8Array(12))
+          const encoder = new TextEncoder();
+          const iv = crypto.getRandomValues(new Uint8Array(12));
           const ciphertext = await crypto.subtle.encrypt(
             { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
             key,
             encoder.encode(plaintext),
-          )
+          );
           return {
             ciphertext: uint8ToBase64(new Uint8Array(ciphertext)),
             iv: uint8ToBase64(iv),
-          }
+          };
         },
-        catch: (e) =>
-          new EncryptionError({ reason: String(e) }),
+        catch: (e) => new EncryptionError({ reason: String(e) }),
       }),
 
     decrypt: (key, data) =>
       Effect.tryPromise({
         try: async () => {
-          const decoder = new TextDecoder()
-          const ciphertext = base64ToUint8(data.ciphertext)
-          const iv = base64ToUint8(data.iv)
+          const decoder = new TextDecoder();
+          const ciphertext = base64ToUint8(data.ciphertext);
+          const iv = base64ToUint8(data.iv);
           const plaintext = await crypto.subtle.decrypt(
             { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
             key,
             ciphertext.buffer as ArrayBuffer,
-          )
-          return decoder.decode(plaintext)
+          );
+          return decoder.decode(plaintext);
         },
-        catch: (e) =>
-          new DecryptionError({ reason: String(e) }),
+        catch: (e) => new DecryptionError({ reason: String(e) }),
       }),
 
     encryptDEK: (kek, dek) =>
       Effect.tryPromise({
         try: async () => {
-          const iv = crypto.getRandomValues(new Uint8Array(12))
+          const iv = crypto.getRandomValues(new Uint8Array(12));
           const ciphertext = await crypto.subtle.encrypt(
             { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
             kek,
             dek.buffer as ArrayBuffer,
-          )
+          );
           return {
             ciphertext: uint8ToBase64(new Uint8Array(ciphertext)),
             iv: uint8ToBase64(iv),
-          }
+          };
         },
-        catch: (e) =>
-          new EncryptionError({ reason: String(e) }),
+        catch: (e) => new EncryptionError({ reason: String(e) }),
       }),
 
     decryptDEK: (kek, data) =>
       Effect.tryPromise({
         try: async () => {
-          const ciphertext = base64ToUint8(data.ciphertext)
-          const iv = base64ToUint8(data.iv)
+          const ciphertext = base64ToUint8(data.ciphertext);
+          const iv = base64ToUint8(data.iv);
           const plaintext = await crypto.subtle.decrypt(
             { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
             kek,
             ciphertext.buffer as ArrayBuffer,
-          )
-          return new Uint8Array(plaintext)
+          );
+          return new Uint8Array(plaintext);
         },
-        catch: (e) =>
-          new DecryptionError({ reason: String(e) }),
+        catch: (e) => new DecryptionError({ reason: String(e) }),
       }),
-  })
+  });
 }

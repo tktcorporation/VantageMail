@@ -21,14 +21,32 @@ interface CommandItem {
 
 function getDefaultCommands(): CommandItem[] {
   return [
-    { id: "compose", label: "新規メール作成", shortcut: "C", group: "アクション", onSelect: () => {} },
+    {
+      id: "compose",
+      label: "新規メール作成",
+      shortcut: "C",
+      group: "アクション",
+      onSelect: () => {},
+    },
     { id: "search", label: "検索", shortcut: "/", group: "ナビゲーション", onSelect: () => {} },
     { id: "archive", label: "アーカイブ", shortcut: "E", group: "アクション", onSelect: () => {} },
     { id: "trash", label: "ゴミ箱", shortcut: "#", group: "アクション", onSelect: () => {} },
     { id: "star", label: "スター", shortcut: "S", group: "アクション", onSelect: () => {} },
     { id: "reply", label: "返信", shortcut: "R", group: "アクション", onSelect: () => {} },
-    { id: "inbox", label: "受信トレイに移動", shortcut: "G I", group: "ナビゲーション", onSelect: () => {} },
-    { id: "sent", label: "送信済みに移動", shortcut: "G S", group: "ナビゲーション", onSelect: () => {} },
+    {
+      id: "inbox",
+      label: "受信トレイに移動",
+      shortcut: "G I",
+      group: "ナビゲーション",
+      onSelect: () => {},
+    },
+    {
+      id: "sent",
+      label: "送信済みに移動",
+      shortcut: "G S",
+      group: "ナビゲーション",
+      onSelect: () => {},
+    },
     { id: "settings", label: "設定", shortcut: "⌘ ,", group: "アプリ", onSelect: () => {} },
   ];
 }
@@ -64,20 +82,22 @@ export function CommandPalette() {
       {/* オーバーレイ */}
       <div
         onClick={() => setOpen(false)}
-        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setOpen(false);
+        }}
         role="presentation"
         className="fixed inset-0 bg-black/40 z-[9998]"
       />
 
       {/* パレット本体 */}
-      <div className="fixed top-[20%] left-1/2 -translate-x-1/2 w-[min(560px,90vw)] bg-[var(--color-bg)] rounded-lg shadow-xl border border-[var(--color-border)] z-[9999] overflow-hidden">
+      <div className="fixed top-[20%] left-1/2 -translate-x-1/2 w-[min(560px,90vw)] bg-[var(--color-bg)] rounded-2xl shadow-xl border border-[var(--color-border)] z-[9999] overflow-hidden">
         <Command label="コマンドパレット">
           <Command.Input
             placeholder="コマンドを検索..."
-            className="w-full px-4 py-3 border-none border-b border-[var(--color-border-light)] text-sm outline-none bg-transparent text-[var(--color-text)]"
+            className="w-full px-5 py-4 border-none border-b border-[var(--color-border-light)] text-sm outline-none bg-transparent text-[var(--color-text)]"
           />
-          <Command.List className="max-h-80 overflow-auto p-2">
-            <Command.Empty className="py-6 text-center text-[var(--color-text-tertiary)] text-[13px]">
+          <Command.List className="max-h-80 overflow-auto p-3">
+            <Command.Empty className="py-8 text-center text-[var(--color-text-tertiary)] text-[13px]">
               一致するコマンドがありません
             </Command.Empty>
 
@@ -87,8 +107,11 @@ export function CommandPalette() {
                   <Command.Item
                     key={cmd.id}
                     value={cmd.label}
-                    onSelect={() => { cmd.onSelect(); setOpen(false); }}
-                    className="flex items-center justify-between px-3 py-2 rounded cursor-pointer text-[13px] data-[selected=true]:bg-[var(--color-bg-hover)]"
+                    onSelect={() => {
+                      cmd.onSelect();
+                      setOpen(false);
+                    }}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer text-[13px] data-[selected=true]:bg-[var(--color-bg-hover)]"
                   >
                     <span>{cmd.label}</span>
                     {cmd.shortcut && (

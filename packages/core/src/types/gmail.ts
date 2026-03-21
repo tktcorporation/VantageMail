@@ -16,4 +16,4 @@ export type {
   GmailLabel,
   GmailSearchResult,
   GmailCategory,
-} from "../schemas/index.js"
+} from "../schemas/index.js";

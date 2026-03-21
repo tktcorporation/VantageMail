@@ -8,20 +8,20 @@
  * 呼び出し元: UIのアカウント追加時、プッシュ通知受信時
  * 対になるモジュール: gmail/client.ts（API通信）、gmail/adapter.ts（型変換）
  */
-import { Effect } from "effect"
-import type { ParseError } from "@effect/schema/ParseResult"
-import { GmailClient, listThreads, getThread, listHistory } from "./client.js"
-import { adaptGmailThread } from "./adapter.js"
-import { GmailApiError } from "../errors.js"
-import type { Thread } from "../schemas/thread.js"
-import type { StoreApi } from "zustand"
-import type { ThreadsStore } from "../stores/threads.js"
+import { Effect } from "effect";
+import type { ParseError } from "@effect/schema/ParseResult";
+import { GmailClient, listThreads, getThread, listHistory } from "./client.js";
+import { adaptGmailThread } from "./adapter.js";
+import { GmailApiError } from "../errors.js";
+import type { Thread } from "../schemas/thread.js";
+import type { StoreApi } from "zustand";
+import type { ThreadsStore } from "../stores/threads.js";
 
 interface SyncOptions {
   /** 取得する最大スレッド数（デフォルト50） */
-  maxResults?: number
+  maxResults?: number;
   /** 受信トレイのみ同期するか（デフォルトtrue） */
-  inboxOnly?: boolean
+  inboxOnly?: boolean;
 }
 
 /**
@@ -37,40 +37,40 @@ export function syncAccountThreads(
   threadsStore: StoreApi<ThreadsStore>,
   options?: SyncOptions,
 ): Effect.Effect<void, GmailApiError | ParseError, GmailClient> {
-  const maxResults = options?.maxResults ?? 50
-  const labelIds = options?.inboxOnly !== false ? ["INBOX"] : undefined
+  const maxResults = options?.maxResults ?? 50;
+  const labelIds = options?.inboxOnly !== false ? ["INBOX"] : undefined;
 
   return Effect.gen(function* () {
-    threadsStore.getState().setLoading(true)
+    threadsStore.getState().setLoading(true);
 
     try {
       // スレッドID一覧を取得
-      const listResult = yield* listThreads({ maxResults, labelIds })
+      const listResult = yield* listThreads({ maxResults, labelIds });
       if (!listResult.threads?.length) {
-        threadsStore.getState().setThreads(accountId, [])
-        return
+        threadsStore.getState().setThreads(accountId, []);
+        return;
       }
 
       // 各スレッドの詳細を並列で取得（最大10件ずつバッチ処理）
-      const threads: Thread[] = []
-      const batchSize = 10
+      const threads: Thread[] = [];
+      const batchSize = 10;
 
       for (let i = 0; i < listResult.threads.length; i += batchSize) {
-        const batch = listResult.threads.slice(i, i + batchSize)
+        const batch = listResult.threads.slice(i, i + batchSize);
         const batchResults = yield* Effect.all(
           batch.map((t) => getThread(t.id, "metadata")),
           { concurrency: batchSize },
-        )
+        );
         for (const gmailThread of batchResults) {
-          threads.push(adaptGmailThread(gmailThread, accountId))
+          threads.push(adaptGmailThread(gmailThread, accountId));
         }
       }
 
-      threadsStore.getState().setThreads(accountId, threads)
+      threadsStore.getState().setThreads(accountId, threads);
     } finally {
-      threadsStore.getState().setLoading(false)
+      threadsStore.getState().setLoading(false);
     }
-  })
+  });
 }
 
 /**
@@ -93,26 +93,23 @@ export function incrementalSync(
       "messageDeleted",
       "labelAdded",
       "labelRemoved",
-    ])
+    ]);
 
     if (!result.history?.length) {
-      return result.historyId
+      return result.historyId;
     }
 
     // 変更されたスレッドIDを収集
-    const changedThreadIds = new Set<string>()
+    const changedThreadIds = new Set<string>();
     for (const entry of result.history) {
       for (const added of entry.messagesAdded ?? []) {
-        changedThreadIds.add(added.message.threadId)
+        changedThreadIds.add(added.message.threadId);
       }
       for (const deleted of entry.messagesDeleted ?? []) {
-        changedThreadIds.add(deleted.message.threadId)
+        changedThreadIds.add(deleted.message.threadId);
       }
-      for (const labelChange of [
-        ...(entry.labelsAdded ?? []),
-        ...(entry.labelsRemoved ?? []),
-      ]) {
-        changedThreadIds.add(labelChange.message.threadId)
+      for (const labelChange of [...(entry.labelsAdded ?? []), ...(entry.labelsRemoved ?? [])]) {
+        changedThreadIds.add(labelChange.message.threadId);
       }
     }
 
@@ -121,30 +118,28 @@ export function incrementalSync(
       const updatedThreads = yield* Effect.all(
         [...changedThreadIds].map((threadId) =>
           getThread(threadId, "metadata").pipe(
-            Effect.map(
-              (gmailThread) => adaptGmailThread(gmailThread, accountId) as Thread | null,
-            ),
+            Effect.map((gmailThread) => adaptGmailThread(gmailThread, accountId) as Thread | null),
             // スレッドが削除された場合はnullを返す
             Effect.catchAll(() => Effect.succeed(null as Thread | null)),
           ),
         ),
         { concurrency: 10 },
-      )
+      );
 
       // 既存のスレッドマップに更新を適用
-      const state = threadsStore.getState()
-      const existingThreads = state.threadsByAccount[accountId] ?? {}
-      const mergedThreads = { ...existingThreads }
+      const state = threadsStore.getState();
+      const existingThreads = state.threadsByAccount[accountId] ?? {};
+      const mergedThreads = { ...existingThreads };
 
       for (const thread of updatedThreads) {
         if (thread) {
-          mergedThreads[thread.id] = thread
+          mergedThreads[thread.id] = thread;
         }
       }
 
-      state.setThreads(accountId, Object.values(mergedThreads))
+      state.setThreads(accountId, Object.values(mergedThreads));
     }
 
-    return result.historyId
-  })
+    return result.historyId;
+  });
 }

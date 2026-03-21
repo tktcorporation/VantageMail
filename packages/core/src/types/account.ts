@@ -15,4 +15,4 @@ export type {
   Thread,
   Message,
   Attachment,
-} from "../schemas/index.js"
+} from "../schemas/index.js";

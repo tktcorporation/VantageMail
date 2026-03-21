@@ -5,9 +5,7 @@
     "moduleResolution": "bundler",
     "strict": true,
     "lib": ["ES2024"],
-    "typeRoots": [
-      "../node_modules/.pnpm/@cloudflare+workers-types@4.20260317.1/node_modules"
-    ],
+    "typeRoots": ["../node_modules/.pnpm/@cloudflare+workers-types@4.20260317.1/node_modules"],
     "types": ["@cloudflare/workers-types"],
     "noEmit": true,
     "isolatedModules": true

@@ -13,9 +13,9 @@
  * - アカウント一覧: user_id で（ページロード時）
  * - アカウント追加/削除: user_id + account_id で
  */
-import { Effect } from "effect"
-import { DbQueryError, DbNotFoundError } from "@vantagemail/core"
-import { D1Service } from "./services/D1Service.ts"
+import { Effect } from "effect";
+import { DbQueryError, DbNotFoundError } from "@vantagemail/core";
+import { D1Service } from "./services/D1Service.ts";
 
 /** D1 の users テーブル行 */
 export interface UserRow {
@@ -56,29 +56,23 @@ export interface LinkedAccountRow {
  */
 export const findUserByGoogleSub = (googleSub: string) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     return yield* Effect.tryPromise({
       try: () =>
-        db
-          .prepare("SELECT * FROM users WHERE google_sub = ?")
-          .bind(googleSub)
-          .first<UserRow>(),
-      catch: (e) =>
-        new DbQueryError({ query: "findUserByGoogleSub", reason: String(e) }),
-    })
-  })
+        db.prepare("SELECT * FROM users WHERE google_sub = ?").bind(googleSub).first<UserRow>(),
+      catch: (e) => new DbQueryError({ query: "findUserByGoogleSub", reason: String(e) }),
+    });
+  });
 
 /**
  * 新規ユーザーを作成する。
  *
  * 呼び出し元: OAuth コールバック（初回ログイン時）
  */
-export const createUser = (
-  user: Omit<UserRow, "created_at" | "updated_at">,
-) =>
+export const createUser = (user: Omit<UserRow, "created_at" | "updated_at">) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
-    const now = Date.now()
+    const db = yield* D1Service;
+    const now = Date.now();
     yield* Effect.tryPromise({
       try: () =>
         db
@@ -98,10 +92,9 @@ export const createUser = (
             now,
           )
           .run(),
-      catch: (e) =>
-        new DbQueryError({ query: "createUser", reason: String(e) }),
-    })
-  })
+      catch: (e) => new DbQueryError({ query: "createUser", reason: String(e) }),
+    });
+  });
 
 /**
  * ユーザーのプロフィール情報を更新する（再ログイン時）。
@@ -113,25 +106,18 @@ export const updateUserProfile = (
   profile: { email: string; display_name: string; avatar_url: string | null },
 ) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     yield* Effect.tryPromise({
       try: () =>
         db
           .prepare(
             `UPDATE users SET email = ?, display_name = ?, avatar_url = ?, updated_at = ? WHERE google_sub = ?`,
           )
-          .bind(
-            profile.email,
-            profile.display_name,
-            profile.avatar_url,
-            Date.now(),
-            googleSub,
-          )
+          .bind(profile.email, profile.display_name, profile.avatar_url, Date.now(), googleSub)
           .run(),
-      catch: (e) =>
-        new DbQueryError({ query: "updateUserProfile", reason: String(e) }),
-    })
-  })
+      catch: (e) => new DbQueryError({ query: "updateUserProfile", reason: String(e) }),
+    });
+  });
 
 // --- LinkedAccount 操作（Effect 版） ---
 
@@ -142,13 +128,11 @@ export const updateUserProfile = (
  */
 export const findLinkedAccountsByUserId = (userId: string) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     const result = yield* Effect.tryPromise({
       try: () =>
         db
-          .prepare(
-            "SELECT * FROM linked_accounts WHERE user_id = ? ORDER BY created_at ASC",
-          )
+          .prepare("SELECT * FROM linked_accounts WHERE user_id = ? ORDER BY created_at ASC")
           .bind(userId)
           .all<LinkedAccountRow>(),
       catch: (e) =>
@@ -156,9 +140,9 @@ export const findLinkedAccountsByUserId = (userId: string) =>
           query: "findLinkedAccountsByUserId",
           reason: String(e),
         }),
-    })
-    return result.results
-  })
+    });
+    return result.results;
+  });
 
 /**
  * アカウント ID で単一のリンクアカウントを取得する。
@@ -168,7 +152,7 @@ export const findLinkedAccountsByUserId = (userId: string) =>
  */
 export const findLinkedAccountById = (accountId: string) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     const row = yield* Effect.tryPromise({
       try: () =>
         db
@@ -180,14 +164,12 @@ export const findLinkedAccountById = (accountId: string) =>
           query: "findLinkedAccountById",
           reason: String(e),
         }),
-    })
+    });
     if (!row) {
-      return yield* Effect.fail(
-        new DbNotFoundError({ table: "linked_accounts", key: accountId }),
-      )
+      return yield* Effect.fail(new DbNotFoundError({ table: "linked_accounts", key: accountId }));
     }
-    return row
-  })
+    return row;
+  });
 
 /**
  * ユーザー ID + メールアドレスでリンクアカウントを検索する。
@@ -197,13 +179,11 @@ export const findLinkedAccountById = (accountId: string) =>
  */
 export const findLinkedAccountByEmail = (userId: string, email: string) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     return yield* Effect.tryPromise({
       try: () =>
         db
-          .prepare(
-            "SELECT * FROM linked_accounts WHERE user_id = ? AND email = ?",
-          )
+          .prepare("SELECT * FROM linked_accounts WHERE user_id = ? AND email = ?")
           .bind(userId, email)
           .first<LinkedAccountRow>(),
       catch: (e) =>
@@ -211,20 +191,18 @@ export const findLinkedAccountByEmail = (userId: string, email: string) =>
           query: "findLinkedAccountByEmail",
           reason: String(e),
         }),
-    })
-  })
+    });
+  });
 
 /**
  * 新規リンクアカウントを作成する。
  *
  * 呼び出し元: OAuth コールバック（アカウント追加時）
  */
-export const createLinkedAccount = (
-  account: Omit<LinkedAccountRow, "created_at" | "updated_at">,
-) =>
+export const createLinkedAccount = (account: Omit<LinkedAccountRow, "created_at" | "updated_at">) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
-    const now = Date.now()
+    const db = yield* D1Service;
+    const now = Date.now();
     yield* Effect.tryPromise({
       try: () =>
         db
@@ -248,10 +226,9 @@ export const createLinkedAccount = (
             now,
           )
           .run(),
-      catch: (e) =>
-        new DbQueryError({ query: "createLinkedAccount", reason: String(e) }),
-    })
-  })
+      catch: (e) => new DbQueryError({ query: "createLinkedAccount", reason: String(e) }),
+    });
+  });
 
 /**
  * refresh_token の更新（トークンローテーション時）。
@@ -269,7 +246,7 @@ export const updateLinkedAccountToken = (
   userId?: string,
 ) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     if (userId) {
       yield* Effect.tryPromise({
         try: () =>
@@ -293,7 +270,7 @@ export const updateLinkedAccountToken = (
             query: "updateLinkedAccountToken",
             reason: String(e),
           }),
-      })
+      });
     } else {
       yield* Effect.tryPromise({
         try: () =>
@@ -316,9 +293,9 @@ export const updateLinkedAccountToken = (
             query: "updateLinkedAccountToken",
             reason: String(e),
           }),
-      })
+      });
     }
-  })
+  });
 
 /**
  * アカウントのプロフィール情報を更新する（再認証時）。
@@ -332,7 +309,7 @@ export const updateLinkedAccountProfile = (
   userId?: string,
 ) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     if (userId) {
       yield* Effect.tryPromise({
         try: () =>
@@ -340,20 +317,14 @@ export const updateLinkedAccountProfile = (
             .prepare(
               `UPDATE linked_accounts SET display_name = ?, avatar_url = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
             )
-            .bind(
-              profile.display_name,
-              profile.avatar_url,
-              Date.now(),
-              accountId,
-              userId,
-            )
+            .bind(profile.display_name, profile.avatar_url, Date.now(), accountId, userId)
             .run(),
         catch: (e) =>
           new DbQueryError({
             query: "updateLinkedAccountProfile",
             reason: String(e),
           }),
-      })
+      });
     } else {
       yield* Effect.tryPromise({
         try: () =>
@@ -361,21 +332,16 @@ export const updateLinkedAccountProfile = (
             .prepare(
               `UPDATE linked_accounts SET display_name = ?, avatar_url = ?, updated_at = ? WHERE id = ?`,
             )
-            .bind(
-              profile.display_name,
-              profile.avatar_url,
-              Date.now(),
-              accountId,
-            )
+            .bind(profile.display_name, profile.avatar_url, Date.now(), accountId)
             .run(),
         catch: (e) =>
           new DbQueryError({
             query: "updateLinkedAccountProfile",
             reason: String(e),
           }),
-      })
+      });
     }
-  })
+  });
 
 /**
  * リンクアカウントを削除する。
@@ -386,20 +352,17 @@ export const updateLinkedAccountProfile = (
  */
 export const deleteLinkedAccount = (userId: string, accountId: string) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     const result = yield* Effect.tryPromise({
       try: () =>
         db
-          .prepare(
-            "DELETE FROM linked_accounts WHERE id = ? AND user_id = ?",
-          )
+          .prepare("DELETE FROM linked_accounts WHERE id = ? AND user_id = ?")
           .bind(accountId, userId)
           .run(),
-      catch: (e) =>
-        new DbQueryError({ query: "deleteLinkedAccount", reason: String(e) }),
-    })
-    return result.meta.changes > 0
-  })
+      catch: (e) => new DbQueryError({ query: "deleteLinkedAccount", reason: String(e) }),
+    });
+    return result.meta.changes > 0;
+  });
 
 /**
  * ユーザーを削除する。
@@ -409,12 +372,9 @@ export const deleteLinkedAccount = (userId: string, accountId: string) =>
  */
 export const deleteUser = (userId: string) =>
   Effect.gen(function* () {
-    const db = yield* D1Service
+    const db = yield* D1Service;
     yield* Effect.tryPromise({
-      try: () =>
-        db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run(),
-      catch: (e) =>
-        new DbQueryError({ query: "deleteUser", reason: String(e) }),
-    })
-  })
-
+      try: () => db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run(),
+      catch: (e) => new DbQueryError({ query: "deleteUser", reason: String(e) }),
+    });
+  });

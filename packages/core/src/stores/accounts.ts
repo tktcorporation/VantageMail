@@ -20,17 +20,12 @@ export interface AccountsActions {
   removeAccount: (accountId: string) => void;
   setActiveAccount: (accountId: string | null) => void;
   updateUnreadCount: (accountId: string, count: number) => void;
-  setConnectionStatus: (
-    accountId: string,
-    status: AccountConnectionStatus,
-  ) => void;
+  setConnectionStatus: (accountId: string, status: AccountConnectionStatus) => void;
 }
 
 export type AccountsStore = AccountsState & AccountsActions;
 
-export const createAccountsStore = (
-  initialAccounts: Account[] = [],
-) =>
+export const createAccountsStore = (initialAccounts: Account[] = []) =>
   createStore<AccountsStore>((set) => ({
     accounts: initialAccounts,
     activeAccountId: null,
@@ -53,15 +48,11 @@ export const createAccountsStore = (
         return {
           accounts: state.accounts.filter((a) => a.id !== accountId),
           connectionStatuses: rest,
-          activeAccountId:
-            state.activeAccountId === accountId
-              ? null
-              : state.activeAccountId,
+          activeAccountId: state.activeAccountId === accountId ? null : state.activeAccountId,
         };
       }),
 
-    setActiveAccount: (accountId) =>
-      set({ activeAccountId: accountId }),
+    setActiveAccount: (accountId) => set({ activeAccountId: accountId }),
 
     updateUnreadCount: (accountId, count) =>
       set((state) => ({

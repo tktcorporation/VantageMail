@@ -13,6 +13,10 @@
     "knip": "knip",
     "screenshot": "pnpm --filter @vantagemail/ui run screenshot"
   },
+  "dependencies": {
+    "@effect/schema": "catalog:",
+    "effect": "catalog:"
+  },
   "devDependencies": {
     "@effect/eslint-plugin": "catalog:",
     "knip": "catalog:",
@@ -22,9 +26,5 @@
   "engines": {
     "node": ">=22"
   },
-  "packageManager": "pnpm@10.32.1",
-  "dependencies": {
-    "@effect/schema": "catalog:",
-    "effect": "catalog:"
-  }
+  "packageManager": "pnpm@10.32.1"
 }

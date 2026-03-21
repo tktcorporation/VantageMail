@@ -10,28 +10,28 @@
 
 ### 確定済み
 
-| 値 | 内容 | 設定先 |
-|---|---|---|
-| `unified-email-client` | GCP プロジェクト ID | `terraform.tfvars` → `gcp_project_id` |
-| `274158370731` | GCP プロジェクト番号 | 参考情報（自動取得可能） |
+| 値                     | 内容                 | 設定先                                |
+| ---------------------- | -------------------- | ------------------------------------- |
+| `unified-email-client` | GCP プロジェクト ID  | `terraform.tfvars` → `gcp_project_id` |
+| `274158370731`         | GCP プロジェクト番号 | 参考情報（自動取得可能）              |
 
 ### GCP コンソールから取得
 
-| 値 | 取得先 | 設定先 |
-|---|---|---|
-| OAuth クライアント ID | [GCP > Google Auth Platform > クライアント](https://console.cloud.google.com/auth/clients?project=unified-email-client) | `packages/core` のクライアント設定, `.env` |
-| OAuth クライアントシークレット | 同上（クライアント詳細画面） | `wrangler secret put GOOGLE_CLIENT_SECRET`（vantagemail Worker） |
+| 値                             | 取得先                                                                                                                  | 設定先                                                           |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| OAuth クライアント ID          | [GCP > Google Auth Platform > クライアント](https://console.cloud.google.com/auth/clients?project=unified-email-client) | `packages/core` のクライアント設定, `.env`                       |
+| OAuth クライアントシークレット | 同上（クライアント詳細画面）                                                                                            | `wrangler secret put GOOGLE_CLIENT_SECRET`（vantagemail Worker） |
 
 ### 作成済みの OAuth クライアント
 
-| フィールド | 値 |
-|---|---|
-| 名前 | VantageMail Web |
-| 種類 | ウェブ アプリケーション |
-| クライアント ID | `<GCP コンソールから取得>` |
-| クライアントシークレット | GCP コンソールで確認 → `wrangler secret put` で設定 |
-| JS 生成元 | `http://localhost:5173`, `https://vantagemail.onon.workers.dev` |
-| リダイレクト URI | `http://localhost:5173/oauth/callback`, `https://vantagemail.onon.workers.dev/oauth/callback` |
+| フィールド               | 値                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| 名前                     | VantageMail Web                                                                               |
+| 種類                     | ウェブ アプリケーション                                                                       |
+| クライアント ID          | `<GCP コンソールから取得>`                                                                    |
+| クライアントシークレット | GCP コンソールで確認 → `wrangler secret put` で設定                                           |
+| JS 生成元                | `http://localhost:5173`, `https://vantagemail.onon.workers.dev`                               |
+| リダイレクト URI         | `http://localhost:5173/oauth/callback`, `https://vantagemail.onon.workers.dev/oauth/callback` |
 
 ---
 
@@ -39,10 +39,10 @@
 
 ### ダッシュボードから取得
 
-| 値 | 取得先 | 設定先 |
-|---|---|---|
-| Account ID | [CF ダッシュボード](https://dash.cloudflare.com/) → URL `https://dash.cloudflare.com/<account_id>` | `terraform.tfvars` → `cloudflare_account_id` |
-| API トークン | [CF > My Profile > API Tokens](https://dash.cloudflare.com/profile/api-tokens) → 新規作成 | 環境変数 `CLOUDFLARE_API_TOKEN` |
+| 値           | 取得先                                                                                             | 設定先                                       |
+| ------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Account ID   | [CF ダッシュボード](https://dash.cloudflare.com/) → URL `https://dash.cloudflare.com/<account_id>` | `terraform.tfvars` → `cloudflare_account_id` |
+| API トークン | [CF > My Profile > API Tokens](https://dash.cloudflare.com/profile/api-tokens) → 新規作成          | 環境変数 `CLOUDFLARE_API_TOKEN`              |
 
 #### API トークンに必要な権限
 
@@ -53,18 +53,18 @@ Account > Workers Scripts > Edit    # Workers デプロイ時に必要
 
 ### Terraform apply 後に出力される値
 
-| 値 | 設定先 |
-|---|---|
-| `kv_sync_state_id` | `workers/push-relay/wrangler.toml` → `[[kv_namespaces]]` の `id` |
-| `kv_scheduled_jobs_id` | `workers/scheduler/wrangler.toml` → `[[kv_namespaces]]` の `id` |
-| `kv_watch_state_id` | `workers/oauth-proxy/wrangler.toml` → `[[kv_namespaces]]` の `id` |
+| 値                     | 設定先                                                            |
+| ---------------------- | ----------------------------------------------------------------- |
+| `kv_sync_state_id`     | `workers/push-relay/wrangler.toml` → `[[kv_namespaces]]` の `id`  |
+| `kv_scheduled_jobs_id` | `workers/scheduler/wrangler.toml` → `[[kv_namespaces]]` の `id`   |
+| `kv_watch_state_id`    | `workers/oauth-proxy/wrangler.toml` → `[[kv_namespaces]]` の `id` |
 
 ---
 
 ## 3. Workers のシークレット（`wrangler secret put`）
 
-| Worker | シークレット名 | 値の出所 |
-|---|---|---|
+| Worker                                     | シークレット名         | 値の出所                     |
+| ------------------------------------------ | ---------------------- | ---------------------------- |
 | `vantagemail`（TanStack Start SSR Worker） | `GOOGLE_CLIENT_SECRET` | GCP > OAuth クライアント詳細 |
 
 ```bash
@@ -97,12 +97,12 @@ VITE_PUBSUB_TOPIC=projects/unified-email-client/topics/vantagemail-gmail-push
 
 CF ダッシュボード > Workers > vantagemail > Settings > Variables and Secrets に以下を設定:
 
-| 変数名 | 値 |
-|--------|---|
-| `VITE_GOOGLE_CLIENT_ID` | GCP コンソールから取得 |
-| `VITE_OAUTH_REDIRECT_URI` | `https://vantagemail.onon.workers.dev/oauth/callback` |
-| `VITE_PUBSUB_TOPIC` | `projects/unified-email-client/topics/vantagemail-gmail-push` |
-| `GOOGLE_CLIENT_SECRET` | GCP コンソールから取得（シークレットとして設定） |
+| 変数名                    | 値                                                            |
+| ------------------------- | ------------------------------------------------------------- |
+| `VITE_GOOGLE_CLIENT_ID`   | GCP コンソールから取得                                        |
+| `VITE_OAUTH_REDIRECT_URI` | `https://vantagemail.onon.workers.dev/oauth/callback`         |
+| `VITE_PUBSUB_TOPIC`       | `projects/unified-email-client/topics/vantagemail-gmail-push` |
+| `GOOGLE_CLIENT_SECRET`    | GCP コンソールから取得（シークレットとして設定）              |
 
 Vite がビルド時に `import.meta.env` 経由で読み、JS にインライン埋め込みする。
 
@@ -153,7 +153,7 @@ export CLOUDFLARE_API_TOKEN="<CF API トークン>"
 ## TODO（未完了）
 
 - [ ] GCP コンソールでテストユーザーに `tktcorporation.go@gmail.com` を追加
-  → https://console.cloud.google.com/auth/audience?project=unified-email-client
+      → https://console.cloud.google.com/auth/audience?project=unified-email-client
 - [ ] GCP コンソールでクライアントシークレットを確認して `wrangler secret put` で設定
 - [ ] Cloudflare Account ID を確認して terraform.tfvars に記入
 - [ ] Cloudflare API Token を作成
