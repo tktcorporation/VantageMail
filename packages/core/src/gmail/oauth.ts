@@ -24,6 +24,9 @@ import type { OAuthTokens } from "../types/account";
  * Restricted Scopeのため、一般公開にはCASA監査が必須（spec §11.2）。
  */
 const GMAIL_SCOPES = [
+  // openid: id_token を取得するために必要。google_sub（不変ユーザーID）の
+  // 安全な取得に使う。マルチアカウント認証のユーザー識別に必須。
+  "openid",
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/gmail.compose",
   "https://www.googleapis.com/auth/gmail.labels",

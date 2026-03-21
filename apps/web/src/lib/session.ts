@@ -1,42 +1,37 @@
 /**
  * セッション設定と型定義。
  *
- * 背景: TanStack Start の暗号化セッション（iron-session 方式）を使い、
- * アカウント情報とOAuthトークンをサーバーサイドで管理する。
- * Cookie は httpOnly + Secure + AES 暗号化されるため、
- * クライアントJSからトークンを読み取れない。
+ * 背景: マルチアカウント認証では、セッションにユーザーIDとDEK（データ暗号化キー）を保持する。
+ * トークン自体は D1 に暗号化保存されており、セッションには含まない。
+ * access_token のキャッシュのみセッションに持つ（短命なので永続化不要）。
  *
- * セッションのライフサイクル:
- * - OAuthコールバック成功時にアカウント+トークンを保存
- * - ページロード時にloaderがセッションを読みアカウント情報をクライアントに渡す
- * - トークンはサーバー側でのみ使用（クライアントには渡さない）
+ * 旧方式（StoredAccount[] をセッションに直接格納）からの破壊的移行。
  */
 import type { SessionConfig } from "@tanstack/react-start/server";
-import type { Account, OAuthTokens } from "@vantagemail/core";
-
-/**
- * クライアントに渡すアカウント情報（トークンを含まない安全な部分集合）。
- * サイドバー表示やアカウント切替に使う。
- */
-export type ClientAccount = Account;
-
-/**
- * セッション内部に保存するアカウント情報（トークン含む）。
- * サーバー側でのみ参照する。暗号化Cookieに格納されるためクライアントに露出しない。
- */
-export interface StoredAccount {
-  account: Account;
-  tokens: OAuthTokens;
-}
 
 /**
  * セッションデータの型。
- * 暗号化Cookieに格納される全データを表す。
+ *
+ * ログイン済みの場合 userId と dek が存在する。
+ * dek は平文（base64）でセッションに保持し、リクエストごとに D1 から復号するコストを避ける。
+ * セッション自体が暗号化 Cookie なので、dek がクライアントに露出することはない。
  */
 export interface AppSessionData {
-  accounts: StoredAccount[];
+  /** users.id（ログイン済みの場合に存在） */
+  userId?: string;
+  /** DEK の平文（base64）。D1 の暗号化トークンを復号するために使う */
+  dek?: string;
   /** OAuth フロー中の PKCE code_verifier。認証完了後に削除される */
   codeVerifier?: string;
+  /**
+   * access_token のリクエスト間キャッシュ。
+   * accountId → { accessToken, expiresAt } のマップ。
+   * セッション切れ時に消えるが、refresh_token から再取得可能なので問題ない。
+   */
+  accessTokenCache?: Record<
+    string,
+    { accessToken: string; expiresAt: number }
+  >;
 }
 
 /**
@@ -70,4 +65,24 @@ export function getSessionConfig(): SessionConfig {
       path: "/",
     },
   };
+}
+
+/**
+ * SERVER_SECRET を取得する。
+ * HKDF で KEK を導出するために使う。SESSION_SECRET とは別のシークレット。
+ *
+ * 背景: SESSION_SECRET はセッション Cookie の暗号化に使い、
+ * SERVER_SECRET は D1 内のトークン暗号化キー（KEK）の導出に使う。
+ * 分離することで、一方が漏洩しても他方のセキュリティに影響しない。
+ */
+export function getServerSecret(): string {
+  const secret = process.env.SERVER_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SERVER_SECRET must be set in production");
+    }
+    // 開発環境用フォールバック
+    return "vantagemail-dev-server-secret-min-32-chars!!";
+  }
+  return secret;
 }

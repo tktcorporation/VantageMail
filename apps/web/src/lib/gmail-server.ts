@@ -1,57 +1,104 @@
 /**
  * Server-side Gmail API helper.
  *
- * Reads OAuth tokens from the encrypted session, refreshes if expired,
- * and provides authenticated access to the Gmail API.
- * Tokens never leave the server — only converted Thread/Message data is returned to the client.
+ * 背景: D1 に暗号化保存された refresh_token を復号し、
+ * access_token を取得して Gmail API にアクセスする。
+ * access_token はセッションにキャッシュし、有効期限5分前に自動リフレッシュする。
+ * トークンはサーバー側でのみ使用し、クライアントに露出しない。
  */
 import { getSession, updateSession } from "@tanstack/react-start/server";
 import {
   getSessionConfig,
+  getServerSecret,
   type AppSessionData,
-  type StoredAccount,
 } from "./session";
-import type { OAuthTokens } from "@vantagemail/core";
+import { decrypt, encrypt, deriveKEK, importDEK } from "./crypto";
+import {
+  getDB,
+  findLinkedAccountsByUserId,
+  updateLinkedAccountToken,
+  type LinkedAccountRow,
+} from "./db";
 
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 /**
- * Get a valid access token for the given account.
- * Refreshes the token if it's expired or about to expire (within 5 minutes).
- * Updates the session with the new token on refresh.
+ * 指定アカウントの有効な access_token を取得する。
+ *
+ * 1. セッションのキャッシュを確認（有効期限5分以上）
+ * 2. キャッシュなし/期限切れ → D1 から暗号化 refresh_token を取得
+ * 3. DEK で復号 → Google Token Endpoint でリフレッシュ
+ * 4. 新しい access_token をセッションにキャッシュ
+ * 5. Google が新しい refresh_token を返した場合は D1 を更新
  */
-export async function getAccessToken(accountId: string): Promise<string | null> {
+export async function getAccessToken(
+  accountId: string,
+): Promise<string | null> {
   const session = await getSession<AppSessionData>(getSessionConfig());
-  const stored = (session.data.accounts ?? []).find(
-    (sa: StoredAccount) => sa.account.id === accountId,
-  );
-  if (!stored) return null;
+  const { userId, dek: dekBase64 } = session.data;
+  if (!userId || !dekBase64) return null;
 
-  const { tokens } = stored;
-
-  // Token still valid (more than 5 minutes remaining)
-  if (Date.now() < tokens.expiresAt - 5 * 60 * 1000) {
-    return tokens.accessToken;
+  // 1. セッションキャッシュを確認
+  const cached = session.data.accessTokenCache?.[accountId];
+  if (cached && Date.now() < cached.expiresAt - 5 * 60 * 1000) {
+    return cached.accessToken;
   }
 
-  // Refresh the token
-  const refreshed = await refreshToken(tokens.refreshToken);
+  // 2. D1 からアカウント情報を取得
+  const db = getDB();
+  const accounts = await findLinkedAccountsByUserId(db, userId);
+  const account = accounts.find((a: LinkedAccountRow) => a.id === accountId);
+  if (!account) return null;
+
+  // 3. DEK で refresh_token を復号
+  const dekBytes = base64ToUint8(dekBase64);
+  const dekKey = await importDEK(dekBytes);
+  const refreshToken = await decrypt(dekKey, {
+    ciphertext: account.encrypted_refresh_token,
+    iv: account.refresh_token_iv,
+  });
+
+  // 4. access_token をリフレッシュ
+  const refreshed = await refreshGoogleToken(refreshToken);
   if (!refreshed) return null;
 
-  // Update session with new tokens
-  await updateSession<AppSessionData>(getSessionConfig(), (prev) => {
-    const accounts = (prev.accounts ?? []).map((sa: StoredAccount) => {
-      if (sa.account.id !== accountId) return sa;
-      return { ...sa, tokens: refreshed };
+  // 5. セッションにキャッシュ
+  await updateSession<AppSessionData>(getSessionConfig(), (prev) => ({
+    ...prev,
+    accessTokenCache: {
+      ...prev.accessTokenCache,
+      [accountId]: {
+        accessToken: refreshed.accessToken,
+        expiresAt: refreshed.expiresAt,
+      },
+    },
+  }));
+
+  // 6. Google が新しい refresh_token を返した場合は D1 を更新
+  if (refreshed.newRefreshToken) {
+    const encrypted = await encrypt(dekKey, refreshed.newRefreshToken);
+    await updateLinkedAccountToken(db, accountId, {
+      encrypted_refresh_token: encrypted.ciphertext,
+      refresh_token_iv: encrypted.iv,
+      token_scope: refreshed.scope,
     });
-    return { ...prev, accounts };
-  });
+  }
 
   return refreshed.accessToken;
 }
 
-async function refreshToken(refreshTokenValue: string): Promise<OAuthTokens | null> {
+interface RefreshResult {
+  accessToken: string;
+  expiresAt: number;
+  scope: string;
+  /** Google がローテーションした場合のみ値が入る */
+  newRefreshToken?: string;
+}
+
+async function refreshGoogleToken(
+  refreshToken: string,
+): Promise<RefreshResult | null> {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
@@ -59,7 +106,7 @@ async function refreshToken(refreshTokenValue: string): Promise<OAuthTokens | nu
   const body = new URLSearchParams({
     client_id: clientId,
     client_secret: clientSecret,
-    refresh_token: refreshTokenValue,
+    refresh_token: refreshToken,
     grant_type: "refresh_token",
   });
 
@@ -70,22 +117,27 @@ async function refreshToken(refreshTokenValue: string): Promise<OAuthTokens | nu
   });
 
   if (!response.ok) {
-    console.error("Token refresh failed:", response.status, await response.text());
+    console.error(
+      "Token refresh failed:",
+      response.status,
+      await response.text(),
+    );
     return null;
   }
 
   const data = await response.json();
   return {
     accessToken: data.access_token,
-    refreshToken: data.refresh_token ?? refreshTokenValue,
     expiresAt: Date.now() + data.expires_in * 1000,
     scope: data.scope,
+    // Google はトークンローテーション時のみ新しい refresh_token を返す
+    newRefreshToken: data.refresh_token ?? undefined,
   };
 }
 
 /**
- * Make an authenticated request to the Gmail API.
- * Returns null if the account is not found or token refresh fails.
+ * Gmail API に認証付きリクエストを送る。
+ * アカウントが見つからないかトークンリフレッシュに失敗した場合は null を返す。
  */
 export async function gmailFetch<T>(
   accountId: string,
@@ -107,4 +159,15 @@ export async function gmailFetch<T>(
   }
 
   return response.json();
+}
+
+// --- ユーティリティ ---
+
+function base64ToUint8(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
 }
