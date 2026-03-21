@@ -6,7 +6,7 @@
  * 適切なエラー型（KeyDerivationError, EncryptionError, DecryptionError）を付与する。
  *
  * EncryptedData インターフェースや base64 ユーティリティは plain な関数として
- * crypto.ts に残す（Effect 化する必要がないため）。
+ * crypto.ts に残し、このファイルからインポートして使用する。
  */
 import { Context, Effect, Layer } from "effect"
 import {
@@ -15,6 +15,7 @@ import {
   KeyDerivationError,
 } from "@vantagemail/core"
 import type { EncryptedData } from "../crypto.ts"
+import { uint8ToBase64, base64ToUint8 } from "../crypto.ts"
 
 export interface CryptoServiceImpl {
   /**
@@ -124,17 +125,9 @@ export class CryptoService extends Context.Tag("CryptoService")<
             key,
             encoder.encode(plaintext),
           )
-          // uint8ToBase64 を inline で実装（循環依存を避けるため）
-          const toBase64 = (bytes: Uint8Array): string => {
-            let binary = ""
-            for (const byte of bytes) {
-              binary += String.fromCharCode(byte)
-            }
-            return btoa(binary)
-          }
           return {
-            ciphertext: toBase64(new Uint8Array(ciphertext)),
-            iv: toBase64(iv),
+            ciphertext: uint8ToBase64(new Uint8Array(ciphertext)),
+            iv: uint8ToBase64(iv),
           }
         },
         catch: (e) =>
@@ -145,16 +138,8 @@ export class CryptoService extends Context.Tag("CryptoService")<
       Effect.tryPromise({
         try: async () => {
           const decoder = new TextDecoder()
-          const fromBase64 = (base64: string): Uint8Array => {
-            const binary = atob(base64)
-            const bytes = new Uint8Array(binary.length)
-            for (let i = 0; i < binary.length; i++) {
-              bytes[i] = binary.charCodeAt(i)
-            }
-            return bytes
-          }
-          const ciphertext = fromBase64(data.ciphertext)
-          const iv = fromBase64(data.iv)
+          const ciphertext = base64ToUint8(data.ciphertext)
+          const iv = base64ToUint8(data.iv)
           const plaintext = await crypto.subtle.decrypt(
             { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
             key,
@@ -175,16 +160,9 @@ export class CryptoService extends Context.Tag("CryptoService")<
             kek,
             dek.buffer as ArrayBuffer,
           )
-          const toBase64 = (bytes: Uint8Array): string => {
-            let binary = ""
-            for (const byte of bytes) {
-              binary += String.fromCharCode(byte)
-            }
-            return btoa(binary)
-          }
           return {
-            ciphertext: toBase64(new Uint8Array(ciphertext)),
-            iv: toBase64(iv),
+            ciphertext: uint8ToBase64(new Uint8Array(ciphertext)),
+            iv: uint8ToBase64(iv),
           }
         },
         catch: (e) =>
@@ -194,16 +172,8 @@ export class CryptoService extends Context.Tag("CryptoService")<
     decryptDEK: (kek, data) =>
       Effect.tryPromise({
         try: async () => {
-          const fromBase64 = (base64: string): Uint8Array => {
-            const binary = atob(base64)
-            const bytes = new Uint8Array(binary.length)
-            for (let i = 0; i < binary.length; i++) {
-              bytes[i] = binary.charCodeAt(i)
-            }
-            return bytes
-          }
-          const ciphertext = fromBase64(data.ciphertext)
-          const iv = fromBase64(data.iv)
+          const ciphertext = base64ToUint8(data.ciphertext)
+          const iv = base64ToUint8(data.iv)
           const plaintext = await crypto.subtle.decrypt(
             { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
             kek,

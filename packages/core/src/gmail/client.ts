@@ -416,26 +416,6 @@ export function listHistory(
   })
 }
 
-// ─── Legacy クラスベース API（後方互換） ───
-
-/**
- * Gmail API固有のエラー（レガシー）。
- * ステータスコードとリクエストパスを含む。
- *
- * 新規コードでは errors.ts の GmailApiError（Data.TaggedError）を使うこと。
- * この型は既存の呼び出し元が依存しているため、GmailApiErrorLegacy として残す。
- */
-export class GmailApiErrorLegacy extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly body: string,
-    public readonly path: string,
-  ) {
-    super(`Gmail API Error ${status} on ${path}: ${body}`)
-    this.name = "GmailApiError"
-  }
-}
-
 // ─── 型の再エクスポート（後方互換） ───
 
 export type { GmailThread, GmailMessage, GmailLabel, GmailSearchResult }

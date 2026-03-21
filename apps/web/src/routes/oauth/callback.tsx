@@ -37,7 +37,7 @@ import {
   updateLinkedAccountToken,
   updateLinkedAccountProfile,
 } from "~/lib/db.ts"
-import type { LinkedAccountRow } from "~/lib/db.ts"
+
 import { getEnv, handleEffect } from "~/lib/runtime.ts"
 import { uint8ToBase64 } from "~/lib/crypto.ts"
 
@@ -365,7 +365,7 @@ const handleExistingUser = (
     })
 
     // メインアカウントの refresh_token を更新（または再作成）
-    let mainAccount = yield* findLinkedAccountByEmail(
+    const mainAccount = yield* findLinkedAccountByEmail(
       existingUser.id,
       userInfo.email,
     )
@@ -375,7 +375,12 @@ const handleExistingUser = (
       tokenData.refresh_token,
     )
 
+    // 後続のセッション更新で使う accountId を追跡する。
+    // mainAccount が null の場合は新規作成するため、let で宣言。
+    let mainAccountId: string
+
     if (mainAccount) {
+      mainAccountId = mainAccount.id
       // 既存のメインアカウントを更新
       yield* updateLinkedAccountToken(mainAccount.id, {
         encrypted_refresh_token: encryptedToken.ciphertext,
@@ -393,10 +398,10 @@ const handleExistingUser = (
         existingUser.id,
       )
       const colorIndex = existingAccounts.length % ACCOUNT_COLORS.length
-      const newAccountId = crypto.randomUUID()
+      mainAccountId = crypto.randomUUID()
 
       yield* createLinkedAccount({
-        id: newAccountId,
+        id: mainAccountId,
         user_id: existingUser.id,
         email: userInfo.email,
         google_sub: googleSub,
@@ -407,9 +412,6 @@ const handleExistingUser = (
         refresh_token_iv: encryptedToken.iv,
         token_scope: tokenData.scope,
       })
-
-      // 再作成したアカウントを後続処理で使えるようにする
-      mainAccount = { id: newAccountId } as LinkedAccountRow
     }
 
     // セッションに保存（DEK の base64 文字列）
@@ -422,7 +424,7 @@ const handleExistingUser = (
       codeVerifier: undefined,
       accessTokenCache: {
         ...prev.accessTokenCache,
-        [mainAccount!.id]: {
+        [mainAccountId]: {
           accessToken: tokenData.access_token,
           expiresAt: Date.now() + tokenData.expires_in * 1000,
         },
@@ -616,14 +618,18 @@ export const Route = createFileRoute("/oauth/callback")({
 
         return handleEffect(
           callbackEffect.pipe(
-            Effect.catchAll((error) =>
-              Effect.succeed(
-                redirectWithError(
-                  origin,
-                  (error as { _tag?: string })._tag ?? "authentication_failed",
-                ),
-              ),
-            ),
+            Effect.catchAll((error: unknown) => {
+              // Effect-TS の TaggedError は _tag プロパティを持つ。
+              // 型安全にプロパティの存在を確認してからアクセスする。
+              const tag =
+                typeof error === "object" &&
+                error !== null &&
+                "_tag" in error &&
+                typeof (error as Record<string, unknown>)._tag === "string"
+                  ? ((error as Record<string, unknown>)._tag as string)
+                  : "authentication_failed"
+              return Effect.succeed(redirectWithError(origin, tag))
+            }),
           ),
           env,
         )
