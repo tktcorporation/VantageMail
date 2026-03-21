@@ -14,9 +14,11 @@ import type { MouseEvent } from "react";
 export interface AccountSettingsProps {
   onAddAccount?: () => void;
   onRemoveAccount?: (accountId: string) => void;
+  /** モバイルでリスト画面に戻るコールバック */
+  onBack?: () => void;
 }
 
-export function AccountSettings({ onAddAccount, onRemoveAccount }: AccountSettingsProps) {
+export function AccountSettings({ onAddAccount, onRemoveAccount, onBack }: AccountSettingsProps) {
   const accounts = useAccounts((s) => s.accounts);
 
   const mainAccount = accounts[0] ?? null;
@@ -26,6 +28,19 @@ export function AccountSettings({ onAddAccount, onRemoveAccount }: AccountSettin
     <div className="flex flex-col h-full overflow-auto">
       {/* ヘッダー */}
       <div className="px-6 py-4 border-b border-[var(--color-border-light)]">
+        {/* モバイル: 戻るボタン */}
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="md:hidden flex items-center gap-1 mb-2 px-0 py-0 border-none bg-transparent cursor-pointer text-[13px] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            戻る
+          </button>
+        )}
         <h1 className="text-[16px] font-semibold m-0">設定</h1>
         <p className="text-[13px] text-[var(--color-text-secondary)] mt-1 mb-0">
           アカウント

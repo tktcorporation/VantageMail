@@ -117,3 +117,47 @@ test("06 - オンボーディング（アカウント未登録）", async ({ pag
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `${SCREENSHOT_DIR}/06-onboarding.png`, fullPage: false });
 });
+
+// --- モバイルスクリーンショット (375x812) ---
+
+const MOBILE_VIEWPORT = { width: 375, height: 812 };
+
+test("m01 - モバイル: スレッドリスト", async ({ page }) => {
+  await page.setViewportSize(MOBILE_VIEWPORT);
+  await page.goto("/");
+  await page.waitForTimeout(2000);
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/m01-mobile-list.png`, fullPage: false });
+});
+
+test("m02 - モバイル: スレッド詳細", async ({ page }) => {
+  await page.setViewportSize(MOBILE_VIEWPORT);
+  await page.goto("/");
+  await page.waitForTimeout(2000);
+  // スレッドをクリックして詳細画面に遷移
+  const firstThread = page.locator("text=プロジェクト進捗レビュー").first();
+  if (await firstThread.isVisible()) {
+    await firstThread.click();
+    await page.waitForTimeout(1000);
+  }
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/m02-mobile-detail.png`, fullPage: false });
+});
+
+test("m03 - モバイル: サイドバー（オーバーレイ）", async ({ page }) => {
+  await page.setViewportSize(MOBILE_VIEWPORT);
+  await page.goto("/");
+  await page.waitForTimeout(2000);
+  // ハンバーガーメニューを開く
+  const menuBtn = page.getByLabel("メニューを開く");
+  if (await menuBtn.isVisible()) {
+    await menuBtn.click();
+    await page.waitForTimeout(500);
+  }
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/m03-mobile-sidebar.png`, fullPage: false });
+});
+
+test("m04 - モバイル: オンボーディング", async ({ page }) => {
+  await page.setViewportSize(MOBILE_VIEWPORT);
+  await page.goto("/?empty=1");
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/m04-mobile-onboarding.png`, fullPage: false });
+});

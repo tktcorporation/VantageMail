@@ -95,7 +95,12 @@ function MessageItem({ message }: { message: Message }) {
   );
 }
 
-export function ThreadView() {
+interface ThreadViewProps {
+  /** モバイルでリスト画面に戻るコールバック */
+  onBack?: () => void;
+}
+
+export function ThreadView({ onBack }: ThreadViewProps = {}) {
   const selectedThreadId = useThreads((s) => s.selectedThreadId);
   const threadsByAccount = useThreads((s) => s.threadsByAccount);
   const accounts = useAccounts((s) => s.accounts);
@@ -143,6 +148,19 @@ export function ThreadView() {
     <div className="flex flex-col h-full overflow-auto">
       {/* Thread header */}
       <div className="p-6 border-b border-[var(--color-border-light)]">
+        {/* モバイル: 戻るボタン */}
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="md:hidden flex items-center gap-1 mb-3 px-0 py-0 border-none bg-transparent cursor-pointer text-[13px] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            戻る
+          </button>
+        )}
         <div className="flex items-center gap-2 mb-2">
           {account && (
             <span
