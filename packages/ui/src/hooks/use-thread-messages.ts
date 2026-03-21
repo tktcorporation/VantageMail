@@ -41,13 +41,14 @@ export function useThreadMessages(
     fetch(`/api/threads/${threadId}?accountId=${encodeURIComponent(accountId)}`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`${res.status}`);
-        const data = await res.json();
-        return (data.messages ?? []).map(
-          (m: Message & { date: string }) => ({
-            ...m,
-            date: new Date(m.date),
-          }),
-        );
+        // API レスポンスでは date が ISO 文字列で返る
+        const data = (await res.json()) as {
+          messages?: (Omit<Message, "date"> & { date: string })[];
+        };
+        return (data.messages ?? []).map((m) => ({
+          ...m,
+          date: new Date(m.date),
+        }));
       })
       .then((msgs: Message[]) => {
         if (cancelled) return;

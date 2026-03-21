@@ -24,10 +24,12 @@ export function AppShell({ initialAccounts }: AppShellProps) {
     try {
       const response = await fetch("/api/auth/start", { method: "POST" });
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
+        const data = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(data.error ?? `認証開始に失敗: ${response.status}`);
       }
-      const { url } = await response.json();
+      const { url } = (await response.json()) as { url: string };
       window.location.href = url;
     } catch (err) {
       console.error("OAuth 開始エラー:", err);

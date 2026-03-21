@@ -56,8 +56,8 @@ const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
-  '/api/auth/start': typeof ApiAuthStartRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/auth/start': typeof ApiAuthStartRoute
   '/api/threads/$threadId': typeof ApiThreadsThreadIdRoute
   '/api/accounts/': typeof ApiAccountsIndexRoute
   '/api/threads/': typeof ApiThreadsIndexRoute
@@ -65,8 +65,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
-  '/api/auth/start': typeof ApiAuthStartRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/auth/start': typeof ApiAuthStartRoute
   '/api/threads/$threadId': typeof ApiThreadsThreadIdRoute
   '/api/accounts': typeof ApiAccountsIndexRoute
   '/api/threads': typeof ApiThreadsIndexRoute
@@ -75,8 +75,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/oauth/callback': typeof OauthCallbackRoute
-  '/api/auth/start': typeof ApiAuthStartRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/auth/start': typeof ApiAuthStartRoute
   '/api/threads/$threadId': typeof ApiThreadsThreadIdRoute
   '/api/accounts/': typeof ApiAccountsIndexRoute
   '/api/threads/': typeof ApiThreadsIndexRoute
@@ -86,8 +86,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/oauth/callback'
-    | '/api/auth/start'
     | '/api/auth/logout'
+    | '/api/auth/start'
     | '/api/threads/$threadId'
     | '/api/accounts/'
     | '/api/threads/'
@@ -95,8 +95,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/oauth/callback'
-    | '/api/auth/start'
     | '/api/auth/logout'
+    | '/api/auth/start'
     | '/api/threads/$threadId'
     | '/api/accounts'
     | '/api/threads'
@@ -104,8 +104,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/oauth/callback'
-    | '/api/auth/start'
     | '/api/auth/logout'
+    | '/api/auth/start'
     | '/api/threads/$threadId'
     | '/api/accounts/'
     | '/api/threads/'
@@ -114,8 +114,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OauthCallbackRoute: typeof OauthCallbackRoute
-  ApiAuthStartRoute: typeof ApiAuthStartRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
+  ApiAuthStartRoute: typeof ApiAuthStartRoute
   ApiThreadsThreadIdRoute: typeof ApiThreadsThreadIdRoute
   ApiAccountsIndexRoute: typeof ApiAccountsIndexRoute
   ApiThreadsIndexRoute: typeof ApiThreadsIndexRoute
@@ -178,8 +178,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OauthCallbackRoute: OauthCallbackRoute,
-  ApiAuthStartRoute: ApiAuthStartRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
+  ApiAuthStartRoute: ApiAuthStartRoute,
   ApiThreadsThreadIdRoute: ApiThreadsThreadIdRoute,
   ApiAccountsIndexRoute: ApiAccountsIndexRoute,
   ApiThreadsIndexRoute: ApiThreadsIndexRoute,
