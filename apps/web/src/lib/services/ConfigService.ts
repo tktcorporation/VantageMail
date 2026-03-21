@@ -33,33 +33,38 @@ export class ConfigService extends Context.Tag("ConfigService")<
    *
    * 開発環境ではフォールバック値を提供し、本番では必須チェックを行う。
    */
+  /**
+   * Cloudflare Workers の env bindings から設定値を取得して Layer を構築する。
+   *
+   * secrets (GOOGLE_CLIENT_SECRET, SERVER_SECRET) は env オブジェクトに直接入る。
+   * process.env にもマッピングされるが、タイミングによっては未定義の場合があるため
+   * env オブジェクトを優先する。
+   */
   static layer = (env: Cloudflare.Env) =>
     Layer.effect(
       ConfigService,
       Effect.gen(function* () {
-        const getRequired = (key: string, envValue?: string): string => {
-          const value = envValue ?? process.env[key]
-          if (value) return value
-          if (process.env.NODE_ENV === "production") {
-            // Effect.gen 内で throw すると Effect がキャッチして defect にする。
-            // ここでは起動時のバリデーションなので fail より適切。
-            throw new ConfigMissingError({ key })
-          }
-          // 開発環境用フォールバック
-          return `dev-${key}-placeholder`
+        // env オブジェクト → process.env の順でフォールバック
+        const get = (key: string): string | undefined =>
+          (env as Record<string, unknown>)[key] as string | undefined ??
+          process.env[key]
+
+        const requireKey = (key: string) => {
+          const value = get(key)
+          if (value) return Effect.succeed(value)
+          return Effect.fail(new ConfigMissingError({ key }))
         }
 
-        const allowedOriginsRaw =
-          env.ALLOWED_ORIGINS ?? process.env.ALLOWED_ORIGINS ?? ""
+        const allowedOriginsRaw = get("ALLOWED_ORIGINS") ?? ""
+
+        const googleClientId = yield* requireKey("GOOGLE_CLIENT_ID")
+        const googleClientSecret = yield* requireKey("GOOGLE_CLIENT_SECRET")
+        const serverSecret = yield* requireKey("SERVER_SECRET")
 
         return {
-          googleClientId: getRequired("GOOGLE_CLIENT_ID"),
-          googleClientSecret: getRequired("GOOGLE_CLIENT_SECRET"),
-          serverSecret: getRequired(
-            "SERVER_SECRET",
-            // 開発環境のフォールバックは session.ts と合わせる
-            process.env.SERVER_SECRET,
-          ),
+          googleClientId,
+          googleClientSecret,
+          serverSecret,
           allowedOrigins: allowedOriginsRaw
             .split(",")
             .map((s) => s.trim())
