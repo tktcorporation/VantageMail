@@ -4,8 +4,10 @@
  * 背景: ストアの初期化、レイアウトの組み立て、グローバルキーボードイベントの
  * セットアップを行うアプリのエントリーポイント。
  * デスクトップ/Web両方で同一のコンポーネントを使う（95%コード共有）。
+ *
+ * showSettings が true のとき、右ペインに AccountSettings を表示する。
  */
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Account } from "@vantagemail/core";
 import { StoreContext, createStores, useStoreApis } from "./hooks/use-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
@@ -14,6 +16,7 @@ import { AppLayout } from "./layouts/app-layout";
 import { Sidebar } from "./components/sidebar";
 import { ThreadList } from "./components/thread-list";
 import { ThreadView } from "./components/thread-view";
+import { AccountSettings } from "./components/account-settings";
 import { CommandPalette } from "./components/command-palette";
 
 export interface AppProps {
@@ -46,6 +49,7 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
   onRemoveAccount?: (accountId: string) => void;
 }) {
   const { threadsStore, accountsStore } = useStoreApis();
+  const [showSettings, setShowSettings] = useState(false);
 
   useKeyboardShortcuts({ threadsStore });
   // Mount 時に全アカウントのスレッドを Gmail API から取得
@@ -71,6 +75,10 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
     }
   }, [accountsStore, onRemoveAccount]);
 
+  const handleToggleSettings = useCallback(() => {
+    setShowSettings((prev) => !prev);
+  }, []);
+
   return (
     <>
       <AppLayout
@@ -78,10 +86,21 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
           <Sidebar
             onAddAccount={handleAddAccount}
             onRemoveAccount={handleRemoveAccount}
+            onToggleSettings={handleToggleSettings}
+            isSettingsActive={showSettings}
           />
         }
         threadList={<ThreadList />}
-        threadView={<ThreadView />}
+        threadView={
+          showSettings ? (
+            <AccountSettings
+              onAddAccount={handleAddAccount}
+              onRemoveAccount={handleRemoveAccount}
+            />
+          ) : (
+            <ThreadView />
+          )
+        }
       />
       <CommandPalette />
     </>

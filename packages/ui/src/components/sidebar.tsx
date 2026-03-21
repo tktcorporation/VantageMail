@@ -5,10 +5,13 @@
  * 上部に配置し、カテゴリごとの未読カウントを表示する。
  * アカウントセレクターはカテゴリの下に配置。
  * カテゴリとアカウントの両方でフィルタを組み合わせられる。
+ *
+ * フッターに「設定」ボタンを配置し、アカウント設定画面への遷移をサポートする。
  */
 import { useAccounts, useThreads } from "../hooks/use-store";
 import { useCallback, useMemo, type MouseEvent } from "react";
 import type { SmartCategory } from "@vantagemail/core";
+import { matchesCategory } from "@vantagemail/core";
 
 /** カテゴリ定義: 表示名とGmailラベルのマッピング */
 const CATEGORIES: { key: SmartCategory; label: string }[] = [
@@ -18,28 +21,16 @@ const CATEGORIES: { key: SmartCategory; label: string }[] = [
   { key: "newsletters", label: "ニュースレター" },
 ];
 
-/**
- * スレッドのlabelIdsがカテゴリに該当するか判定する。
- * サイドバーの未読カウント計算に使用。
- */
-function threadMatchesCategory(labelIds: readonly string[], category: SmartCategory): boolean {
-  if (category === "all") return true;
-  switch (category) {
-    case "people":
-      return labelIds.some((l) => l === "CATEGORY_PERSONAL" || l === "IMPORTANT");
-    case "notifications":
-      return labelIds.some((l) => l === "CATEGORY_UPDATES" || l === "CATEGORY_SOCIAL");
-    case "newsletters":
-      return labelIds.some((l) => l === "CATEGORY_PROMOTIONS" || l === "CATEGORY_FORUMS");
-  }
-}
-
 interface SidebarProps {
   onAddAccount?: () => void;
   onRemoveAccount?: (accountId: string) => void;
+  /** 設定画面の表示/非表示をトグルするコールバック */
+  onToggleSettings?: () => void;
+  /** 設定画面が現在アクティブかどうか */
+  isSettingsActive?: boolean;
 }
 
-export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
+export function Sidebar({ onAddAccount, onRemoveAccount, onToggleSettings, isSettingsActive }: SidebarProps = {}) {
   const accounts = useAccounts((s) => s.accounts);
   const activeAccountId = useAccounts((s) => s.activeAccountId);
   const setActiveAccount = useAccounts((s) => s.setActiveAccount);
@@ -60,6 +51,7 @@ export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
   /**
    * カテゴリごとの未読スレッド数を計算する。
    * activeAccountIdが設定されている場合、そのアカウントのみカウントする。
+   * matchesCategoryを@vantagemail/coreから使用して重複ロジックを排除。
    */
   const categoryCounts = useMemo(() => {
     const counts: Record<SmartCategory, number> = {
@@ -73,7 +65,7 @@ export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
       for (const thread of Object.values(threads)) {
         if (!thread.isUnread) continue;
         for (const cat of CATEGORIES) {
-          if (threadMatchesCategory(thread.labelIds, cat.key)) {
+          if (matchesCategory(thread.labelIds, cat.key)) {
             counts[cat.key]++;
           }
         }
@@ -168,28 +160,32 @@ export function Sidebar({ onAddAccount, onRemoveAccount }: SidebarProps = {}) {
                 </span>
               )}
             </button>
-            {/* ホバー時にアカウント削除ボタンを表示 */}
-            {onRemoveAccount && (
-              <button
-                type="button"
-                onClick={(e: MouseEvent) => {
-                  e.stopPropagation();
-                  if (confirm(`${account.email} の連携を解除しますか？`)) {
-                    onRemoveAccount(account.id);
-                  }
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-[11px] text-[var(--color-text-secondary)] hover:text-[var(--color-danger,#fa5252)] hover:bg-[var(--color-bg-hover)] transition-opacity border-none bg-transparent cursor-pointer"
-                title="アカウント連携を解除"
-              >
-                ×
-              </button>
-            )}
+            {/* アカウント削除は設定画面（AccountSettings）から行う */}
           </div>
         ))}
       </nav>
 
-      {/* フッター: アカウント追加 */}
-      <div className="px-4 py-3 border-t border-[var(--color-border-light)]">
+      {/* フッター: 設定 + アカウント追加 */}
+      <div className="px-4 py-3 border-t border-[var(--color-border-light)] flex flex-col gap-2">
+        {onToggleSettings && (
+          <button
+            type="button"
+            onClick={onToggleSettings}
+            aria-pressed={isSettingsActive}
+            className={`flex items-center gap-2 w-full px-3 py-1.5 border-none cursor-pointer text-[13px] rounded text-left transition-colors ${
+              isSettingsActive
+                ? "bg-[var(--color-bg-selected)] font-medium text-[var(--color-text)]"
+                : "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
+            }`}
+          >
+            {/* ギアアイコン（SVGインライン） */}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            <span>設定</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={onAddAccount}

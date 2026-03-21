@@ -22,7 +22,7 @@ export type SmartCategory = "all" | "people" | "notifications" | "newsletters";
  * スレッドのlabelIdsからSmartCategoryに該当するかを判定する。
  * "all"は常にtrue。
  */
-function matchesCategory(labelIds: readonly string[], category: SmartCategory): boolean {
+export function matchesCategory(labelIds: readonly string[], category: SmartCategory): boolean {
   if (category === "all") return true;
   switch (category) {
     case "people":
