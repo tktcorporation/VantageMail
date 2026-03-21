@@ -55,12 +55,8 @@ export class ConfigService extends Context.Tag("ConfigService")<
 
         const requireKey = (key: string) => {
           const value = get(key)
+          // 空文字列も missing として扱う（wrangler secret が空で設定されるケースを防ぐ）
           if (value) return Effect.succeed(value)
-          console.error(
-            `[ConfigService] Missing key: ${key}`,
-            `| env keys: [${Object.keys(env).join(", ")}]`,
-            `| process.env sample: [${Object.keys(process.env).filter(k => !k.startsWith("npm_")).slice(0, 10).join(", ")}]`,
-          )
           return Effect.fail(new ConfigMissingError({ key }))
         }
 
