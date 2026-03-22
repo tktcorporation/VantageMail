@@ -109,7 +109,9 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
         <Search
           size={15}
           className={
-            isFocused ? "text-[var(--color-accent)] shrink-0" : "text-[var(--color-text-tertiary)] shrink-0"
+            isFocused
+              ? "text-[var(--color-accent)] shrink-0"
+              : "text-[var(--color-text-tertiary)] shrink-0"
           }
         />
         <input

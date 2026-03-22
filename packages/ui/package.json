@@ -13,6 +13,7 @@
     "check": "vp check",
     "typecheck": "tsc --noEmit",
     "test": "vp test",
+    "test:browser": "vp test --config vitest.browser.config.ts",
     "screenshot": "pnpm exec playwright test --config playwright.config.ts"
   },
   "dependencies": {
@@ -40,6 +41,8 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "@vitest/browser": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
     "jsdom": "catalog:",
     "playwright": "catalog:",
     "typescript": "catalog:",

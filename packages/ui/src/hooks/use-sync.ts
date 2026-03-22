@@ -107,9 +107,7 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
 
     const accounts = accountsStore.getState().accounts;
     // pageToken が残っているアカウントだけ抽出
-    const accountsWithMore = accounts.filter(
-      (a) => state.pageTokenByAccount[a.id] != null,
-    );
+    const accountsWithMore = accounts.filter((a) => state.pageTokenByAccount[a.id] != null);
     if (accountsWithMore.length === 0) return;
 
     state.setLoadingMore(true);
