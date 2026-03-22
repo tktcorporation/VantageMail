@@ -49,10 +49,20 @@ export interface ThreadsState {
   activeCategory: SmartCategory;
   /** ロード中フラグ */
   isLoading: boolean;
+  /**
+   * 追加ページ読み込み中フラグ。
+   * isLoading とは分離し、スクロール中に全画面ローディングが出るのを防ぐ。
+   */
+  isLoadingMore: boolean;
+  /**
+   * アカウントごとの次ページトークン。
+   * undefined のとき「もうページがない」ことを意味する（Gmail API の仕様に準拠）。
+   */
+  pageTokenByAccount: Record<string, string | undefined>;
 }
 
 export interface ThreadsActions {
-  setThreads: (accountId: string, threads: Thread[]) => void;
+  setThreads: (accountId: string, threads: Thread[], nextPageToken?: string) => void;
   selectThread: (threadId: string | null) => void;
   setActiveLabel: (label: string | null) => void;
   /** アカウントフィルタを設定する。nullでUnified Inbox（全アカウント表示） */
@@ -64,6 +74,13 @@ export interface ThreadsActions {
   updateThreadLabels: (accountId: string, threadId: string, labelIds: string[]) => void;
   /** スレッドのスター状態をトグル */
   toggleStar: (accountId: string, threadId: string) => void;
+  /**
+   * 追加ページのスレッドを既存に結合する（無限スクロール用）。
+   * setThreads と異なり既存スレッドを消さずにマージする。
+   */
+  appendThreads: (accountId: string, threads: Thread[], nextPageToken?: string) => void;
+  setLoadingMore: (loading: boolean) => void;
+  setPageToken: (accountId: string, token: string | undefined) => void;
 }
 
 export type ThreadsStore = ThreadsState & ThreadsActions;
@@ -108,8 +125,10 @@ export const createThreadsStore = () =>
     activeAccountId: null,
     activeCategory: "all",
     isLoading: false,
+    isLoadingMore: false,
+    pageTokenByAccount: {},
 
-    setThreads: (accountId, threads) =>
+    setThreads: (accountId, threads, nextPageToken) =>
       set((state) => {
         const threadsMap: Record<string, Thread> = {};
         for (const t of threads) {
@@ -127,6 +146,10 @@ export const createThreadsStore = () =>
             state.activeAccountId,
             state.activeCategory,
           ),
+          pageTokenByAccount: {
+            ...state.pageTokenByAccount,
+            [accountId]: nextPageToken,
+          },
         };
       }),
 
@@ -204,4 +227,40 @@ export const createThreadsStore = () =>
           },
         };
       }),
+
+    appendThreads: (accountId, threads, nextPageToken) =>
+      set((state) => {
+        const existing = state.threadsByAccount[accountId] ?? {};
+        const merged = { ...existing };
+        for (const t of threads) {
+          merged[t.id] = t;
+        }
+        const newByAccount = {
+          ...state.threadsByAccount,
+          [accountId]: merged,
+        };
+        return {
+          threadsByAccount: newByAccount,
+          visibleThreadIds: computeVisibleThreadIds(
+            newByAccount,
+            state.activeLabel,
+            state.activeAccountId,
+            state.activeCategory,
+          ),
+          pageTokenByAccount: {
+            ...state.pageTokenByAccount,
+            [accountId]: nextPageToken,
+          },
+        };
+      }),
+
+    setLoadingMore: (loading) => set({ isLoadingMore: loading }),
+
+    setPageToken: (accountId, token) =>
+      set((state) => ({
+        pageTokenByAccount: {
+          ...state.pageTokenByAccount,
+          [accountId]: token,
+        },
+      })),
   }));

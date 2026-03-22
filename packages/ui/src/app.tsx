@@ -69,7 +69,7 @@ function InnerAppShell({
 
   useKeyboardShortcuts({ threadsStore });
   // Mount 時に全アカウントのスレッドを Gmail API から取得
-  useSync({ accountsStore, threadsStore });
+  const { fetchMore } = useSync({ accountsStore, threadsStore });
 
   const handleAddAccount = useCallback(() => {
     if (onStartAuth) {
@@ -132,7 +132,7 @@ function InnerAppShell({
             isSettingsActive={showSettings}
           />
         }
-        threadList={<ThreadList onOpenSidebar={handleOpenSidebar} />}
+        threadList={<ThreadList onOpenSidebar={handleOpenSidebar} onFetchMore={fetchMore} />}
         threadView={
           showSettings ? (
             <AccountSettings
