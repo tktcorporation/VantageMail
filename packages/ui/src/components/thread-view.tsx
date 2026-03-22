@@ -4,6 +4,9 @@
  * Shows the selected thread's messages with sender info, timestamps,
  * and HTML/text bodies. Fetches full message content from the server
  * when a thread is selected.
+ *
+ * モバイルではフォントサイズを拡大し、タップターゲットを広げる。
+ * Lucide Reactアイコンで統一的なアイコン表現。
  */
 import { useThreads } from "../hooks/use-store";
 import { useAccounts } from "../hooks/use-store";
@@ -11,6 +14,7 @@ import { useMemo } from "react";
 import DOMPurify from "dompurify";
 import { useThreadMessages } from "../hooks/use-thread-messages";
 import type { Message } from "@vantagemail/core";
+import { ChevronLeft, Reply, Paperclip, Inbox } from "lucide-react";
 
 function formatDate(date: Date): string {
   return date.toLocaleString("ja-JP", {
@@ -68,23 +72,23 @@ function MessageItem({ message }: { message: Message }) {
       {/* Sender + date */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-semibold">
+          <span className="text-[15px] md:text-[13px] font-semibold">
             {message.from.name || message.from.email}
           </span>
           {message.from.name && (
-            <span className="text-[11px] text-[var(--color-text-tertiary)]">
+            <span className="text-[12px] md:text-[11px] text-[var(--color-text-tertiary)]">
               &lt;{message.from.email}&gt;
             </span>
           )}
         </div>
-        <span className="text-[11px] text-[var(--color-text-tertiary)] shrink-0">
+        <span className="text-[12px] md:text-[11px] text-[var(--color-text-tertiary)] shrink-0">
           {formatDate(message.date)}
         </span>
       </div>
 
       {/* Recipients */}
       {message.to.length > 0 && (
-        <div className="text-[11px] text-[var(--color-text-secondary)] mb-4">
+        <div className="text-[13px] md:text-[11px] text-[var(--color-text-secondary)] mb-4">
           To: {message.to.map((r) => r.name || r.email).join(", ")}
           {message.cc.length > 0 && (
             <> | Cc: {message.cc.map((r) => r.name || r.email).join(", ")}</>
@@ -95,11 +99,11 @@ function MessageItem({ message }: { message: Message }) {
       {/* Body */}
       {message.bodyHtml ? (
         <div
-          className="text-[13px] leading-relaxed [&_a]:text-[var(--color-accent)] [&_a]:underline [&_img]:max-w-full [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-border)] [&_blockquote]:pl-3 [&_blockquote]:ml-0 [&_blockquote]:text-[var(--color-text-secondary)]"
+          className="text-[15px] md:text-[13px] leading-relaxed [&_a]:text-[var(--color-accent)] [&_a]:underline [&_img]:max-w-full [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-border)] [&_blockquote]:pl-3 [&_blockquote]:ml-0 [&_blockquote]:text-[var(--color-text-secondary)]"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(message.bodyHtml) }}
         />
       ) : (
-        <pre className="text-[13px] leading-relaxed whitespace-pre-wrap font-sans">
+        <pre className="text-[15px] md:text-[13px] leading-relaxed whitespace-pre-wrap font-sans">
           {message.bodyText}
         </pre>
       )}
@@ -110,8 +114,9 @@ function MessageItem({ message }: { message: Message }) {
           {message.attachments.map((att) => (
             <span
               key={att.id}
-              className="px-3 py-1.5 bg-[var(--color-bg-hover)] rounded-lg text-[11px] text-[var(--color-text-secondary)]"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-bg-hover)] rounded-lg text-[12px] md:text-[11px] text-[var(--color-text-secondary)]"
             >
+              <Paperclip size={12} className="text-[var(--color-text-tertiary)]" />
               {att.filename} ({Math.round(att.size / 1024)}KB)
             </span>
           ))}
@@ -152,29 +157,32 @@ export function ThreadView({ onBack }: ThreadViewProps = {}) {
 
   if (!selectedThread) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-tertiary)] gap-4">
-        <span className="text-5xl opacity-30 font-bold">V</span>
-        <span className="text-base font-semibold text-[var(--color-text)]">VantageMail</span>
-        <span className="text-[13px]">メールを選択してください</span>
+      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-tertiary)] gap-4 px-6">
+        {/* ブランドマーク: シンプルなアイコン + テキスト */}
+        <Inbox size={36} strokeWidth={1.5} className="opacity-20" />
+        <span className="text-[17px] md:text-base font-semibold text-[var(--color-text)] tracking-tight">
+          VantageMail
+        </span>
+        <span className="text-[14px] md:text-[13px]">メールを選択してください</span>
         {/* キーボードショートカットヒント */}
-        <div className="mt-6 flex gap-5 text-[11px]">
+        <div className="mt-6 flex gap-5 text-[12px] md:text-[11px]">
           <span>
-            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[11px] md:text-[10px]">
               J
             </kbd>{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[11px] md:text-[10px]">
               K
             </kbd>{" "}
             移動
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[11px] md:text-[10px]">
               /
             </kbd>{" "}
             検索
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[11px] md:text-[10px]">
               ⌘K
             </kbd>{" "}
             コマンド
@@ -187,26 +195,15 @@ export function ThreadView({ onBack }: ThreadViewProps = {}) {
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* Thread header */}
-      <div className="px-8 py-7 border-b border-[var(--color-border-light)]">
+      <div className="px-5 md:px-8 py-5 md:py-7 border-b border-[var(--color-border-light)]">
         {/* モバイル: 戻るボタン */}
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="md:hidden flex items-center gap-1 mb-4 px-0 py-0 border-none bg-transparent cursor-pointer text-[13px] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+            className="md:hidden flex items-center gap-1 mb-4 px-0 py-0 border-none bg-transparent cursor-pointer text-[14px] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            <ChevronLeft size={16} />
             戻る
           </button>
         )}
@@ -214,26 +211,33 @@ export function ThreadView({ onBack }: ThreadViewProps = {}) {
           {account && (
             <span className="w-2 h-2 rounded-full" style={{ background: account.color }} />
           )}
-          <span className="text-[11px] text-[var(--color-text-secondary)]">{account?.email}</span>
+          <span className="text-[12px] md:text-[11px] text-[var(--color-text-secondary)]">
+            {account?.email}
+          </span>
         </div>
-        <h1 className="text-xl font-semibold leading-snug">{selectedThread.subject}</h1>
-        <div className="mt-3 text-[11px] text-[var(--color-text-secondary)]">
+        <h1 className="text-[20px] md:text-xl font-semibold leading-snug">
+          {selectedThread.subject}
+        </h1>
+        <div className="mt-3 text-[13px] md:text-[11px] text-[var(--color-text-secondary)]">
           {selectedThread.participants.join(", ")} · {selectedThread.messageCount}通
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 px-8">
+      <div className="flex-1 px-5 md:px-8">
         {isLoading && (
-          <div className="py-8 text-center text-[var(--color-text-secondary)] text-[13px]">
-            Loading messages...
+          <div className="py-8 flex items-center justify-center gap-2 text-[var(--color-text-secondary)] text-[14px] md:text-[13px]">
+            <div className="w-4 h-4 border-2 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin" />
+            <span>読み込み中...</span>
           </div>
         )}
         {error && (
-          <div className="py-8 text-center text-red-500 text-[13px]">Failed to load messages</div>
+          <div className="py-8 text-center text-[var(--color-danger)] text-[14px] md:text-[13px]">
+            メッセージの読み込みに失敗しました
+          </div>
         )}
         {!isLoading && !error && messages.length === 0 && (
-          <div className="py-8 text-[var(--color-text-secondary)] text-[13px]">
+          <div className="py-8 text-[var(--color-text-secondary)] text-[14px] md:text-[13px]">
             {selectedThread.snippet}
           </div>
         )}
@@ -242,12 +246,13 @@ export function ThreadView({ onBack }: ThreadViewProps = {}) {
         ))}
       </div>
 
-      {/* Reply bar -- 閲覧優先のため控えめなスタイル */}
-      <div className="px-8 py-4 border-t border-[var(--color-border-light)]">
+      {/* Reply bar */}
+      <div className="px-5 md:px-8 py-4 border-t border-[var(--color-border-light)]">
         <button
           type="button"
-          className="px-4 py-2 bg-transparent border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl cursor-pointer text-[13px] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-transparent border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl cursor-pointer text-[14px] md:text-[13px] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
         >
+          <Reply size={15} />
           返信
         </button>
       </div>

@@ -4,21 +4,29 @@
  * 背景: Smart Inboxカテゴリフィルタ（すべて/重要/通知/ニュースレター）を
  * 上部に配置し、カテゴリごとの未読カウントを表示する。
  * アカウントセレクターはカテゴリの下に配置。
- * カテゴリとアカウントの両方でフィルタを組み合わせられる。
  *
- * フッターに「設定」ボタンを配置し、アカウント設定画面への遷移をサポートする。
+ * Lucide Reactアイコンで視覚的なアクセントを付け、
+ * Emojiを排除してプロフェッショナルな印象に。
  */
 import { useAccounts, useThreads } from "../hooks/use-store";
-import { useCallback, useMemo, type MouseEvent } from "react";
+import { useCallback, useMemo } from "react";
 import type { SmartCategory } from "@vantagemail/core";
 import { matchesCategory } from "@vantagemail/core";
+import { Inbox, Mail, Bell, Newspaper, Settings, Users } from "lucide-react";
 
-/** カテゴリ定義: 表示名とGmailラベルのマッピング */
-const CATEGORIES: { key: SmartCategory; label: string }[] = [
-  { key: "all", label: "すべて" },
-  { key: "people", label: "重要" },
-  { key: "notifications", label: "通知" },
-  { key: "newsletters", label: "ニュースレター" },
+/**
+ * カテゴリ定義: 表示名、Lucideアイコン、GmailラベルのマッピングGmailラベルのマッピング。
+ * 各カテゴリにアイコンを紐付け、サイドバーでの視認性を高める。
+ */
+const CATEGORIES: {
+  key: SmartCategory;
+  label: string;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
+}[] = [
+  { key: "all", label: "すべて", Icon: Inbox },
+  { key: "people", label: "重要", Icon: Mail },
+  { key: "notifications", label: "通知", Icon: Bell },
+  { key: "newsletters", label: "ニュースレター", Icon: Newspaper },
 ];
 
 interface SidebarProps {
@@ -56,7 +64,6 @@ export function Sidebar({
   /**
    * カテゴリごとの未読スレッド数を計算する。
    * activeAccountIdが設定されている場合、そのアカウントのみカウントする。
-   * matchesCategoryを@vantagemail/coreから使用して重複ロジックを排除。
    */
   const categoryCounts = useMemo(() => {
     const counts: Record<SmartCategory, number> = {
@@ -81,33 +88,51 @@ export function Sidebar({
 
   return (
     <div className="flex flex-col h-full">
-      {/* ロゴ */}
-      <div className="px-5 pt-6 pb-4 font-bold text-base tracking-tight">VantageMail</div>
+      {/* ロゴ: シンプルなテキストロゴ。letter-spacing で洗練された印象に */}
+      <div className="px-5 pt-6 pb-4 font-bold text-[17px] md:text-base tracking-tight text-[var(--color-text)]">
+        VantageMail
+      </div>
 
       {/* Smart Inbox カテゴリフィルタ */}
       <div className="px-3 mb-3">
-        <div className="px-3 py-1.5 text-[11px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">
+        <div className="px-3 py-1.5 text-[12px] md:text-[11px] text-[var(--color-text-tertiary)] font-medium tracking-wide">
           Smart Inbox
         </div>
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.key}
-            type="button"
-            onClick={() => setActiveCategory(cat.key)}
-            className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded-xl text-left ${
-              activeCategory === cat.key
-                ? "bg-[var(--color-bg-selected)] font-medium"
-                : "bg-transparent hover:bg-[var(--color-bg-hover)]"
-            }`}
-          >
-            <span>{cat.label}</span>
-            {categoryCounts[cat.key] > 0 && (
-              <span className="text-[11px] text-[var(--color-text-tertiary)] font-normal">
-                {categoryCounts[cat.key]}
+        {CATEGORIES.map((cat) => {
+          const isActive = activeCategory === cat.key;
+          const Icon = cat.Icon;
+          return (
+            <button
+              key={cat.key}
+              type="button"
+              onClick={() => setActiveCategory(cat.key)}
+              className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[15px] md:text-[13px] text-[var(--color-text)] rounded-xl text-left transition-colors ${
+                isActive
+                  ? "bg-[var(--color-bg-selected)] font-medium"
+                  : "bg-transparent hover:bg-[var(--color-bg-hover)]"
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <Icon
+                  size={16}
+                  className={
+                    isActive ? "text-[var(--color-accent)]" : "text-[var(--color-text-tertiary)]"
+                  }
+                />
+                <span>{cat.label}</span>
               </span>
-            )}
-          </button>
-        ))}
+              {categoryCounts[cat.key] > 0 && (
+                <span
+                  className={`text-[12px] md:text-[11px] font-normal min-w-[20px] text-center ${
+                    isActive ? "text-[var(--color-accent)]" : "text-[var(--color-text-tertiary)]"
+                  }`}
+                >
+                  {categoryCounts[cat.key]}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* 区切り線 */}
@@ -115,7 +140,7 @@ export function Sidebar({
 
       {/* アカウントセレクター */}
       <nav className="flex-1 overflow-auto px-3 mt-3">
-        <div className="px-3 py-1.5 text-[11px] text-[var(--color-text-tertiary)] font-medium uppercase tracking-wider">
+        <div className="px-3 py-1.5 text-[12px] md:text-[11px] text-[var(--color-text-tertiary)] font-medium tracking-wide">
           アカウント
         </div>
 
@@ -123,13 +148,23 @@ export function Sidebar({
         <button
           type="button"
           onClick={() => handleSelectAccount(null)}
-          className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded-xl text-left ${
+          className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[15px] md:text-[13px] text-[var(--color-text)] rounded-xl text-left transition-colors ${
             activeAccountId === null
               ? "bg-[var(--color-bg-selected)] font-medium"
               : "bg-transparent hover:bg-[var(--color-bg-hover)]"
           }`}
         >
-          <span>すべてのアカウント</span>
+          <span className="flex items-center gap-2.5">
+            <Users
+              size={16}
+              className={
+                activeAccountId === null
+                  ? "text-[var(--color-accent)]"
+                  : "text-[var(--color-text-tertiary)]"
+              }
+            />
+            <span>すべてのアカウント</span>
+          </span>
         </button>
 
         {/* 各アカウント */}
@@ -138,13 +173,13 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => handleSelectAccount(account.id)}
-              className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[13px] text-[var(--color-text)] rounded-xl text-left gap-2 ${
+              className={`flex items-center justify-between w-full px-3 py-2.5 border-none cursor-pointer text-[15px] md:text-[13px] text-[var(--color-text)] rounded-xl text-left gap-2 transition-colors ${
                 activeAccountId === account.id
                   ? "bg-[var(--color-bg-selected)] font-medium"
                   : "bg-transparent hover:bg-[var(--color-bg-hover)]"
               }`}
             >
-              <span className="flex items-center gap-2 min-w-0">
+              <span className="flex items-center gap-2.5 min-w-0">
                 {/* アカウント識別カラードット */}
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
@@ -153,42 +188,36 @@ export function Sidebar({
                 <span className="truncate">{account.displayName || account.email}</span>
               </span>
               {account.unreadCount > 0 && (
-                <span className="text-[11px] text-[var(--color-text-tertiary)] font-normal shrink-0">
+                <span className="text-[12px] md:text-[11px] text-[var(--color-text-tertiary)] font-normal shrink-0">
                   {account.unreadCount}
                 </span>
               )}
             </button>
-            {/* アカウント削除は設定画面（AccountSettings）から行う */}
           </div>
         ))}
       </nav>
 
-      {/* フッター: 設定（アカウント追加は設定画面に集約） */}
+      {/* フッター: 設定 */}
       {onToggleSettings && (
         <div className="px-4 py-4 border-t border-[var(--color-border-light)]">
           <button
             type="button"
             onClick={onToggleSettings}
             aria-pressed={isSettingsActive}
-            className={`flex items-center gap-2 w-full px-3 py-2.5 border-none cursor-pointer text-[13px] rounded-xl text-left transition-colors ${
+            className={`flex items-center gap-2.5 w-full px-3 py-2.5 border-none cursor-pointer text-[15px] md:text-[13px] rounded-xl text-left transition-colors ${
               isSettingsActive
                 ? "bg-[var(--color-bg-selected)] font-medium text-[var(--color-text)]"
                 : "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text)]"
             }`}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
+            <Settings
+              size={16}
+              className={
+                isSettingsActive
+                  ? "text-[var(--color-accent)]"
+                  : "text-[var(--color-text-tertiary)]"
+              }
+            />
             <span>設定</span>
           </button>
         </div>

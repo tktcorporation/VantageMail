@@ -7,8 +7,11 @@
  *
  * キーストロークから100ms以内にサジェスト表示（spec §5.4 受入基準）。
  * デバウンス300msでAPI呼び出しを間引く。
+ *
+ * Lucide Reactアイコンに統一し、モバイルフォントサイズを拡大。
  */
 import { useState, useCallback, useRef, useEffect } from "react";
+import { Search, X } from "lucide-react";
 
 const OPERATOR_SUGGESTIONS = [
   { operator: "from:", description: "送信者で検索", example: "from:alice@example.com" },
@@ -97,13 +100,18 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
     <div className="relative">
       {/* 検索入力 */}
       <div
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all ${
+        className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl transition-all ${
           isFocused
             ? "bg-[var(--color-bg)] border border-[var(--color-accent)]"
             : "bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)]"
         }`}
       >
-        <span className="text-[var(--color-text-tertiary)] text-[13px]">/</span>
+        <Search
+          size={15}
+          className={
+            isFocused ? "text-[var(--color-accent)] shrink-0" : "text-[var(--color-text-tertiary)] shrink-0"
+          }
+        />
         <input
           ref={inputRef}
           type="text"
@@ -119,7 +127,7 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
           }}
           onKeyDown={handleKeyDown}
           placeholder="メールを検索..."
-          className="flex-1 border-none outline-none text-[13px] bg-transparent text-[var(--color-text)]"
+          className="flex-1 border-none outline-none text-[15px] md:text-[13px] bg-transparent text-[var(--color-text)]"
         />
         {query && (
           <button
@@ -128,9 +136,10 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
               setQuery("");
               onClear();
             }}
-            className="bg-none border-none text-[var(--color-text-tertiary)] cursor-pointer text-[11px] px-1 hover:text-[var(--color-text)]"
+            className="flex items-center justify-center w-5 h-5 bg-none border-none text-[var(--color-text-tertiary)] cursor-pointer hover:text-[var(--color-text)] transition-colors"
+            aria-label="検索をクリア"
           >
-            ×
+            <X size={14} />
           </button>
         )}
       </div>
@@ -138,7 +147,7 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
       {/* サジェストドロップダウン */}
       {showSuggestions && isFocused && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-lg max-h-70 overflow-auto z-50">
-          <div className="px-4 py-2 text-[11px] text-[var(--color-text-tertiary)] border-b border-[var(--color-border-light)]">
+          <div className="px-4 py-2 text-[12px] md:text-[11px] text-[var(--color-text-tertiary)] border-b border-[var(--color-border-light)]">
             Gmail 検索演算子
           </div>
           {filteredSuggestions.map((suggestion) => (
@@ -147,15 +156,15 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertOperator(suggestion.operator)}
-              className="flex items-center justify-between w-full px-4 py-2.5 bg-transparent border-none cursor-pointer text-[13px] text-left text-[var(--color-text)] hover:bg-[var(--color-bg-hover)]"
+              className="flex items-center justify-between w-full px-4 py-2.5 bg-transparent border-none cursor-pointer text-[14px] md:text-[13px] text-left text-[var(--color-text)] hover:bg-[var(--color-bg-hover)] transition-colors"
             >
               <span>
-                <code className="text-[11px] bg-[var(--color-bg-tertiary)] px-1 py-px rounded font-mono mr-2">
+                <code className="text-[12px] md:text-[11px] bg-[var(--color-bg-tertiary)] px-1 py-px rounded font-mono mr-2">
                   {suggestion.operator}
                 </code>
                 {suggestion.description}
               </span>
-              <span className="text-[11px] text-[var(--color-text-tertiary)]">
+              <span className="text-[12px] md:text-[11px] text-[var(--color-text-tertiary)]">
                 {suggestion.example}
               </span>
             </button>

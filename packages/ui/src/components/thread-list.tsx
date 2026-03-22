@@ -1,19 +1,31 @@
 /**
- * スレッドリストコンポーネント。
+ * スレッドリストコンポーネント（Spark風 Smart Inbox対応）。
  *
  * 背景: Unified Inboxのスレッド一覧を表示する中央ペイン。
- * 全アカウントのメールを時系列でインターリーブ表示し、
- * カラードットでアカウント元を視覚的に区別する（spec §5.2）。
- * J/Kキーでのナビゲーションをサポート。
+ * activeCategory === "all" のとき、Spark風カテゴリカードで表示する。
  *
- * activeCategory === "all" のとき、Spark風にカテゴリごとのカード表示に切り替わる。
- * カテゴリごとに最大3件のスレッドを表示し、「すべて表示」で該当カテゴリに遷移する。
+ * 重要メール（people）はアカウント別に個別カードで表示し、
+ * 通知・ニュースレターはアカウント横断で統合表示する（Spark Per Account/Unified混在方式）。
+ *
+ * 既読メールは下部に低コントラストの「既読」セクションとして表示する。
+ * 「すべて表示」はモバイルでフルスクリーンオーバーレイを開く。
  */
 import { useAccounts, useThreads } from "../hooks/use-store";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SearchBar } from "./search-bar";
 import type { Thread, SmartCategory } from "@vantagemail/core";
 import { matchesCategory } from "@vantagemail/core";
+import {
+  Mail,
+  Bell,
+  Newspaper,
+  Inbox,
+  X,
+  ChevronRight,
+  Star,
+  Menu,
+  Eye,
+} from "lucide-react";
 
 /** SmartCategoryをUIに表示するための日本語名マッピング */
 const CATEGORY_DISPLAY_NAMES: Record<SmartCategory, string> = {
@@ -25,12 +37,12 @@ const CATEGORY_DISPLAY_NAMES: Record<SmartCategory, string> = {
 
 /**
  * カテゴリカードの定義。
- * activeCategory === "all" のときに表示するカード群の順序とラベル。
+ * Lucide Reactアイコンを使用し、AI感のある絵文字は排除。
+ * "people" はアカウント別カード生成のため、ここでは含めない。
  */
-const CATEGORY_CARDS = [
-  { key: "people" as const, label: "重要", icon: "✉" },
-  { key: "notifications" as const, label: "サービス通知", icon: "🔔" },
-  { key: "newsletters" as const, label: "メールマガジン", icon: "📰" },
+const UNIFIED_CATEGORY_CARDS = [
+  { key: "notifications" as const, label: "サービス通知", IconComponent: Bell },
+  { key: "newsletters" as const, label: "メールマガジン", IconComponent: Newspaper },
 ];
 
 /** カードごとに表示するスレッドの最大数 */
@@ -54,26 +66,28 @@ function formatRelativeTime(date: Date): string {
 /**
  * 個別スレッド行の表示。ThreadListとCategoryCardの両方で再利用する。
  *
- * 背景: Spark風カード表示でもフラットリスト表示でも同一のスレッド行を使いたいため、
- * 再利用可能なサブコンポーネントとして切り出した。
+ * モバイルではフォントサイズを拡大し（15px/13px）、
+ * タップターゲットも広めに取る（py-3.5）。
  */
 interface ThreadItemProps {
   thread: Thread;
   accountColor: string;
   isSelected: boolean;
   onSelect: (threadId: string) => void;
+  /** 既読セクション内で表示する場合、コントラストを下げる */
+  dimmed?: boolean;
 }
 
-function ThreadItem({ thread, accountColor, isSelected, onSelect }: ThreadItemProps) {
+function ThreadItem({ thread, accountColor, isSelected, onSelect, dimmed }: ThreadItemProps) {
   return (
     <button
       type="button"
       onClick={() => onSelect(thread.id)}
-      className={`relative flex flex-col w-full px-5 py-4 border-0 border-b border-solid border-[var(--color-border-light)] cursor-pointer text-left gap-1.5 transition-colors ${
+      className={`relative flex flex-col w-full px-4 py-3.5 border-0 border-b border-solid border-[var(--color-border-light)] cursor-pointer text-left gap-1 transition-colors ${
         isSelected
           ? "bg-[var(--color-bg-selected)]"
           : "bg-[var(--color-bg)] hover:bg-[var(--color-bg-hover)]"
-      }`}
+      } ${dimmed ? "opacity-60" : ""}`}
     >
       {/* 未読インジケーター: 左端の accent 色バー */}
       {thread.isUnread && (
@@ -83,7 +97,7 @@ function ThreadItem({ thread, accountColor, isSelected, onSelect }: ThreadItemPr
       {/* 1行目: 送信者 + スター + 日時 */}
       <div className="flex items-center justify-between gap-2">
         <span
-          className={`flex items-center gap-2 text-[13px] truncate ${thread.isUnread ? "font-semibold" : "font-normal"}`}
+          className={`flex items-center gap-2 text-[15px] md:text-[13px] truncate ${thread.isUnread ? "font-semibold text-[var(--color-text)]" : "font-normal text-[var(--color-text-secondary)]"}`}
         >
           <span
             className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -91,28 +105,30 @@ function ThreadItem({ thread, accountColor, isSelected, onSelect }: ThreadItemPr
           />
           {thread.participants[0] ?? "不明"}
           {thread.messageCount > 1 && (
-            <span className="text-[var(--color-text-tertiary)] font-normal">
+            <span className="text-[var(--color-text-tertiary)] font-normal text-[13px] md:text-[11px]">
               ({thread.messageCount})
             </span>
           )}
         </span>
         <span className="flex items-center gap-1.5 shrink-0">
           {thread.isStarred && (
-            <span className="text-[var(--color-warning,#e67700)] text-[12px]">★</span>
+            <Star size={13} className="text-[var(--color-warning,#e67700)] fill-current" />
           )}
-          <span className="text-[11px] text-[var(--color-text-tertiary)]">
+          <span className="text-[12px] md:text-[11px] text-[var(--color-text-tertiary)]">
             {formatRelativeTime(thread.lastMessageAt)}
           </span>
         </span>
       </div>
 
       {/* 2行目: 件名 */}
-      <div className={`text-[13px] truncate ${thread.isUnread ? "font-semibold" : "font-normal"}`}>
+      <div
+        className={`text-[15px] md:text-[13px] truncate ${thread.isUnread ? "font-medium text-[var(--color-text)]" : "font-normal text-[var(--color-text-secondary)]"}`}
+      >
         {thread.subject}
       </div>
 
       {/* 3行目: スニペット */}
-      <div className="text-[11px] text-[var(--color-text-secondary)] truncate">
+      <div className="text-[13px] md:text-[11px] text-[var(--color-text-tertiary)] truncate leading-snug">
         {thread.snippet}
       </div>
     </button>
@@ -122,13 +138,16 @@ function ThreadItem({ thread, accountColor, isSelected, onSelect }: ThreadItemPr
 /**
  * カテゴリカードの表示コンポーネント。
  *
- * 背景: activeCategory === "all" のとき、カテゴリごとにカードを表示する。
- * 各カードにはそのカテゴリのスレッドを最大3件表示し、
- * 「すべて表示 (N)」リンクでカテゴリのフラットリストに遷移する。
+ * Lucide Reactアイコンを使い、カードヘッダーに配色とアイコンで
+ * 視覚的なアクセントを付ける。
+ * 「すべて表示」はモバイルではフルスクリーンオーバーレイを開く。
  */
 interface CategoryCardProps {
-  icon: string;
+  IconComponent: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
+  /** アカウント名（重要メールのアカウント別表示時に使用） */
+  accountLabel?: string;
+  accountColor?: string;
   threads: { thread: Thread; accountColor: string }[];
   totalCount: number;
   selectedThreadId: string | null;
@@ -137,43 +156,217 @@ interface CategoryCardProps {
 }
 
 function CategoryCard({
-  icon,
+  IconComponent,
   label,
+  accountLabel,
+  accountColor,
   threads,
   totalCount,
   selectedThreadId,
   onSelectThread,
   onShowAll,
 }: CategoryCardProps) {
+  if (threads.length === 0) return null;
+
   return (
-    <div className="rounded-2xl border border-[var(--color-border-light)] overflow-hidden mb-4">
+    <div className="rounded-xl border border-[var(--color-border-light)] overflow-hidden mb-3">
       {/* カードヘッダー */}
-      <div className="px-5 py-3 bg-[var(--color-bg-secondary)] text-[13px] font-semibold flex items-center gap-2">
-        <span>{icon}</span>
-        <span>{label}</span>
+      <div className="px-4 py-2.5 bg-[var(--color-bg-secondary)] flex items-center justify-between">
+        <span className="flex items-center gap-2 text-[14px] md:text-[13px] font-semibold text-[var(--color-text)]">
+          <IconComponent size={15} className="text-[var(--color-text-secondary)]" />
+          <span>{label}</span>
+          {accountLabel && (
+            <>
+              <span className="text-[var(--color-text-tertiary)] font-normal">·</span>
+              <span className="flex items-center gap-1.5 font-normal text-[13px] md:text-[12px] text-[var(--color-text-secondary)]">
+                {accountColor && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: accountColor }}
+                  />
+                )}
+                {accountLabel}
+              </span>
+            </>
+          )}
+        </span>
+        <span className="text-[12px] md:text-[11px] text-[var(--color-text-tertiary)]">
+          {totalCount}
+        </span>
       </div>
 
       {/* スレッド一覧（最大3件） */}
       <div>
-        {threads.map(({ thread, accountColor }) => (
+        {threads.map(({ thread, accountColor: color }) => (
           <ThreadItem
             key={thread.id}
             thread={thread}
-            accountColor={accountColor}
+            accountColor={color}
             isSelected={selectedThreadId === thread.id}
             onSelect={onSelectThread}
           />
         ))}
       </div>
 
-      {/* 「すべて表示」リンク */}
+      {/* 「すべて表示」: カテゴリ全件をオーバーレイで表示 */}
+      {totalCount > MAX_ITEMS_PER_CARD && (
+        <button
+          type="button"
+          onClick={onShowAll}
+          className="w-full px-4 py-2.5 border-0 border-t border-solid border-[var(--color-border-light)] bg-transparent cursor-pointer text-[13px] md:text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-bg-hover)] transition-colors flex items-center justify-between"
+        >
+          <span>すべて表示</span>
+          <ChevronRight size={14} className="text-[var(--color-text-tertiary)]" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * フルスクリーンオーバーレイ。
+ *
+ * 背景: モバイルで「すべて表示」をタップしたとき、
+ * 該当カテゴリの全スレッドをフルスクリーンで表示する。
+ * ×ボタンで閉じてカード一覧に戻れる。
+ * setActiveCategoryで画面遷移するのではなく、レイヤーとして被せる方式。
+ */
+interface FullScreenOverlayProps {
+  title: string;
+  IconComponent: React.ComponentType<{ size?: number; className?: string }>;
+  threads: { thread: Thread; accountColor: string }[];
+  selectedThreadId: string | null;
+  onSelectThread: (threadId: string) => void;
+  onClose: () => void;
+}
+
+function FullScreenOverlay({
+  title,
+  IconComponent,
+  threads,
+  selectedThreadId,
+  onSelectThread,
+  onClose,
+}: FullScreenOverlayProps) {
+  /* Escape キーで閉じる */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-[var(--color-bg)] flex flex-col animate-in"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      style={{
+        animation: "slideUp 250ms ease-out",
+      }}
+    >
+      {/* ヘッダー */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-light)] bg-[var(--color-bg)]">
+        <span className="flex items-center gap-2 font-semibold text-[16px] md:text-[14px] text-[var(--color-text)]">
+          <IconComponent size={18} className="text-[var(--color-text-secondary)]" />
+          {title}
+          <span className="font-normal text-[13px] text-[var(--color-text-tertiary)]">
+            {threads.length}
+          </span>
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center justify-center w-9 h-9 border-none bg-transparent cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-text)] rounded-lg hover:bg-[var(--color-bg-hover)] transition-colors"
+          aria-label="閉じる"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* スレッド一覧 */}
+      <div className="flex-1 overflow-auto">
+        {threads.map(({ thread, accountColor }) => (
+          <ThreadItem
+            key={thread.id}
+            thread={thread}
+            accountColor={accountColor}
+            isSelected={selectedThreadId === thread.id}
+            onSelect={(id) => {
+              onSelectThread(id);
+              onClose();
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 既読メールセクション。
+ *
+ * 背景: 既読メールはカード群の下に、コントラストを1段落として表示する。
+ * Sparkの「Seen」カードに相当する。ヘッダーをタップで展開/折りたたみ可能。
+ */
+interface SeenSectionProps {
+  threads: { thread: Thread; accountColor: string }[];
+  selectedThreadId: string | null;
+  onSelectThread: (threadId: string) => void;
+}
+
+function SeenSection({ threads, selectedThreadId, onSelectThread }: SeenSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (threads.length === 0) return null;
+
+  const displayThreads = isExpanded ? threads : threads.slice(0, 3);
+
+  return (
+    <div className="mt-2 mb-4">
+      {/* セクションヘッダー */}
       <button
         type="button"
-        onClick={onShowAll}
-        className="w-full px-5 py-3 border-0 border-t border-solid border-[var(--color-border-light)] bg-transparent cursor-pointer text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-bg-hover)] transition-colors text-left"
+        onClick={() => setIsExpanded((prev) => !prev)}
+        className="flex items-center justify-between w-full px-4 py-2.5 border-none bg-transparent cursor-pointer text-[13px] md:text-[12px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors"
       >
-        すべて表示 ({totalCount})
+        <span className="flex items-center gap-2">
+          <Eye size={14} />
+          <span>既読メール</span>
+          <span className="text-[12px] md:text-[11px]">({threads.length})</span>
+        </span>
+        <ChevronRight
+          size={14}
+          className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+        />
       </button>
+
+      {/* 既読スレッド一覧: 低コントラストで表示 */}
+      <div className="border-t border-[var(--color-border-light)]">
+        {displayThreads.map(({ thread, accountColor }) => (
+          <ThreadItem
+            key={thread.id}
+            thread={thread}
+            accountColor={accountColor}
+            isSelected={selectedThreadId === thread.id}
+            onSelect={onSelectThread}
+            dimmed
+          />
+        ))}
+      </div>
+
+      {/* 展開トグル */}
+      {!isExpanded && threads.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(true)}
+          className="w-full px-4 py-2 border-0 border-t border-solid border-[var(--color-border-light)] bg-transparent cursor-pointer text-[12px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-colors text-left"
+        >
+          さらに {threads.length - 3} 件を表示
+        </button>
+      )}
     </div>
   );
 }
@@ -191,8 +384,18 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
   const isLoading = useThreads((s) => s.isLoading);
   const activeCategory = useThreads((s) => s.activeCategory);
   const setActiveCategory = useThreads((s) => s.setActiveCategory);
-  const activeAccountId = useThreads((s) => s.activeAccountId);
   const accounts = useAccounts((s) => s.accounts);
+
+  /**
+   * フルスクリーンオーバーレイの表示状態。
+   * カテゴリキー + アカウントID（重要メールの場合）で識別する。
+   */
+  const [overlayState, setOverlayState] = useState<{
+    categoryKey: SmartCategory;
+    accountId?: string;
+    label: string;
+    IconComponent: React.ComponentType<{ size?: number; className?: string }>;
+  } | null>(null);
 
   const threadMap = useMemo(() => {
     const map = new Map<string, { thread: Thread; accountColor: string }>();
@@ -208,44 +411,99 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
 
   /**
    * カテゴリ別にグループ化されたスレッドデータ。
-   * activeCategory === "all" のときにカード表示に使う。
    *
-   * visibleThreadIds（ストアでソート・フィルタ済み）から導出することで、
-   * activeLabel や activeAccountId のフィルタが自動的に反映される。
-   * ストアのソートロジックとの重複も排除。
+   * 重要メール（people）: アカウントごとに個別カードを生成。
+   * 通知・ニュースレター: 全アカウント統合で1カードずつ。
+   * 既読メール: 全カテゴリの既読スレッドを下部にまとめて表示。
    */
-  const categoryGroups = useMemo(() => {
-    if (activeCategory !== "all") return null;
+  const { peopleCards, unifiedCards, seenThreads } = useMemo(() => {
+    if (activeCategory !== "all") {
+      return { peopleCards: [], unifiedCards: [], seenThreads: [] };
+    }
 
     const allEntries = visibleThreadIds
       .map((id) => threadMap.get(id))
       .filter((e): e is { thread: Thread; accountColor: string } => e != null);
 
-    return CATEGORY_CARDS.map((card) => {
-      const matching = allEntries.filter((e) => matchesCategory(e.thread.labelIds, card.key));
+    /* --- 重要メール: アカウント別にカード分離 --- */
+    const peopleByAccount = new Map<string, { thread: Thread; accountColor: string }[]>();
+    for (const entry of allEntries) {
+      if (!entry.thread.isUnread) continue;
+      if (!matchesCategory(entry.thread.labelIds, "people")) continue;
+      const accId = entry.thread.accountId;
+      if (!peopleByAccount.has(accId)) {
+        peopleByAccount.set(accId, []);
+      }
+      peopleByAccount.get(accId)!.push(entry);
+    }
+
+    const pCards = Array.from(peopleByAccount.entries()).map(([accountId, entries]) => {
+      const account = accounts.find((a) => a.id === accountId);
+      return {
+        accountId,
+        accountLabel: account?.displayName || account?.email || accountId,
+        accountColor: account?.color || "#888",
+        threads: entries.slice(0, MAX_ITEMS_PER_CARD),
+        allThreads: entries,
+        totalCount: entries.length,
+      };
+    });
+
+    /* --- 通知・ニュースレター: アカウント統合 --- */
+    const uCards = UNIFIED_CATEGORY_CARDS.map((card) => {
+      const matching = allEntries.filter(
+        (e) => e.thread.isUnread && matchesCategory(e.thread.labelIds, card.key),
+      );
       return {
         ...card,
         threads: matching.slice(0, MAX_ITEMS_PER_CARD),
+        allThreads: matching,
         totalCount: matching.length,
       };
     }).filter((group) => group.totalCount > 0);
-  }, [activeCategory, visibleThreadIds, threadMap]);
+
+    /* --- 既読メール: 全カテゴリの既読スレッドを収集 --- */
+    const seen = allEntries.filter((e) => !e.thread.isUnread);
+
+    return { peopleCards: pCards, unifiedCards: uCards, seenThreads: seen };
+  }, [activeCategory, visibleThreadIds, threadMap, accounts]);
+
+  /**
+   * オーバーレイに表示する全スレッドリスト。
+   * overlayState のカテゴリ/アカウントに応じたフィルタリング。
+   */
+  const overlayThreads = useMemo(() => {
+    if (!overlayState) return [];
+
+    const allEntries = visibleThreadIds
+      .map((id) => threadMap.get(id))
+      .filter((e): e is { thread: Thread; accountColor: string } => e != null);
+
+    return allEntries.filter((e) => {
+      if (!e.thread.isUnread) return false;
+      if (!matchesCategory(e.thread.labelIds, overlayState.categoryKey)) return false;
+      if (overlayState.accountId && e.thread.accountId !== overlayState.accountId) return false;
+      return true;
+    });
+  }, [overlayState, visibleThreadIds, threadMap]);
 
   /**
    * J/Kナビゲーション用のフラットなスレッドIDリスト。
-   * カード表示時はカード内のスレッドを順にフラット化する。
-   * フラットリスト表示時は従来の visibleThreadIds をそのまま使う。
    */
   const navigableThreadIds = useMemo(() => {
-    if (!categoryGroups) return visibleThreadIds;
+    if (activeCategory !== "all") return visibleThreadIds;
     const ids: string[] = [];
-    for (const group of categoryGroups) {
-      for (const { thread } of group.threads) {
-        ids.push(thread.id);
-      }
+    for (const card of peopleCards) {
+      for (const { thread } of card.threads) ids.push(thread.id);
+    }
+    for (const card of unifiedCards) {
+      for (const { thread } of card.threads) ids.push(thread.id);
+    }
+    for (const { thread } of seenThreads.slice(0, 3)) {
+      ids.push(thread.id);
     }
     return ids;
-  }, [categoryGroups, visibleThreadIds]);
+  }, [activeCategory, visibleThreadIds, peopleCards, unifiedCards, seenThreads]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -273,16 +531,30 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full text-[var(--color-text-secondary)]">
-        読み込み中...
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-5 h-5 border-2 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin" />
+          <span className="text-[14px] md:text-[13px]">読み込み中...</span>
+        </div>
       </div>
     );
   }
 
-  if (visibleThreadIds.length === 0 && !categoryGroups?.length) {
+  const hasNoMail =
+    visibleThreadIds.length === 0 &&
+    peopleCards.length === 0 &&
+    unifiedCards.length === 0 &&
+    seenThreads.length === 0;
+
+  if (hasNoMail) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-secondary)] gap-2">
-        <span className="text-xl">📭</span>
-        <span>受信トレイは空です</span>
+      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-secondary)] gap-3 px-6">
+        <Inbox size={32} strokeWidth={1.5} className="text-[var(--color-text-tertiary)]" />
+        <span className="text-[15px] md:text-[14px] font-medium text-[var(--color-text)]">
+          受信トレイは空です
+        </span>
+        <span className="text-[13px] md:text-[12px] text-center leading-relaxed">
+          新しいメールが届くとここに表示されます
+        </span>
       </div>
     );
   }
@@ -290,34 +562,22 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
   return (
     <div className="flex flex-col h-full">
       {/* ヘッダー + 検索バー */}
-      <div className="px-5 py-4 border-b border-[var(--color-border-light)] flex flex-col gap-3">
+      <div className="px-4 py-3.5 border-b border-[var(--color-border-light)] flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 font-semibold text-[14px]">
+          <span className="flex items-center gap-2 font-semibold text-[16px] md:text-[14px]">
             {/* モバイル: ハンバーガーメニューボタン */}
             {onOpenSidebar && (
               <button
                 type="button"
                 onClick={onOpenSidebar}
-                className="md:hidden flex items-center justify-center w-7 h-7 border-none bg-transparent cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-text)] rounded hover:bg-[var(--color-bg-hover)] transition-colors"
+                className="md:hidden flex items-center justify-center w-8 h-8 border-none bg-transparent cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-text)] rounded-lg hover:bg-[var(--color-bg-hover)] transition-colors"
                 aria-label="メニューを開く"
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
+                <Menu size={18} />
               </button>
             )}
             {CATEGORY_DISPLAY_NAMES[activeCategory]}
-            <span className="text-[var(--color-text-secondary)] font-normal">
+            <span className="text-[var(--color-text-tertiary)] font-normal text-[14px] md:text-[13px]">
               {visibleThreadIds.length}
             </span>
           </span>
@@ -335,21 +595,58 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
 
       {/* スレッドリスト: カード表示 or フラットリスト */}
       <div className="flex-1 overflow-auto">
-        {categoryGroups ? (
-          /* Spark風カテゴリカード表示（activeCategory === "all" のとき） */
-          <div className="p-4">
-            {categoryGroups.map((group) => (
+        {activeCategory === "all" ? (
+          /* Spark風カテゴリカード表示 */
+          <div className="p-3">
+            {/* 重要メール: アカウント別カード */}
+            {peopleCards.map((card) => (
               <CategoryCard
-                key={group.key}
-                icon={group.icon}
-                label={group.label}
-                threads={group.threads}
-                totalCount={group.totalCount}
+                key={`people-${card.accountId}`}
+                IconComponent={Mail}
+                label="重要"
+                accountLabel={card.accountLabel}
+                accountColor={card.accountColor}
+                threads={card.threads}
+                totalCount={card.totalCount}
                 selectedThreadId={selectedThreadId}
                 onSelectThread={selectThread}
-                onShowAll={() => setActiveCategory(group.key)}
+                onShowAll={() =>
+                  setOverlayState({
+                    categoryKey: "people",
+                    accountId: card.accountId,
+                    label: `重要 · ${card.accountLabel}`,
+                    IconComponent: Mail,
+                  })
+                }
               />
             ))}
+
+            {/* 通知・ニュースレター: アカウント統合カード */}
+            {unifiedCards.map((card) => (
+              <CategoryCard
+                key={card.key}
+                IconComponent={card.IconComponent}
+                label={card.label}
+                threads={card.threads}
+                totalCount={card.totalCount}
+                selectedThreadId={selectedThreadId}
+                onSelectThread={selectThread}
+                onShowAll={() =>
+                  setOverlayState({
+                    categoryKey: card.key,
+                    label: card.label,
+                    IconComponent: card.IconComponent,
+                  })
+                }
+              />
+            ))}
+
+            {/* 既読メールセクション */}
+            <SeenSection
+              threads={seenThreads}
+              selectedThreadId={selectedThreadId}
+              onSelectThread={selectThread}
+            />
           </div>
         ) : (
           /* フラットリスト表示（特定カテゴリ選択時） */
@@ -368,6 +665,18 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
           })
         )}
       </div>
+
+      {/* フルスクリーンオーバーレイ: 「すべて表示」で開く */}
+      {overlayState && (
+        <FullScreenOverlay
+          title={overlayState.label}
+          IconComponent={overlayState.IconComponent}
+          threads={overlayThreads}
+          selectedThreadId={selectedThreadId}
+          onSelectThread={selectThread}
+          onClose={() => setOverlayState(null)}
+        />
+      )}
     </div>
   );
 }
