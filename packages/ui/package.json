@@ -26,6 +26,7 @@
     "cmdk": "^1.1.1",
     "dompurify": "catalog:",
     "effect": "catalog:",
+    "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "catalog:",

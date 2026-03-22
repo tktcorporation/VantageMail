@@ -78,3 +78,19 @@ body,
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/**
+ * フルスクリーンオーバーレイのスライドアップアニメーション。
+ * 「すべて表示」タップ時にモバイルで使用する。
+ * 250msの ease-out で自然な入場感を出す。
+ */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
