@@ -25,14 +25,16 @@ const config: KnipConfig = {
       // デフォルト entry (src/index.ts) で OK
     },
     "packages/ui": {
-      // Playwright スクリーンショットスクリプトのエントリーポイントも含む
-      entry: ["e2e/**/*.{ts,tsx}"],
+      // Playwright スクリーンショットスクリプトと vitest browser テスト設定のエントリーポイント
+      entry: ["e2e/**/*.{ts,tsx}", "vitest.browser.config.ts"],
       project: ["src/**/*.{ts,tsx}", "e2e/**/*.{ts,tsx}"],
       ignoreDependencies: [
         // Tailwind は PostCSS プラグインとして使用、直接 import されない
         "tailwindcss",
         // dompurify の型定義、thread-view.tsx で使用
         "@types/dompurify",
+        // @vitest/browser-playwright の peer dependency、vitest browser mode のランタイムで使用
+        "@vitest/browser",
       ],
     },
     workers: {
