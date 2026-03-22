@@ -15,17 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchBar } from "./search-bar";
 import type { Thread, SmartCategory } from "@vantagemail/core";
 import { matchesCategory } from "@vantagemail/core";
-import {
-  Mail,
-  Bell,
-  Newspaper,
-  Inbox,
-  X,
-  ChevronRight,
-  Star,
-  Menu,
-  Eye,
-} from "lucide-react";
+import { Mail, Bell, Newspaper, Inbox, X, ChevronRight, Star, Menu, Eye } from "lucide-react";
 
 /** SmartCategoryをUIに表示するための日本語名マッピング */
 const CATEGORY_DISPLAY_NAMES: Record<SmartCategory, string> = {
@@ -544,7 +534,12 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !onFetchMore || !hasMore) return;
+    // isLoadingMore 中は observer を切断する。
+    // ロード完了時（isLoadingMore: true→false）に effect が再実行され、
+    // observer が再作成されるため、sentinel がまだ表示中なら再度トリガーされる。
+    // これがないと、sentinel が一度もビューポートを離れなかった場合に
+    // IntersectionObserver が再発火せず、2ページ目以降がロードされない。
+    if (!sentinel || !onFetchMore || !hasMore || isLoadingMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -556,7 +551,7 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [onFetchMore, hasMore]);
+  }, [onFetchMore, hasMore, isLoadingMore]);
 
   if (isLoading) {
     return (
