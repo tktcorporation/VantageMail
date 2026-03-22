@@ -28,10 +28,7 @@ export interface AppSessionData {
    * accountId → { accessToken, expiresAt } のマップ。
    * セッション切れ時に消えるが、refresh_token から再取得可能なので問題ない。
    */
-  accessTokenCache?: Record<
-    string,
-    { accessToken: string; expiresAt: number }
-  >;
+  accessTokenCache?: Record<string, { accessToken: string; expiresAt: number }>;
 }
 
 /**

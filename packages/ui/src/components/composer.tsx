@@ -28,12 +28,7 @@ interface ComposerProps {
   /** 送信元のメールアドレス */
   fromEmail: string;
   /** 送信実行時のコールバック */
-  onSend: (data: {
-    to: string[];
-    cc: string[];
-    subject: string;
-    htmlBody: string;
-  }) => void;
+  onSend: (data: { to: string[]; cc: string[]; subject: string; htmlBody: string }) => void;
   /** 閉じるボタンのコールバック */
   onClose: () => void;
 }
@@ -73,12 +68,14 @@ function ToolbarButton({
 }
 
 export function Composer({ replyTo, fromEmail, onSend, onClose }: ComposerProps) {
-  const [to, setTo] = useState(
-    replyTo?.to.map((r) => r.email).join(", ") ?? "",
-  );
+  const [to, setTo] = useState(replyTo?.to.map((r) => r.email).join(", ") ?? "");
   const [cc, setCc] = useState("");
   const [subject, setSubject] = useState(
-    replyTo ? (replyTo.subject.startsWith("Re: ") ? replyTo.subject : `Re: ${replyTo.subject}`) : "",
+    replyTo
+      ? replyTo.subject.startsWith("Re: ")
+        ? replyTo.subject
+        : `Re: ${replyTo.subject}`
+      : "",
   );
   const [showCc, setShowCc] = useState(false);
 
@@ -97,9 +94,7 @@ export function Composer({ replyTo, fromEmail, onSend, onClose }: ComposerProps)
       }),
     ],
     // 返信時は引用を初期コンテンツとして設定
-    content: replyTo?.quotedHtml
-      ? `<p></p><blockquote>${replyTo.quotedHtml}</blockquote>`
-      : "",
+    content: replyTo?.quotedHtml ? `<p></p><blockquote>${replyTo.quotedHtml}</blockquote>` : "",
     editorProps: {
       attributes: {
         style: [
@@ -118,8 +113,14 @@ export function Composer({ replyTo, fromEmail, onSend, onClose }: ComposerProps)
 
     const htmlBody = editor.getHTML();
     onSend({
-      to: to.split(",").map((s) => s.trim()).filter(Boolean),
-      cc: cc.split(",").map((s) => s.trim()).filter(Boolean),
+      to: to
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      cc: cc
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
       subject,
       htmlBody,
     });
@@ -150,7 +151,9 @@ export function Composer({ replyTo, fromEmail, onSend, onClose }: ComposerProps)
       >
         {/* From */}
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
-          <span style={{ color: "var(--color-text-secondary)", width: 60, flexShrink: 0 }}>From</span>
+          <span style={{ color: "var(--color-text-secondary)", width: 60, flexShrink: 0 }}>
+            From
+          </span>
           <span style={{ color: "var(--color-text)" }}>{fromEmail}</span>
         </div>
 
@@ -191,7 +194,9 @@ export function Composer({ replyTo, fromEmail, onSend, onClose }: ComposerProps)
         {/* Cc（トグル表示） */}
         {showCc && (
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
-            <span style={{ color: "var(--color-text-secondary)", width: 60, flexShrink: 0 }}>Cc</span>
+            <span style={{ color: "var(--color-text-secondary)", width: 60, flexShrink: 0 }}>
+              Cc
+            </span>
             <input
               type="text"
               value={cc}
@@ -211,7 +216,9 @@ export function Composer({ replyTo, fromEmail, onSend, onClose }: ComposerProps)
 
         {/* Subject */}
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
-          <span style={{ color: "var(--color-text-secondary)", width: 60, flexShrink: 0 }}>件名</span>
+          <span style={{ color: "var(--color-text-secondary)", width: 60, flexShrink: 0 }}>
+            件名
+          </span>
           <input
             type="text"
             value={subject}

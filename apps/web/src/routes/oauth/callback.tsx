@@ -16,17 +16,17 @@
  * 全ロジックを Effect.gen で表現し、SessionService / CryptoService / D1Service /
  * ConfigService への依存を型レベルで追跡する。
  */
-import { createFileRoute } from "@tanstack/react-router"
-import { getRequestUrl } from "@tanstack/react-start/server"
-import { Effect } from "effect"
+import { createFileRoute } from "@tanstack/react-router";
+import { getRequestUrl } from "@tanstack/react-start/server";
+import { Effect } from "effect";
 import {
   TokenExchangeError,
   GoogleSubExtractionError,
   RefreshTokenMissing,
-} from "@vantagemail/core"
-import { SessionService } from "~/lib/services/SessionService.ts"
-import { CryptoService } from "~/lib/services/CryptoService.ts"
-import { ConfigService } from "~/lib/services/ConfigService.ts"
+} from "@vantagemail/core";
+import { SessionService } from "~/lib/services/SessionService.ts";
+import { CryptoService } from "~/lib/services/CryptoService.ts";
+import { ConfigService } from "~/lib/services/ConfigService.ts";
 import {
   findUserByGoogleSub,
   createUser,
@@ -36,11 +36,11 @@ import {
   createLinkedAccount,
   updateLinkedAccountToken,
   updateLinkedAccountProfile,
-} from "~/lib/db.ts"
+} from "~/lib/db.ts";
 
-import { getEnv, handleEffect } from "~/lib/runtime.ts"
-import { uint8ToBase64 } from "~/lib/crypto.ts"
-import { GOOGLE_CLIENT_ID, OAUTH_REDIRECT_URI_OVERRIDE } from "~/lib/constants.ts"
+import { getEnv, handleEffect } from "~/lib/runtime.ts";
+import { uint8ToBase64 } from "~/lib/crypto.ts";
+import { GOOGLE_CLIENT_ID, OAUTH_REDIRECT_URI_OVERRIDE } from "~/lib/constants.ts";
 
 /** アカウントに割り当てるカラーのプール */
 const ACCOUNT_COLORS = [
@@ -52,31 +52,30 @@ const ACCOUNT_COLORS = [
   "#e64980",
   "#15aabf",
   "#fd7e14",
-]
+];
 
-const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
-const GOOGLE_USERINFO_ENDPOINT =
-  "https://www.googleapis.com/oauth2/v2/userinfo"
+const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+const GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
 /**
  * Google ID Token からクレームを取得するエンドポイント。
  * google_sub（不変のユーザー識別子）を安全に取得するために使う。
  */
-const GOOGLE_TOKENINFO_ENDPOINT = "https://oauth2.googleapis.com/tokeninfo"
+const GOOGLE_TOKENINFO_ENDPOINT = "https://oauth2.googleapis.com/tokeninfo";
 
 /** トークン交換で取得するデータ */
 interface VerifiedTokenData {
-  access_token: string
-  refresh_token: string
-  id_token: string
-  expires_in: number
-  scope: string
+  access_token: string;
+  refresh_token: string;
+  id_token: string;
+  expires_in: number;
+  scope: string;
 }
 
 /** Google ユーザー情報 */
 interface UserInfo {
-  email: string
-  name: string
-  picture?: string
+  email: string;
+  name: string;
+  picture?: string;
 }
 
 // --- Effect ヘルパー関数 ---
@@ -90,11 +89,10 @@ const exchangeCode = (
   origin: string,
 ): Effect.Effect<VerifiedTokenData, TokenExchangeError | RefreshTokenMissing, ConfigService> =>
   Effect.gen(function* () {
-    const config = yield* ConfigService
-    const clientId = GOOGLE_CLIENT_ID
-    const clientSecret = config.googleClientSecret
-    const redirectUri =
-      OAUTH_REDIRECT_URI_OVERRIDE ?? `${origin}/oauth/callback`
+    const config = yield* ConfigService;
+    const clientId = GOOGLE_CLIENT_ID;
+    const clientSecret = config.googleClientSecret;
+    const redirectUri = OAUTH_REDIRECT_URI_OVERRIDE ?? `${origin}/oauth/callback`;
 
     const tokenBody = new URLSearchParams({
       client_id: clientId,
@@ -103,7 +101,7 @@ const exchangeCode = (
       code_verifier: codeVerifier,
       grant_type: "authorization_code",
       redirect_uri: redirectUri,
-    })
+    });
 
     const tokenResponse = yield* Effect.tryPromise({
       try: () =>
@@ -117,7 +115,7 @@ const exchangeCode = (
           status: 0,
           details: `Token exchange fetch failed: ${String(e)}`,
         }),
-    })
+    });
 
     if (!tokenResponse.ok) {
       const errText = yield* Effect.tryPromise({
@@ -127,33 +125,33 @@ const exchangeCode = (
             status: tokenResponse.status,
             details: "Failed to read error response",
           }),
-      })
+      });
       return yield* Effect.fail(
         new TokenExchangeError({
           status: tokenResponse.status,
           details: errText,
         }),
-      )
+      );
     }
 
     const tokenData = yield* Effect.tryPromise({
       try: () =>
         tokenResponse.json() as Promise<{
-          access_token: string
-          refresh_token?: string
-          id_token: string
-          expires_in: number
-          scope: string
+          access_token: string;
+          refresh_token?: string;
+          id_token: string;
+          expires_in: number;
+          scope: string;
         }>,
       catch: (e) =>
         new TokenExchangeError({
           status: tokenResponse.status,
           details: `JSON parse error: ${String(e)}`,
         }),
-    })
+    });
 
     if (!tokenData.refresh_token) {
-      return yield* Effect.fail(new RefreshTokenMissing())
+      return yield* Effect.fail(new RefreshTokenMissing());
     }
 
     return {
@@ -162,8 +160,8 @@ const exchangeCode = (
       id_token: tokenData.id_token,
       expires_in: tokenData.expires_in,
       scope: tokenData.scope,
-    }
-  })
+    };
+  });
 
 /**
  * Google ID Token を検証し、google_sub（不変ユーザーID）を取得する。
@@ -171,27 +169,22 @@ const exchangeCode = (
  * 背景: id_token は JWT 形式だが、ローカルで署名検証するのではなく
  * Google の tokeninfo エンドポイントに検証を委譲する。
  */
-const extractGoogleSub = (
-  idToken: string,
-): Effect.Effect<string, GoogleSubExtractionError> =>
+const extractGoogleSub = (idToken: string): Effect.Effect<string, GoogleSubExtractionError> =>
   Effect.gen(function* () {
     const response = yield* Effect.tryPromise({
-      try: () =>
-        fetch(
-          `${GOOGLE_TOKENINFO_ENDPOINT}?id_token=${encodeURIComponent(idToken)}`,
-        ),
+      try: () => fetch(`${GOOGLE_TOKENINFO_ENDPOINT}?id_token=${encodeURIComponent(idToken)}`),
       catch: (e) =>
         new GoogleSubExtractionError({
           reason: `tokeninfo fetch failed: ${String(e)}`,
         }),
-    })
+    });
 
     if (!response.ok) {
       return yield* Effect.fail(
         new GoogleSubExtractionError({
           reason: `tokeninfo verification failed: ${response.status}`,
         }),
-      )
+      );
     }
 
     const data = yield* Effect.tryPromise({
@@ -200,33 +193,29 @@ const extractGoogleSub = (
         new GoogleSubExtractionError({
           reason: `tokeninfo JSON parse failed: ${String(e)}`,
         }),
-    })
+    });
 
     // aud が自分のクライアントID と一致することを確認
-    const expectedClientId = GOOGLE_CLIENT_ID
+    const expectedClientId = GOOGLE_CLIENT_ID;
     if (data.aud !== expectedClientId) {
       return yield* Effect.fail(
         new GoogleSubExtractionError({
           reason: `id_token aud mismatch: ${data.aud} expected: ${expectedClientId}`,
         }),
-      )
+      );
     }
 
     if (!data.sub) {
-      return yield* Effect.fail(
-        new GoogleSubExtractionError({ reason: "sub claim missing" }),
-      )
+      return yield* Effect.fail(new GoogleSubExtractionError({ reason: "sub claim missing" }));
     }
 
-    return data.sub
-  })
+    return data.sub;
+  });
 
 /**
  * Google UserInfo API でプロフィールを取得する。
  */
-const fetchUserInfo = (
-  accessToken: string,
-): Effect.Effect<UserInfo, TokenExchangeError> =>
+const fetchUserInfo = (accessToken: string): Effect.Effect<UserInfo, TokenExchangeError> =>
   Effect.gen(function* () {
     const response = yield* Effect.tryPromise({
       try: () =>
@@ -238,7 +227,7 @@ const fetchUserInfo = (
           status: 0,
           details: `UserInfo fetch failed: ${String(e)}`,
         }),
-    })
+    });
 
     if (!response.ok) {
       return yield* Effect.fail(
@@ -246,53 +235,46 @@ const fetchUserInfo = (
           status: response.status,
           details: `UserInfo fetch failed: ${response.status}`,
         }),
-      )
+      );
     }
 
     return yield* Effect.tryPromise({
       try: () =>
         response.json() as Promise<{
-          email: string
-          name: string
-          picture?: string
+          email: string;
+          name: string;
+          picture?: string;
         }>,
       catch: (e) =>
         new TokenExchangeError({
           status: response.status,
           details: `UserInfo JSON parse failed: ${String(e)}`,
         }),
-    })
-  })
+    });
+  });
 
 /**
  * ケース1: 新規ユーザー登録。
  * DEK を生成し、KEK で暗号化して users テーブルに保存。
  * refresh_token を DEK で暗号化して linked_accounts に保存。
  */
-const handleNewUser = (
-  googleSub: string,
-  userInfo: UserInfo,
-  tokenData: VerifiedTokenData,
-) =>
+const handleNewUser = (googleSub: string, userInfo: UserInfo, tokenData: VerifiedTokenData) =>
   Effect.gen(function* () {
-    const session = yield* SessionService
-    const cryptoSvc = yield* CryptoService
-    const config = yield* ConfigService
+    const session = yield* SessionService;
+    const cryptoSvc = yield* CryptoService;
+    const config = yield* ConfigService;
 
-    const userId = crypto.randomUUID()
-    const accountId = crypto.randomUUID()
+    const userId = crypto.randomUUID();
+    const accountId = crypto.randomUUID();
 
     // DEK 生成 → KEK で暗号化
-    const dekBytes = yield* cryptoSvc.generateDEK()
-    const kek = yield* cryptoSvc.deriveKEK(config.serverSecret, googleSub)
-    const encryptedDEK = yield* cryptoSvc.encryptDEK(kek, dekBytes)
+    const dekBytes = yield* cryptoSvc.generateDEK();
+    const kek = yield* cryptoSvc.deriveKEK(config.serverSecret, googleSub);
+    const encryptedDEK = yield* cryptoSvc.encryptDEK(kek, dekBytes);
 
     // refresh_token を DEK で暗号化
-    const dekKey = yield* cryptoSvc.importDEK(dekBytes)
-    const encryptedToken = yield* cryptoSvc.encrypt(
-      dekKey,
-      tokenData.refresh_token,
-    )
+    const dekKey = yield* cryptoSvc.importDEK(dekBytes);
+    const encryptedToken = yield* cryptoSvc.encrypt(dekKey, tokenData.refresh_token);
 
     // users テーブルに保存
     yield* createUser({
@@ -303,7 +285,7 @@ const handleNewUser = (
       avatar_url: userInfo.picture ?? null,
       encrypted_dek: encryptedDEK.ciphertext,
       dek_iv: encryptedDEK.iv,
-    })
+    });
 
     // linked_accounts にメインアカウントを保存
     yield* createLinkedAccount({
@@ -317,11 +299,11 @@ const handleNewUser = (
       encrypted_refresh_token: encryptedToken.ciphertext,
       refresh_token_iv: encryptedToken.iv,
       token_scope: tokenData.scope,
-    })
+    });
 
     // セッションに保存
     // 新規ユーザーでも ...prev で codeVerifier 等の既存セッションデータを安全にクリアする
-    const dekBase64 = uint8ToBase64(dekBytes)
+    const dekBase64 = uint8ToBase64(dekBytes);
     yield* session.update((prev) => ({
       ...prev,
       userId,
@@ -333,8 +315,8 @@ const handleNewUser = (
           expiresAt: Date.now() + tokenData.expires_in * 1000,
         },
       },
-    }))
-  })
+    }));
+  });
 
 /**
  * ケース2: 既存ユーザーのログイン。
@@ -347,60 +329,52 @@ const handleExistingUser = (
   tokenData: VerifiedTokenData,
 ) =>
   Effect.gen(function* () {
-    const session = yield* SessionService
-    const cryptoSvc = yield* CryptoService
-    const config = yield* ConfigService
+    const session = yield* SessionService;
+    const cryptoSvc = yield* CryptoService;
+    const config = yield* ConfigService;
 
     // KEK を再導出して DEK を復号
-    const kek = yield* cryptoSvc.deriveKEK(config.serverSecret, googleSub)
+    const kek = yield* cryptoSvc.deriveKEK(config.serverSecret, googleSub);
     const dekBytes = yield* cryptoSvc.decryptDEK(kek, {
       ciphertext: existingUser.encrypted_dek,
       iv: existingUser.dek_iv,
-    })
-    const dekKey = yield* cryptoSvc.importDEK(dekBytes)
+    });
+    const dekKey = yield* cryptoSvc.importDEK(dekBytes);
 
     // プロフィールを最新に更新
     yield* updateUserProfile(googleSub, {
       email: userInfo.email,
       display_name: userInfo.name,
       avatar_url: userInfo.picture ?? null,
-    })
+    });
 
     // メインアカウントの refresh_token を更新（または再作成）
-    const mainAccount = yield* findLinkedAccountByEmail(
-      existingUser.id,
-      userInfo.email,
-    )
+    const mainAccount = yield* findLinkedAccountByEmail(existingUser.id, userInfo.email);
 
-    const encryptedToken = yield* cryptoSvc.encrypt(
-      dekKey,
-      tokenData.refresh_token,
-    )
+    const encryptedToken = yield* cryptoSvc.encrypt(dekKey, tokenData.refresh_token);
 
     // 後続のセッション更新で使う accountId を追跡する。
     // mainAccount が null の場合は新規作成するため、let で宣言。
-    let mainAccountId: string
+    let mainAccountId: string;
 
     if (mainAccount) {
-      mainAccountId = mainAccount.id
+      mainAccountId = mainAccount.id;
       // 既存のメインアカウントを更新
       yield* updateLinkedAccountToken(mainAccount.id, {
         encrypted_refresh_token: encryptedToken.ciphertext,
         refresh_token_iv: encryptedToken.iv,
         token_scope: tokenData.scope,
-      })
+      });
       yield* updateLinkedAccountProfile(mainAccount.id, {
         display_name: userInfo.name,
         avatar_url: userInfo.picture ?? null,
-      })
+      });
     } else {
       // linked_accounts 行が欠損している場合（手動DB操作等で消えた場合）に再作成。
       // ユーザー行は存在するがアカウント行がない不整合状態を修復する。
-      const existingAccounts = yield* findLinkedAccountsByUserId(
-        existingUser.id,
-      )
-      const colorIndex = existingAccounts.length % ACCOUNT_COLORS.length
-      mainAccountId = crypto.randomUUID()
+      const existingAccounts = yield* findLinkedAccountsByUserId(existingUser.id);
+      const colorIndex = existingAccounts.length % ACCOUNT_COLORS.length;
+      mainAccountId = crypto.randomUUID();
 
       yield* createLinkedAccount({
         id: mainAccountId,
@@ -413,12 +387,12 @@ const handleExistingUser = (
         encrypted_refresh_token: encryptedToken.ciphertext,
         refresh_token_iv: encryptedToken.iv,
         token_scope: tokenData.scope,
-      })
+      });
     }
 
     // セッションに保存（DEK の base64 文字列）
     // ...prev で既存セッション（他アカウントの accessTokenCache 等）を維持する
-    const dekBase64 = uint8ToBase64(dekBytes)
+    const dekBase64 = uint8ToBase64(dekBytes);
     yield* session.update((prev) => ({
       ...prev,
       userId: existingUser.id,
@@ -431,8 +405,8 @@ const handleExistingUser = (
           expiresAt: Date.now() + tokenData.expires_in * 1000,
         },
       },
-    }))
-  })
+    }));
+  });
 
 /**
  * ケース3: ログイン済みユーザーがアカウント追加。
@@ -447,38 +421,35 @@ const handleAddAccount = (
   tokenData: VerifiedTokenData,
 ) =>
   Effect.gen(function* () {
-    const session = yield* SessionService
-    const cryptoSvc = yield* CryptoService
+    const session = yield* SessionService;
+    const cryptoSvc = yield* CryptoService;
 
     const fromBase64 = (base64: string): Uint8Array => {
-      const binary = atob(base64)
-      const bytes = new Uint8Array(binary.length)
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i)
+        bytes[i] = binary.charCodeAt(i);
       }
-      return bytes
-    }
-    const dekBytes = fromBase64(dekBase64)
-    const dekKey = yield* cryptoSvc.importDEK(dekBytes)
+      return bytes;
+    };
+    const dekBytes = fromBase64(dekBase64);
+    const dekKey = yield* cryptoSvc.importDEK(dekBytes);
 
     // 同じメールアドレスが既に登録されているか確認
-    const existing = yield* findLinkedAccountByEmail(userId, userInfo.email)
+    const existing = yield* findLinkedAccountByEmail(userId, userInfo.email);
 
     if (existing) {
       // 再認証のケース: トークンとプロフィールを更新
-      const encryptedToken = yield* cryptoSvc.encrypt(
-        dekKey,
-        tokenData.refresh_token,
-      )
+      const encryptedToken = yield* cryptoSvc.encrypt(dekKey, tokenData.refresh_token);
       yield* updateLinkedAccountToken(existing.id, {
         encrypted_refresh_token: encryptedToken.ciphertext,
         refresh_token_iv: encryptedToken.iv,
         token_scope: tokenData.scope,
-      })
+      });
       yield* updateLinkedAccountProfile(existing.id, {
         display_name: userInfo.name,
         avatar_url: userInfo.picture ?? null,
-      })
+      });
 
       // access_token をキャッシュに追加
       yield* session.update((prev) => ({
@@ -491,18 +462,15 @@ const handleAddAccount = (
             expiresAt: Date.now() + tokenData.expires_in * 1000,
           },
         },
-      }))
+      }));
     } else {
       // 新規アカウント追加
-      const accountId = crypto.randomUUID()
-      const encryptedToken = yield* cryptoSvc.encrypt(
-        dekKey,
-        tokenData.refresh_token,
-      )
+      const accountId = crypto.randomUUID();
+      const encryptedToken = yield* cryptoSvc.encrypt(dekKey, tokenData.refresh_token);
 
       // 既存アカウント数からカラーを決定
-      const existingAccounts = yield* findLinkedAccountsByUserId(userId)
-      const colorIndex = existingAccounts.length % ACCOUNT_COLORS.length
+      const existingAccounts = yield* findLinkedAccountsByUserId(userId);
+      const colorIndex = existingAccounts.length % ACCOUNT_COLORS.length;
 
       yield* createLinkedAccount({
         id: accountId,
@@ -515,7 +483,7 @@ const handleAddAccount = (
         encrypted_refresh_token: encryptedToken.ciphertext,
         refresh_token_iv: encryptedToken.iv,
         token_scope: tokenData.scope,
-      })
+      });
 
       yield* session.update((prev) => ({
         ...prev,
@@ -527,9 +495,9 @@ const handleAddAccount = (
             expiresAt: Date.now() + tokenData.expires_in * 1000,
           },
         },
-      }))
+      }));
     }
-  })
+  });
 
 function redirectWithError(origin: string, error: string): Response {
   return new Response(null, {
@@ -537,27 +505,27 @@ function redirectWithError(origin: string, error: string): Response {
     headers: {
       Location: `${origin}/?auth_error=${encodeURIComponent(error)}`,
     },
-  })
+  });
 }
 
 export const Route = createFileRoute("/oauth/callback")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const url = new URL(request.url)
-        const requestUrl = getRequestUrl()
-        const origin = requestUrl.origin
-        const env = await getEnv()
+        const url = new URL(request.url);
+        const requestUrl = getRequestUrl();
+        const origin = requestUrl.origin;
+        const env = await getEnv();
 
         // --- エラーケース ---
-        const error = url.searchParams.get("error")
+        const error = url.searchParams.get("error");
         if (error) {
-          return redirectWithError(origin, error)
+          return redirectWithError(origin, error);
         }
 
-        const code = url.searchParams.get("code")
+        const code = url.searchParams.get("code");
         if (!code) {
-          return redirectWithError(origin, "missing_authorization_code")
+          return redirectWithError(origin, "missing_authorization_code");
         }
 
         /**
@@ -565,27 +533,26 @@ export const Route = createFileRoute("/oauth/callback")({
          * SessionService / CryptoService / D1Service / ConfigService に依存する。
          */
         const callbackEffect = Effect.gen(function* () {
-          const session = yield* SessionService
+          const session = yield* SessionService;
 
           // セッションから code_verifier を取得
-          const sessionData = yield* session.get()
-          const codeVerifier = sessionData.codeVerifier
+          const sessionData = yield* session.get();
+          const codeVerifier = sessionData.codeVerifier;
           if (!codeVerifier) {
-            return redirectWithError(origin, "session_not_found")
+            return redirectWithError(origin, "session_not_found");
           }
 
           // トークン交換
-          const tokenData = yield* exchangeCode(code, codeVerifier, origin)
+          const tokenData = yield* exchangeCode(code, codeVerifier, origin);
 
           // id_token から google_sub を取得
-          const googleSub = yield* extractGoogleSub(tokenData.id_token)
+          const googleSub = yield* extractGoogleSub(tokenData.id_token);
 
           // ユーザー情報取得
-          const userInfo = yield* fetchUserInfo(tokenData.access_token)
+          const userInfo = yield* fetchUserInfo(tokenData.access_token);
 
           // 3パターンの分岐
-          const isAddAccountMode =
-            !!sessionData.userId && !!sessionData.dek
+          const isAddAccountMode = !!sessionData.userId && !!sessionData.dek;
 
           if (isAddAccountMode) {
             // ケース3: ログイン済みユーザーがアカウント追加
@@ -595,28 +562,23 @@ export const Route = createFileRoute("/oauth/callback")({
               googleSub,
               userInfo,
               tokenData,
-            )
+            );
           } else {
             // ケース1 or 2: 新規登録 or 既存ユーザーのログイン
-            const existingUser = yield* findUserByGoogleSub(googleSub)
+            const existingUser = yield* findUserByGoogleSub(googleSub);
 
             if (existingUser) {
-              yield* handleExistingUser(
-                existingUser,
-                googleSub,
-                userInfo,
-                tokenData,
-              )
+              yield* handleExistingUser(existingUser, googleSub, userInfo, tokenData);
             } else {
-              yield* handleNewUser(googleSub, userInfo, tokenData)
+              yield* handleNewUser(googleSub, userInfo, tokenData);
             }
           }
 
           return new Response(null, {
             status: 302,
             headers: { Location: `${origin}/` },
-          })
-        })
+          });
+        });
 
         return handleEffect(
           callbackEffect.pipe(
@@ -629,12 +591,12 @@ export const Route = createFileRoute("/oauth/callback")({
                 "_tag" in error &&
                 typeof (error as Record<string, unknown>)._tag === "string"
                   ? ((error as Record<string, unknown>)._tag as string)
-                  : "authentication_failed"
-              return Effect.succeed(redirectWithError(origin, tag))
+                  : "authentication_failed";
+              return Effect.succeed(redirectWithError(origin, tag));
             }),
           ),
           env,
-        )
+        );
       },
     },
   },
@@ -644,4 +606,4 @@ export const Route = createFileRoute("/oauth/callback")({
       <p className="text-[var(--color-text-secondary)]">Authenticating...</p>
     </div>
   ),
-})
+});

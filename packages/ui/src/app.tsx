@@ -46,7 +46,10 @@ export interface AppProps {
  * アプリの内部シェル。StoreContext.Provider の内側に配置し、
  * ストアへのアクセスが必要なフック（キーボードショートカット等）を接続する。
  */
-function InnerAppShell({ onStartAuth, onRemoveAccount }: {
+function InnerAppShell({
+  onStartAuth,
+  onRemoveAccount,
+}: {
   onStartAuth?: () => void;
   onRemoveAccount?: (accountId: string) => void;
 }) {
@@ -76,17 +79,20 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
     }
   }, [onStartAuth]);
 
-  const handleRemoveAccount = useCallback(async (accountId: string) => {
-    // サーバーサイドのセッションから先に削除し、成功後にストアを更新。
-    // 楽観的更新だとサーバー失敗時にリロードでアカウントが復活する問題を防ぐ。
-    try {
-      await onRemoveAccount?.(accountId);
-      accountsStore.getState().removeAccount(accountId);
-    } catch {
-      // サーバー失敗時はストアを変更しない（UIに反映されない）
-      alert("Failed to remove account. Please try again.");
-    }
-  }, [accountsStore, onRemoveAccount]);
+  const handleRemoveAccount = useCallback(
+    async (accountId: string) => {
+      // サーバーサイドのセッションから先に削除し、成功後にストアを更新。
+      // 楽観的更新だとサーバー失敗時にリロードでアカウントが復活する問題を防ぐ。
+      try {
+        await onRemoveAccount?.(accountId);
+        accountsStore.getState().removeAccount(accountId);
+      } catch {
+        // サーバー失敗時はストアを変更しない（UIに反映されない）
+        alert("Failed to remove account. Please try again.");
+      }
+    },
+    [accountsStore, onRemoveAccount],
+  );
 
   const handleToggleSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
@@ -119,13 +125,14 @@ function InnerAppShell({ onStartAuth, onRemoveAccount }: {
           <Sidebar
             onAddAccount={handleAddAccount}
             onRemoveAccount={handleRemoveAccount}
-            onToggleSettings={() => { handleToggleSettings(); handleCloseSidebar(); }}
+            onToggleSettings={() => {
+              handleToggleSettings();
+              handleCloseSidebar();
+            }}
             isSettingsActive={showSettings}
           />
         }
-        threadList={
-          <ThreadList onOpenSidebar={handleOpenSidebar} />
-        }
+        threadList={<ThreadList onOpenSidebar={handleOpenSidebar} />}
         threadView={
           showSettings ? (
             <AccountSettings

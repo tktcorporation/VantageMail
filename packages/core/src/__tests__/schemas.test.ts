@@ -1,17 +1,17 @@
-import { describe, it, expect } from "vitest"
-import { Schema } from "@effect/schema"
-import { Either } from "effect"
+import { describe, it, expect } from "vitest";
+import { Schema } from "@effect/schema";
+import { Either } from "effect";
 import {
   AccountSchema,
   OAuthTokensSchema,
   ThreadSchema,
   MessageSchema,
   OAuthTokenResponseSchema,
-} from "../schemas/index.js"
+} from "../schemas/index.js";
 
 /** decodeEither のヘルパー。成功時は Right、失敗時は Left を返す。 */
 function decode<A, I>(schema: Schema.Schema<A, I>, input: unknown) {
-  return Schema.decodeUnknownEither(schema)(input)
+  return Schema.decodeUnknownEither(schema)(input);
 }
 
 describe("AccountSchema", () => {
@@ -23,14 +23,14 @@ describe("AccountSchema", () => {
       color: "#ff0000",
       unreadCount: 5,
       notificationsEnabled: true,
-    }
-    const result = decode(AccountSchema, input)
-    expect(Either.isRight(result)).toBe(true)
+    };
+    const result = decode(AccountSchema, input);
+    expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
-      expect(result.right.email).toBe("test@gmail.com")
-      expect(result.right.avatarUrl).toBeUndefined()
+      expect(result.right.email).toBe("test@gmail.com");
+      expect(result.right.avatarUrl).toBeUndefined();
     }
-  })
+  });
 
   it("optionalフィールド（avatarUrl, signature）を含むデータをデコードできる", () => {
     const input = {
@@ -42,14 +42,14 @@ describe("AccountSchema", () => {
       unreadCount: 0,
       signature: "Best regards",
       notificationsEnabled: false,
-    }
-    const result = decode(AccountSchema, input)
-    expect(Either.isRight(result)).toBe(true)
+    };
+    const result = decode(AccountSchema, input);
+    expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
-      expect(result.right.avatarUrl).toBe("https://example.com/avatar.png")
-      expect(result.right.signature).toBe("Best regards")
+      expect(result.right.avatarUrl).toBe("https://example.com/avatar.png");
+      expect(result.right.signature).toBe("Best regards");
     }
-  })
+  });
 
   it("必須フィールドが欠けている場合はデコード失敗", () => {
     const input = {
@@ -59,10 +59,10 @@ describe("AccountSchema", () => {
       color: "#ff0000",
       unreadCount: 0,
       notificationsEnabled: true,
-    }
-    const result = decode(AccountSchema, input)
-    expect(Either.isLeft(result)).toBe(true)
-  })
+    };
+    const result = decode(AccountSchema, input);
+    expect(Either.isLeft(result)).toBe(true);
+  });
 
   it("フィールドの型が違う場合はデコード失敗", () => {
     const input = {
@@ -72,11 +72,11 @@ describe("AccountSchema", () => {
       color: "#ff0000",
       unreadCount: "not a number", // number であるべき
       notificationsEnabled: true,
-    }
-    const result = decode(AccountSchema, input)
-    expect(Either.isLeft(result)).toBe(true)
-  })
-})
+    };
+    const result = decode(AccountSchema, input);
+    expect(Either.isLeft(result)).toBe(true);
+  });
+});
 
 describe("OAuthTokenResponseSchema", () => {
   it("Google OAuth トークンレスポンス（snake_case）をデコードできる", () => {
@@ -87,14 +87,14 @@ describe("OAuthTokenResponseSchema", () => {
       scope: "openid https://www.googleapis.com/auth/gmail.modify",
       token_type: "Bearer",
       id_token: "eyJhbGciOiJSUzI1NiJ9...",
-    }
-    const result = decode(OAuthTokenResponseSchema, input)
-    expect(Either.isRight(result)).toBe(true)
+    };
+    const result = decode(OAuthTokenResponseSchema, input);
+    expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
-      expect(result.right.access_token).toBe("ya29.abc123")
-      expect(result.right.refresh_token).toBe("1//abc456")
+      expect(result.right.access_token).toBe("ya29.abc123");
+      expect(result.right.refresh_token).toBe("1//abc456");
     }
-  })
+  });
 
   it("refresh_token がない場合もデコードできる（トークンリフレッシュ時）", () => {
     const input = {
@@ -102,14 +102,14 @@ describe("OAuthTokenResponseSchema", () => {
       expires_in: 3600,
       scope: "openid",
       token_type: "Bearer",
-    }
-    const result = decode(OAuthTokenResponseSchema, input)
-    expect(Either.isRight(result)).toBe(true)
+    };
+    const result = decode(OAuthTokenResponseSchema, input);
+    expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
-      expect(result.right.refresh_token).toBeUndefined()
+      expect(result.right.refresh_token).toBeUndefined();
     }
-  })
-})
+  });
+});
 
 describe("OAuthTokensSchema", () => {
   it("内部表現のOAuthTokensをデコードできる", () => {
@@ -118,15 +118,15 @@ describe("OAuthTokensSchema", () => {
       refreshToken: "1//abc456",
       expiresAt: Date.now() + 3600 * 1000,
       scope: "openid",
-    }
-    const result = decode(OAuthTokensSchema, input)
-    expect(Either.isRight(result)).toBe(true)
-  })
-})
+    };
+    const result = decode(OAuthTokensSchema, input);
+    expect(Either.isRight(result)).toBe(true);
+  });
+});
 
 describe("ThreadSchema", () => {
   it("有効なThreadデータをデコードできる", () => {
-    const now = new Date()
+    const now = new Date();
     const input = {
       id: "thread-1",
       accountId: "account-1",
@@ -139,18 +139,18 @@ describe("ThreadSchema", () => {
       isUnread: true,
       isStarred: false,
       isPinned: false,
-    }
-    const result = decode(ThreadSchema, input)
-    expect(Either.isRight(result)).toBe(true)
+    };
+    const result = decode(ThreadSchema, input);
+    expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
-      expect(result.right.lastMessageAt).toBeInstanceOf(Date)
-      expect(result.right.snoozedUntil).toBeUndefined()
+      expect(result.right.lastMessageAt).toBeInstanceOf(Date);
+      expect(result.right.snoozedUntil).toBeUndefined();
     }
-  })
+  });
 
   it("snoozedUntil を含むThreadをデコードできる", () => {
-    const now = new Date()
-    const snoozeTime = new Date(Date.now() + 60 * 60 * 1000)
+    const now = new Date();
+    const snoozeTime = new Date(Date.now() + 60 * 60 * 1000);
     const input = {
       id: "thread-2",
       accountId: "account-1",
@@ -164,14 +164,14 @@ describe("ThreadSchema", () => {
       isStarred: false,
       snoozedUntil: snoozeTime,
       isPinned: true,
-    }
-    const result = decode(ThreadSchema, input)
-    expect(Either.isRight(result)).toBe(true)
+    };
+    const result = decode(ThreadSchema, input);
+    expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
-      expect(result.right.snoozedUntil).toBeInstanceOf(Date)
+      expect(result.right.snoozedUntil).toBeInstanceOf(Date);
     }
-  })
-})
+  });
+});
 
 describe("MessageSchema", () => {
   it("構造化された from/to/cc を持つMessageをデコードできる", () => {
@@ -201,16 +201,16 @@ describe("MessageSchema", () => {
           size: 12345,
         },
       ],
-    }
-    const result = decode(MessageSchema, input)
-    expect(Either.isRight(result)).toBe(true)
+    };
+    const result = decode(MessageSchema, input);
+    expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
-      expect(result.right.from.name).toBe("Alice")
-      expect(result.right.to).toHaveLength(2)
-      expect(result.right.cc).toHaveLength(1)
-      expect(result.right.attachments).toHaveLength(1)
+      expect(result.right.from.name).toBe("Alice");
+      expect(result.right.to).toHaveLength(2);
+      expect(result.right.cc).toHaveLength(1);
+      expect(result.right.attachments).toHaveLength(1);
     }
-  })
+  });
 
   it("from が string（非構造化）の場合はデコード失敗", () => {
     const input = {
@@ -229,8 +229,8 @@ describe("MessageSchema", () => {
       isUnread: false,
       isStarred: false,
       attachments: [],
-    }
-    const result = decode(MessageSchema, input)
-    expect(Either.isLeft(result)).toBe(true)
-  })
-})
+    };
+    const result = decode(MessageSchema, input);
+    expect(Either.isLeft(result)).toBe(true);
+  });
+});

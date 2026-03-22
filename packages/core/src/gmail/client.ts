@@ -11,24 +11,24 @@
  * 旧クラスベースの GmailClient は GmailClientLegacy として残し、
  * 既存の呼び出し元（apps/web, packages/ui）の互換性を維持する。
  */
-import { Context, Effect, Schedule } from "effect"
-import { Schema } from "@effect/schema"
-import type { ParseError } from "@effect/schema/ParseResult"
-import { GmailApiError } from "../errors.js"
+import { Context, Effect, Schedule } from "effect";
+import { Schema } from "@effect/schema";
+import type { ParseError } from "@effect/schema/ParseResult";
+import { GmailApiError } from "../errors.js";
 import {
   GmailThreadSchema,
   GmailMessageSchema,
   GmailLabelSchema,
   GmailSearchResultSchema,
-} from "../schemas/gmail-api.js"
+} from "../schemas/gmail-api.js";
 import type {
   GmailThread,
   GmailMessage,
   GmailLabel,
   GmailSearchResult,
-} from "../schemas/gmail-api.js"
+} from "../schemas/gmail-api.js";
 
-const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
+const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 // ─── Effect Service 定義 ───
 
@@ -47,7 +47,7 @@ export interface GmailClientService {
     path: string,
     schema: Schema.Schema<A, I>,
     options?: RequestInit,
-  ) => Effect.Effect<A, GmailApiError | ParseError>
+  ) => Effect.Effect<A, GmailApiError | ParseError>;
 }
 
 /**
@@ -59,10 +59,7 @@ export interface GmailClientService {
  *     const thread = yield* client.request("/threads/123", GmailThreadSchema)
  *   })
  */
-export class GmailClient extends Context.Tag("GmailClient")<
-  GmailClient,
-  GmailClientService
->() {}
+export class GmailClient extends Context.Tag("GmailClient")<GmailClient, GmailClientService>() {}
 
 /**
  * 429 レートリミットのリトライポリシー。
@@ -71,10 +68,10 @@ export class GmailClient extends Context.Tag("GmailClient")<
  */
 const retryPolicy = Schedule.exponential("1 second").pipe(
   Schedule.compose(Schedule.recurs(3)),
-  Schedule.whileInput((err: GmailApiError | ParseError) =>
-    err._tag === "GmailApiError" && err.status === 429,
+  Schedule.whileInput(
+    (err: GmailApiError | ParseError) => err._tag === "GmailApiError" && err.status === 429,
   ),
-)
+);
 
 /**
  * GmailClient サービスのファクトリ関数。
@@ -120,11 +117,9 @@ export function makeGmailClient(accessToken: string): GmailClientService {
                 }),
             }).pipe(
               Effect.flatMap((body) =>
-                Effect.fail(
-                  new GmailApiError({ status: response.status, path, body }),
-                ),
+                Effect.fail(new GmailApiError({ status: response.status, path, body })),
               ),
-            )
+            );
           }
           return Effect.tryPromise({
             try: () => response.json(),
@@ -134,12 +129,12 @@ export function makeGmailClient(accessToken: string): GmailClientService {
                 path,
                 body: `JSON parse error: ${String(error)}`,
               }),
-          })
+          });
         }),
         Effect.flatMap((json) => Schema.decodeUnknown(schema)(json)),
         Effect.retry(retryPolicy),
       ),
-  }
+  };
 }
 
 // ─── 便利関数（GmailClient サービスを使う Effect プログラム） ───
@@ -157,7 +152,7 @@ const ThreadListResponseSchema = Schema.Struct({
   ),
   nextPageToken: Schema.optional(Schema.String),
   resultSizeEstimate: Schema.Number,
-})
+});
 
 /**
  * スレッド一覧を取得する Effect プログラム。
@@ -168,59 +163,49 @@ const ThreadListResponseSchema = Schema.Struct({
  * @param labelIds - フィルタするラベルID
  */
 export function listThreads(options?: {
-  query?: string
-  maxResults?: number
-  pageToken?: string
-  labelIds?: string[]
+  query?: string;
+  maxResults?: number;
+  pageToken?: string;
+  labelIds?: string[];
 }) {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
-    const params = new URLSearchParams()
-    if (options?.query) params.set("q", options.query)
-    if (options?.maxResults) params.set("maxResults", String(options.maxResults))
-    if (options?.pageToken) params.set("pageToken", options.pageToken)
+    const client = yield* GmailClient;
+    const params = new URLSearchParams();
+    if (options?.query) params.set("q", options.query);
+    if (options?.maxResults) params.set("maxResults", String(options.maxResults));
+    if (options?.pageToken) params.set("pageToken", options.pageToken);
     if (options?.labelIds) {
-      for (const id of options.labelIds) params.append("labelIds", id)
+      for (const id of options.labelIds) params.append("labelIds", id);
     }
-    const queryString = params.toString()
+    const queryString = params.toString();
     return yield* client.request(
       `/threads${queryString ? `?${queryString}` : ""}`,
       ThreadListResponseSchema,
-    )
-  })
+    );
+  });
 }
 
 /**
  * スレッドの詳細を取得する（全メッセージ含む）。
  */
-export function getThread(
-  threadId: string,
-  format: "full" | "metadata" | "minimal" = "full",
-) {
+export function getThread(threadId: string, format: "full" | "metadata" | "minimal" = "full") {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
-    return yield* client.request(
-      `/threads/${threadId}?format=${format}`,
-      GmailThreadSchema,
-    )
-  })
+    const client = yield* GmailClient;
+    return yield* client.request(`/threads/${threadId}?format=${format}`, GmailThreadSchema);
+  });
 }
 
 /**
  * スレッドのラベルを変更する（アーカイブ、ゴミ箱等）。
  */
-export function modifyThread(
-  threadId: string,
-  addLabelIds?: string[],
-  removeLabelIds?: string[],
-) {
+export function modifyThread(threadId: string, addLabelIds?: string[], removeLabelIds?: string[]) {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
+    const client = yield* GmailClient;
     return yield* client.request(`/threads/${threadId}/modify`, GmailThreadSchema, {
       method: "POST",
       body: JSON.stringify({ addLabelIds, removeLabelIds }),
-    })
-  })
+    });
+  });
 }
 
 /**
@@ -228,27 +213,21 @@ export function modifyThread(
  */
 export function trashThread(threadId: string) {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
+    const client = yield* GmailClient;
     return yield* client.request(`/threads/${threadId}/trash`, GmailThreadSchema, {
       method: "POST",
-    })
-  })
+    });
+  });
 }
 
 /**
  * メッセージの詳細を取得する。
  */
-export function getMessage(
-  messageId: string,
-  format: "full" | "metadata" | "minimal" = "full",
-) {
+export function getMessage(messageId: string, format: "full" | "metadata" | "minimal" = "full") {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
-    return yield* client.request(
-      `/messages/${messageId}?format=${format}`,
-      GmailMessageSchema,
-    )
-  })
+    const client = yield* GmailClient;
+    return yield* client.request(`/messages/${messageId}?format=${format}`, GmailMessageSchema);
+  });
 }
 
 /**
@@ -256,27 +235,27 @@ export function getMessage(
  */
 export function sendMessage(raw: string) {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
+    const client = yield* GmailClient;
     return yield* client.request("/messages/send", GmailMessageSchema, {
       method: "POST",
       body: JSON.stringify({ raw }),
-    })
-  })
+    });
+  });
 }
 
 /** ラベル一覧のレスポンス Schema */
 const LabelListResponseSchema = Schema.Struct({
   labels: Schema.Array(GmailLabelSchema),
-})
+});
 
 /**
  * 全ラベルを取得する。
  */
 export function listLabels() {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
-    return yield* client.request("/labels", LabelListResponseSchema)
-  })
+    const client = yield* GmailClient;
+    return yield* client.request("/labels", LabelListResponseSchema);
+  });
 }
 
 /**
@@ -285,18 +264,18 @@ export function listLabels() {
 export function createLabel(
   name: string,
   options?: {
-    labelListVisibility?: string
-    messageListVisibility?: string
-    color?: { textColor: string; backgroundColor: string }
+    labelListVisibility?: string;
+    messageListVisibility?: string;
+    color?: { textColor: string; backgroundColor: string };
   },
 ) {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
+    const client = yield* GmailClient;
     return yield* client.request("/labels", GmailLabelSchema, {
       method: "POST",
       body: JSON.stringify({ name, ...options }),
-    })
-  })
+    });
+  });
 }
 
 /**
@@ -305,23 +284,16 @@ export function createLabel(
  * 背景: Gmail APIの検索クエリをそのまま渡す。from:, to:, subject:,
  * has:attachment, label:, after:, before: 等の演算子をフルサポート（spec §5.4）。
  */
-export function searchMessages(
-  query: string,
-  maxResults = 20,
-  pageToken?: string,
-) {
+export function searchMessages(query: string, maxResults = 20, pageToken?: string) {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
+    const client = yield* GmailClient;
     const params = new URLSearchParams({
       q: query,
       maxResults: String(maxResults),
-    })
-    if (pageToken) params.set("pageToken", pageToken)
-    return yield* client.request(
-      `/messages?${params.toString()}`,
-      GmailSearchResultSchema,
-    )
-  })
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+    return yield* client.request(`/messages?${params.toString()}`, GmailSearchResultSchema);
+  });
 }
 
 /** History レスポンス Schema */
@@ -388,7 +360,7 @@ const HistoryResponseSchema = Schema.Struct({
   ),
   nextPageToken: Schema.optional(Schema.String),
   historyId: Schema.String,
-})
+});
 
 /**
  * history.listによるインクリメンタル同期。
@@ -399,20 +371,14 @@ const HistoryResponseSchema = Schema.Struct({
  */
 export function listHistory(
   startHistoryId: string,
-  historyTypes?: Array<
-    "messageAdded" | "messageDeleted" | "labelAdded" | "labelRemoved"
-  >,
+  historyTypes?: Array<"messageAdded" | "messageDeleted" | "labelAdded" | "labelRemoved">,
 ) {
   return Effect.gen(function* () {
-    const client = yield* GmailClient
-    const params = new URLSearchParams({ startHistoryId })
+    const client = yield* GmailClient;
+    const params = new URLSearchParams({ startHistoryId });
     if (historyTypes) {
-      for (const type of historyTypes) params.append("historyTypes", type)
+      for (const type of historyTypes) params.append("historyTypes", type);
     }
-    return yield* client.request(
-      `/history?${params.toString()}`,
-      HistoryResponseSchema,
-    )
-  })
+    return yield* client.request(`/history?${params.toString()}`, HistoryResponseSchema);
+  });
 }
-

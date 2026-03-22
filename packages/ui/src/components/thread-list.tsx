@@ -69,7 +69,7 @@ function ThreadItem({ thread, accountColor, isSelected, onSelect }: ThreadItemPr
     <button
       type="button"
       onClick={() => onSelect(thread.id)}
-      className={`relative flex flex-col w-full px-4 py-3 border-0 border-b border-solid border-[var(--color-border-light)] cursor-pointer text-left gap-1 transition-colors ${
+      className={`relative flex flex-col w-full px-5 py-4 border-0 border-b border-solid border-[var(--color-border-light)] cursor-pointer text-left gap-1.5 transition-colors ${
         isSelected
           ? "bg-[var(--color-bg-selected)]"
           : "bg-[var(--color-bg)] hover:bg-[var(--color-bg-hover)]"
@@ -82,7 +82,9 @@ function ThreadItem({ thread, accountColor, isSelected, onSelect }: ThreadItemPr
 
       {/* 1行目: 送信者 + スター + 日時 */}
       <div className="flex items-center justify-between gap-2">
-        <span className={`flex items-center gap-2 text-[13px] truncate ${thread.isUnread ? "font-semibold" : "font-normal"}`}>
+        <span
+          className={`flex items-center gap-2 text-[13px] truncate ${thread.isUnread ? "font-semibold" : "font-normal"}`}
+        >
           <span
             className="w-1.5 h-1.5 rounded-full shrink-0"
             style={{ background: accountColor }}
@@ -144,9 +146,9 @@ function CategoryCard({
   onShowAll,
 }: CategoryCardProps) {
   return (
-    <div className="rounded-lg border border-[var(--color-border-light)] overflow-hidden mb-3">
+    <div className="rounded-2xl border border-[var(--color-border-light)] overflow-hidden mb-4">
       {/* カードヘッダー */}
-      <div className="px-4 py-2 bg-[var(--color-bg-secondary)] text-[13px] font-semibold flex items-center gap-2">
+      <div className="px-5 py-3 bg-[var(--color-bg-secondary)] text-[13px] font-semibold flex items-center gap-2">
         <span>{icon}</span>
         <span>{label}</span>
       </div>
@@ -168,7 +170,7 @@ function CategoryCard({
       <button
         type="button"
         onClick={onShowAll}
-        className="w-full px-4 py-2 border-0 border-t border-solid border-[var(--color-border-light)] bg-transparent cursor-pointer text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-bg-hover)] transition-colors text-left"
+        className="w-full px-5 py-3 border-0 border-t border-solid border-[var(--color-border-light)] bg-transparent cursor-pointer text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-bg-hover)] transition-colors text-left"
       >
         すべて表示 ({totalCount})
       </button>
@@ -220,9 +222,7 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
       .filter((e): e is { thread: Thread; accountColor: string } => e != null);
 
     return CATEGORY_CARDS.map((card) => {
-      const matching = allEntries.filter((e) =>
-        matchesCategory(e.thread.labelIds, card.key),
-      );
+      const matching = allEntries.filter((e) => matchesCategory(e.thread.labelIds, card.key));
       return {
         ...card,
         threads: matching.slice(0, MAX_ITEMS_PER_CARD),
@@ -250,9 +250,7 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      const currentIdx = selectedThreadId
-        ? navigableThreadIds.indexOf(selectedThreadId)
-        : -1;
+      const currentIdx = selectedThreadId ? navigableThreadIds.indexOf(selectedThreadId) : -1;
 
       if (e.key === "j" || e.key === "ArrowDown") {
         e.preventDefault();
@@ -292,9 +290,9 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
   return (
     <div className="flex flex-col h-full">
       {/* ヘッダー + 検索バー */}
-      <div className="px-3 py-2 border-b border-[var(--color-border-light)] flex flex-col gap-2">
+      <div className="px-5 py-4 border-b border-[var(--color-border-light)] flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 font-semibold text-[13px]">
+          <span className="flex items-center gap-2 font-semibold text-[14px]">
             {/* モバイル: ハンバーガーメニューボタン */}
             {onOpenSidebar && (
               <button
@@ -303,7 +301,15 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
                 className="md:hidden flex items-center justify-center w-7 h-7 border-none bg-transparent cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-text)] rounded hover:bg-[var(--color-bg-hover)] transition-colors"
                 aria-label="メニューを開く"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
                   <line x1="3" y1="6" x2="21" y2="6" />
                   <line x1="3" y1="12" x2="21" y2="12" />
                   <line x1="3" y1="18" x2="21" y2="18" />
@@ -331,7 +337,7 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
       <div className="flex-1 overflow-auto">
         {categoryGroups ? (
           /* Spark風カテゴリカード表示（activeCategory === "all" のとき） */
-          <div className="p-3">
+          <div className="p-4">
             {categoryGroups.map((group) => (
               <CategoryCard
                 key={group.key}

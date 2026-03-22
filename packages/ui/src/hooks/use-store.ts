@@ -6,14 +6,8 @@
  * このフックでReactコンポーネントから使えるようにブリッジする。
  */
 import { useStore } from "zustand";
-import {
-  createAccountsStore,
-  type AccountsStore,
-} from "@vantagemail/core";
-import {
-  createThreadsStore,
-  type ThreadsStore,
-} from "@vantagemail/core";
+import { createAccountsStore, type AccountsStore } from "@vantagemail/core";
+import { createThreadsStore, type ThreadsStore } from "@vantagemail/core";
 import { createContext, useContext } from "react";
 import type { StoreApi } from "zustand";
 import type { Account, Thread } from "@vantagemail/core";
@@ -29,7 +23,9 @@ export const StoreContext = createContext<StoreContextValue | null>(null);
 function useStoreContext(): StoreContextValue {
   const ctx = useContext(StoreContext);
   if (!ctx) {
-    throw new Error("StoreContext.Provider が見つかりません。App をStoreProviderで囲んでください。");
+    throw new Error(
+      "StoreContext.Provider が見つかりません。App をStoreProviderで囲んでください。",
+    );
   }
   return ctx;
 }
@@ -69,10 +65,7 @@ export function createStores(initialAccounts?: Account[]): StoreContextValue {
  * 背景: useEffectで初期化するとStrictModeの二重実行でデータが重複する。
  * ストア生成時に直接データを渡すことでこの問題を回避する。
  */
-export function createStoresWithData(
-  accounts: Account[],
-  threads: Thread[],
-): StoreContextValue {
+export function createStoresWithData(accounts: Account[], threads: Thread[]): StoreContextValue {
   const accountsStore = createAccountsStore(accounts);
   const threadsStore = createThreadsStore();
 

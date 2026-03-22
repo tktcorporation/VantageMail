@@ -5,7 +5,7 @@
  * 実行時バリデーションと型推論を同時に行う。
  * types/account.ts の既存インターフェースと完全一致する形状を維持する。
  */
-import { Schema } from "@effect/schema"
+import { Schema } from "@effect/schema";
 
 /** OAuth 2.0トークンペア */
 export const OAuthTokensSchema = Schema.Struct({
@@ -15,9 +15,9 @@ export const OAuthTokensSchema = Schema.Struct({
   expiresAt: Schema.Number,
   /** 要求したスコープ */
   scope: Schema.String,
-})
+});
 
-export type OAuthTokens = typeof OAuthTokensSchema.Type
+export type OAuthTokens = typeof OAuthTokensSchema.Type;
 
 /** 接続済みGmailアカウント */
 export const AccountSchema = Schema.Struct({
@@ -37,23 +37,19 @@ export const AccountSchema = Schema.Struct({
   signature: Schema.optional(Schema.String),
   /** 通知を受け取るか */
   notificationsEnabled: Schema.Boolean,
-})
+});
 
-export type Account = typeof AccountSchema.Type
+export type Account = typeof AccountSchema.Type;
 
 /**
  * アカウントの接続状態。
  * UIでの表示とエラーハンドリングに使用。
  */
-export type AccountConnectionStatus =
-  | "connected"
-  | "refreshing"
-  | "token_expired"
-  | "error"
+export type AccountConnectionStatus = "connected" | "refreshing" | "token_expired" | "error";
 
 export const AccountConnectionStatusSchema = Schema.Literal(
   "connected",
   "refreshing",
   "token_expired",
   "error",
-)
+);

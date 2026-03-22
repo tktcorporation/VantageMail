@@ -9,9 +9,9 @@
  * Schema 版の GmailThread / GmailMessage 型と、旧 types/ の型の両方を受け付ける
  * （構造的に同じ形状のため型互換）。
  */
-import type { GmailThread, GmailMessage, GmailMessagePart } from "../schemas/gmail-api.js"
-import type { Thread } from "../schemas/thread.js"
-import type { Message, Attachment } from "../schemas/message.js"
+import type { GmailThread, GmailMessage, GmailMessagePart } from "../schemas/gmail-api.js";
+import type { Thread } from "../schemas/thread.js";
+import type { Message, Attachment } from "../schemas/message.js";
 
 /**
  * GmailThreadをアプリ内のThread型に変換する。
@@ -19,10 +19,7 @@ import type { Message, Attachment } from "../schemas/message.js"
  * @param gmailThread - Gmail APIから取得したスレッド
  * @param accountId - このスレッドが属するアカウントのID
  */
-export function adaptGmailThread(
-  gmailThread: GmailThread,
-  accountId: string,
-): Thread {
+export function adaptGmailThread(gmailThread: GmailThread, accountId: string): Thread {
   const messages = gmailThread.messages ?? [];
   const latestMessage = messages[messages.length - 1];
 
@@ -56,10 +53,7 @@ export function adaptGmailThread(
 /**
  * GmailMessageをアプリ内のMessage型に変換する。
  */
-export function adaptGmailMessage(
-  gmailMessage: GmailMessage,
-  accountId: string,
-): Message {
+export function adaptGmailMessage(gmailMessage: GmailMessage, accountId: string): Message {
   const from = parseEmailAddress(extractHeader(gmailMessage, "From") ?? "");
   const to = (extractHeader(gmailMessage, "To") ?? "")
     .split(",")
@@ -98,9 +92,7 @@ export function adaptGmailMessage(
 function extractHeader(message: GmailMessage | undefined, name: string): string | undefined {
   if (!message?.payload?.headers) return undefined;
   const headers = message.payload.headers as ReadonlyArray<{ name: string; value: string }>;
-  return headers.find(
-    (h) => h.name.toLowerCase() === name.toLowerCase(),
-  )?.value;
+  return headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value;
 }
 
 /**

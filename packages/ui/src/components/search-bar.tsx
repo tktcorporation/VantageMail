@@ -39,8 +39,7 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
   const filteredSuggestions = query
     ? OPERATOR_SUGGESTIONS.filter(
         (s) =>
-          s.operator.toLowerCase().includes(query.toLowerCase()) ||
-          s.description.includes(query),
+          s.operator.toLowerCase().includes(query.toLowerCase()) || s.description.includes(query),
       )
     : OPERATOR_SUGGESTIONS;
 
@@ -49,7 +48,10 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
       setQuery(value);
       setShowSuggestions(value.length === 0);
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      if (!value.trim()) { onClear(); return; }
+      if (!value.trim()) {
+        onClear();
+        return;
+      }
       debounceRef.current = setTimeout(() => onSearch(value), 300);
     },
     [onSearch, onClear],
@@ -71,14 +73,18 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
   );
 
   const insertOperator = useCallback((operator: string) => {
-    setQuery((prev) => prev ? `${prev} ${operator}` : operator);
+    setQuery((prev) => (prev ? `${prev} ${operator}` : operator));
     setShowSuggestions(false);
     inputRef.current?.focus();
   }, []);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      if (
+        e.key === "/" &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement)
+      ) {
         e.preventDefault();
         inputRef.current?.focus();
       }
@@ -90,19 +96,27 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
   return (
     <div className="relative">
       {/* 検索入力 */}
-      <div className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${
-        isFocused
-          ? "bg-[var(--color-bg)] border border-[var(--color-accent)]"
-          : "bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)]"
-      }`}>
+      <div
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all ${
+          isFocused
+            ? "bg-[var(--color-bg)] border border-[var(--color-accent)]"
+            : "bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)]"
+        }`}
+      >
         <span className="text-[var(--color-text-tertiary)] text-[13px]">/</span>
         <input
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => handleChange(e.target.value)}
-          onFocus={() => { setIsFocused(true); setShowSuggestions(true); }}
-          onBlur={() => { setIsFocused(false); setTimeout(() => setShowSuggestions(false), 200); }}
+          onFocus={() => {
+            setIsFocused(true);
+            setShowSuggestions(true);
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            setTimeout(() => setShowSuggestions(false), 200);
+          }}
           onKeyDown={handleKeyDown}
           placeholder="メールを検索..."
           className="flex-1 border-none outline-none text-[13px] bg-transparent text-[var(--color-text)]"
@@ -110,7 +124,10 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
         {query && (
           <button
             type="button"
-            onClick={() => { setQuery(""); onClear(); }}
+            onClick={() => {
+              setQuery("");
+              onClear();
+            }}
             className="bg-none border-none text-[var(--color-text-tertiary)] cursor-pointer text-[11px] px-1 hover:text-[var(--color-text)]"
           >
             ×
@@ -120,8 +137,8 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
 
       {/* サジェストドロップダウン */}
       {showSuggestions && isFocused && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md shadow-lg max-h-70 overflow-auto z-50">
-          <div className="px-3 py-1 text-[11px] text-[var(--color-text-tertiary)] border-b border-[var(--color-border-light)]">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-lg max-h-70 overflow-auto z-50">
+          <div className="px-4 py-2 text-[11px] text-[var(--color-text-tertiary)] border-b border-[var(--color-border-light)]">
             Gmail 検索演算子
           </div>
           {filteredSuggestions.map((suggestion) => (
@@ -130,7 +147,7 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertOperator(suggestion.operator)}
-              className="flex items-center justify-between w-full px-3 py-2 bg-transparent border-none cursor-pointer text-[13px] text-left text-[var(--color-text)] hover:bg-[var(--color-bg-hover)]"
+              className="flex items-center justify-between w-full px-4 py-2.5 bg-transparent border-none cursor-pointer text-[13px] text-left text-[var(--color-text)] hover:bg-[var(--color-bg-hover)]"
             >
               <span>
                 <code className="text-[11px] bg-[var(--color-bg-tertiary)] px-1 py-px rounded font-mono mr-2">

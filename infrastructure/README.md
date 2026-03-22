@@ -41,27 +41,29 @@
 
 ## GCP 依存（最小限）
 
-| GCP サービス | 用途 | なぜ必要か |
-|-------------|------|-----------|
+| GCP サービス  | 用途                     | なぜ必要か                                              |
+| ------------- | ------------------------ | ------------------------------------------------------- |
 | Cloud Pub/Sub | Gmail プッシュ通知の受信 | `users.watch()` API が Pub/Sub を強制する。代替手段なし |
 
 **GCP で必要なリソース:**
+
 - Pub/Sub トピック × 1
 - Pub/Sub push subscription × 1（宛先: CF Worker）
 
 ## Cloudflare サービス
 
-| サービス | 用途 |
-|---------|------|
-| **Workers (Static Assets)** | Web アプリホスティング |
-| **Workers** | oauth-proxy, push-relay, scheduler |
-| **KV** | 同期状態、スケジュールジョブ、watch 状態 |
-| **Durable Objects** | WebSocket 接続管理、リアルタイム通知ファンアウト |
-| **Cron Triggers** | スヌーズ/送信予約の実行、Gmail watch() 再登録 |
+| サービス                    | 用途                                             |
+| --------------------------- | ------------------------------------------------ |
+| **Workers (Static Assets)** | Web アプリホスティング                           |
+| **Workers**                 | oauth-proxy, push-relay, scheduler               |
+| **KV**                      | 同期状態、スケジュールジョブ、watch 状態         |
+| **Durable Objects**         | WebSocket 接続管理、リアルタイム通知ファンアウト |
+| **Cron Triggers**           | スヌーズ/送信予約の実行、Gmail watch() 再登録    |
 
 ## データフロー
 
 ### メール受信通知
+
 ```
 Gmail → GCP Pub/Sub → CF push-relay Worker → Durable Object → WebSocket → クライアント
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -69,16 +71,19 @@ Gmail → GCP Pub/Sub → CF push-relay Worker → Durable Object → WebSocket 
 ```
 
 ### メール操作（読み書き）
+
 ```
 クライアント → Gmail API（直接通信。CF を経由しない）
 ```
 
 ### OAuth トークン交換
+
 ```
 クライアント → CF oauth-proxy Worker → Google Token Endpoint
 ```
 
 ### スヌーズ/送信予約
+
 ```
 クライアント → CF scheduler Worker (KV に保存)
 Cron Trigger → scheduler Worker → push-relay Worker → WebSocket → クライアント

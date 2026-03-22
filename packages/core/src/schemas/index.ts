@@ -6,20 +6,16 @@
  */
 
 // Account / OAuthTokens
-export {
-  AccountSchema,
-  OAuthTokensSchema,
-  AccountConnectionStatusSchema,
-} from "./account.js"
-export type { Account, OAuthTokens, AccountConnectionStatus } from "./account.js"
+export { AccountSchema, OAuthTokensSchema, AccountConnectionStatusSchema } from "./account.js";
+export type { Account, OAuthTokens, AccountConnectionStatus } from "./account.js";
 
 // Thread
-export { ThreadSchema } from "./thread.js"
-export type { Thread } from "./thread.js"
+export { ThreadSchema } from "./thread.js";
+export type { Thread } from "./thread.js";
 
 // Message / Attachment
-export { MessageSchema, AttachmentSchema, EmailContactSchema } from "./message.js"
-export type { Message, Attachment } from "./message.js"
+export { MessageSchema, AttachmentSchema, EmailContactSchema } from "./message.js";
+export type { Message, Attachment } from "./message.js";
 
 // Gmail API
 export {
@@ -32,7 +28,7 @@ export {
   GmailCategorySchema,
   OAuthTokenResponseSchema,
   GoogleUserInfoSchema,
-} from "./gmail-api.js"
+} from "./gmail-api.js";
 export type {
   GmailHeader,
   GmailMessagePart,
@@ -43,4 +39,4 @@ export type {
   GmailCategory,
   OAuthTokenResponse,
   GoogleUserInfo,
-} from "./gmail-api.js"
+} from "./gmail-api.js";

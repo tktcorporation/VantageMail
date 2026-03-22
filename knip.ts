@@ -4,7 +4,7 @@
  * 背景: コードベースの健全性を維持するため、使われていないコード・依存関係を
  * 自動検知する。CI でも実行し、不要コードの蓄積を防ぐ。
  */
-import type { KnipConfig } from "knip"
+import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
   // vite.config.ts は vite-plus (vp) CLI の設定ファイルとして使用
@@ -12,11 +12,7 @@ const config: KnipConfig = {
   workspaces: {
     "apps/web": {
       // TanStack Start: router.tsx + ファイルベースルートが entry
-      entry: [
-        "src/router.tsx",
-        "src/routes/**/*.{ts,tsx}",
-        "src/lib/**/*.ts",
-      ],
+      entry: ["src/router.tsx", "src/routes/**/*.{ts,tsx}", "src/lib/**/*.ts"],
       project: ["src/**/*.{ts,tsx}"],
       ignoreDependencies: [
         // vite plugin として使用（wrangler.jsonc 経由）
@@ -39,7 +35,7 @@ const config: KnipConfig = {
         "@types/dompurify",
       ],
     },
-    "workers": {
+    workers: {
       entry: ["src/index.ts"],
       project: ["src/**/*.ts"],
       ignoreDependencies: [
@@ -58,6 +54,6 @@ const config: KnipConfig = {
     "wrangler",
     "tsc",
   ],
-}
+};
 
-export default config
+export default config;

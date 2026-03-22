@@ -34,20 +34,13 @@ export interface EncryptedData {
  * 後方互換: Effect 化されていないルートから引き続き使用される。
  * Effect 化完了後に削除可能（CryptoService.deriveKEK を使う）。
  */
-export async function deriveKEK(
-  serverSecret: string,
-  googleSub: string,
-): Promise<CryptoKey> {
+export async function deriveKEK(serverSecret: string, googleSub: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
 
   // SERVER_SECRET を HKDF の入力キーマテリアルとしてインポート
-  const ikm = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(serverSecret),
-    "HKDF",
-    false,
-    ["deriveKey"],
-  );
+  const ikm = await crypto.subtle.importKey("raw", encoder.encode(serverSecret), "HKDF", false, [
+    "deriveKey",
+  ]);
 
   // RFC 5869 準拠: salt はドメイン分離用の固定値、info にユーザー固有の識別子を配置。
   // CRITICAL: salt/info の順序を変更しないこと。既存データが復号不能になる。
@@ -82,10 +75,7 @@ export async function importDEK(rawKey: Uint8Array): Promise<CryptoKey> {
 }
 
 /** AES-GCM で暗号化する。IV は毎回ランダム生成 */
-export async function encrypt(
-  key: CryptoKey,
-  plaintext: string,
-): Promise<EncryptedData> {
+export async function encrypt(key: CryptoKey, plaintext: string): Promise<EncryptedData> {
   const encoder = new TextEncoder();
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
@@ -102,10 +92,7 @@ export async function encrypt(
 }
 
 /** AES-GCM で復号する */
-export async function decrypt(
-  key: CryptoKey,
-  data: EncryptedData,
-): Promise<string> {
+export async function decrypt(key: CryptoKey, data: EncryptedData): Promise<string> {
   const decoder = new TextDecoder();
   const ciphertext = base64ToUint8(data.ciphertext);
   const iv = base64ToUint8(data.iv);
@@ -120,10 +107,7 @@ export async function decrypt(
 }
 
 /** DEK の raw bytes を暗号化する（KEK で暗号化して DB に保存する用途） */
-export async function encryptDEK(
-  kek: CryptoKey,
-  dek: Uint8Array,
-): Promise<EncryptedData> {
+export async function encryptDEK(kek: CryptoKey, dek: Uint8Array): Promise<EncryptedData> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
   const ciphertext = await crypto.subtle.encrypt(
@@ -139,10 +123,7 @@ export async function encryptDEK(
 }
 
 /** 暗号化された DEK を復号する（DB から読み出して KEK で復号する用途） */
-export async function decryptDEK(
-  kek: CryptoKey,
-  data: EncryptedData,
-): Promise<Uint8Array> {
+export async function decryptDEK(kek: CryptoKey, data: EncryptedData): Promise<Uint8Array> {
   const ciphertext = base64ToUint8(data.ciphertext);
   const iv = base64ToUint8(data.iv);
 

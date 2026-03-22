@@ -7,13 +7,13 @@
  * CRITICAL: Pub/Sub は HTTP 200 を受け取らないと再送を繰り返すため、
  * エラー発生時も必ず 200 を返す（Effect.catchAll で保証）。
  */
-import { Effect } from "effect"
-import type { Env } from "./index"
+import { Effect } from "effect";
+import type { Env } from "./index";
 
 /** Pub/Sub 通知のデコード済みペイロード */
 interface PubSubNotification {
-  readonly emailAddress: string
-  readonly historyId: string
+  readonly emailAddress: string;
+  readonly historyId: string;
 }
 
 /**
@@ -29,27 +29,23 @@ const processPushNotification = (
 ): Effect.Effect<Response, never, never> =>
   Effect.gen(function* () {
     const body = yield* Effect.tryPromise({
-      try: () =>
-        request.json<{ message: { data: string; messageId: string } }>(),
+      try: () => request.json<{ message: { data: string; messageId: string } }>(),
       catch: (e) => new Error(`Failed to parse request body: ${e}`),
-    })
+    });
 
-    const decoded = atob(body.message.data)
-    const notification = JSON.parse(decoded) as PubSubNotification
+    const decoded = atob(body.message.data);
+    const notification = JSON.parse(decoded) as PubSubNotification;
 
     // historyId を KV に保存（差分同期の起点として使用）
     yield* Effect.tryPromise({
       try: () =>
-        env.SYNC_STATE!.put(
-          `history:${notification.emailAddress}`,
-          notification.historyId,
-        ),
+        env.SYNC_STATE!.put(`history:${notification.emailAddress}`, notification.historyId),
       catch: (e) => new Error(`KV put failed: ${e}`),
-    })
+    });
 
     // Durable Object に通知をファンアウト
-    const doId = env.PUSH_CONNECTIONS!.idFromName(notification.emailAddress)
-    const stub = env.PUSH_CONNECTIONS!.get(doId)
+    const doId = env.PUSH_CONNECTIONS!.idFromName(notification.emailAddress);
+    const stub = env.PUSH_CONNECTIONS!.get(doId);
 
     yield* Effect.tryPromise({
       try: () =>
@@ -60,51 +56,45 @@ const processPushNotification = (
           }),
         ),
       catch: (e) => new Error(`DO fetch failed: ${e}`),
-    })
+    });
 
-    return new Response("OK", { status: 200 })
+    return new Response("OK", { status: 200 });
   }).pipe(
     // Pub/Sub は 200 以外を受け取ると再送するため、エラー時も必ず 200 を返す
     Effect.catchAll((error) =>
       Effect.succeed(
         (() => {
-          console.error("Push handling failed:", error)
-          return new Response("Acknowledged with error", { status: 200 })
+          console.error("Push handling failed:", error);
+          return new Response("Acknowledged with error", { status: 200 });
         })(),
       ),
     ),
-  )
+  );
 
 /** Pub/Sub push subscription からの通知を受信 */
-export async function handlePush(
-  request: Request,
-  env: Env,
-): Promise<Response> {
+export async function handlePush(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 })
+    return new Response("Method not allowed", { status: 405 });
   }
-  return Effect.runPromise(processPushNotification(request, env))
+  return Effect.runPromise(processPushNotification(request, env));
 }
 
 /** WebSocket 接続を受け付けて Durable Object に転送 */
-export async function handleWebSocket(
-  request: Request,
-  env: Env,
-): Promise<Response> {
-  const url = new URL(request.url)
-  const accountEmail = url.searchParams.get("email")
+export async function handleWebSocket(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const accountEmail = url.searchParams.get("email");
 
   if (!accountEmail) {
-    return new Response("Missing email parameter", { status: 400 })
+    return new Response("Missing email parameter", { status: 400 });
   }
 
   if (request.headers.get("Upgrade") !== "websocket") {
-    return new Response("Expected WebSocket upgrade", { status: 426 })
+    return new Response("Expected WebSocket upgrade", { status: 426 });
   }
 
-  const doId = env.PUSH_CONNECTIONS!.idFromName(accountEmail)
-  const stub = env.PUSH_CONNECTIONS!.get(doId)
-  return stub.fetch(request)
+  const doId = env.PUSH_CONNECTIONS!.idFromName(accountEmail);
+  const stub = env.PUSH_CONNECTIONS!.get(doId);
+  return stub.fetch(request);
 }
 
 /**
@@ -118,7 +108,7 @@ export async function handleWebSocket(
  * fetch() 内部の処理は十分シンプルで、try-catch で十分。
  */
 export class PushConnectionManager implements DurableObject {
-  private sessions: Set<WebSocket> = new Set()
+  private sessions: Set<WebSocket> = new Set();
 
   constructor(
     private state: DurableObjectState,
@@ -126,45 +116,45 @@ export class PushConnectionManager implements DurableObject {
   ) {}
 
   async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url)
+    const url = new URL(request.url);
 
     if (url.pathname === "/notify") {
-      return this.handleNotify(request)
+      return this.handleNotify(request);
     }
 
     if (request.headers.get("Upgrade") === "websocket") {
-      return this.handleWebSocketUpgrade()
+      return this.handleWebSocketUpgrade();
     }
 
-    return new Response("Not found", { status: 404 })
+    return new Response("Not found", { status: 404 });
   }
 
   private handleWebSocketUpgrade(): Response {
-    const pair = new WebSocketPair()
-    const [client, server] = [pair[0], pair[1]]
-    this.state.acceptWebSocket(server)
-    this.sessions.add(server)
-    return new Response(null, { status: 101, webSocket: client })
+    const pair = new WebSocketPair();
+    const [client, server] = [pair[0], pair[1]];
+    this.state.acceptWebSocket(server);
+    this.sessions.add(server);
+    return new Response(null, { status: 101, webSocket: client });
   }
 
   private async handleNotify(request: Request): Promise<Response> {
-    const notification = await request.json() as Record<string, unknown>
-    const message = JSON.stringify({ type: "gmail.sync", ...notification })
+    const notification = (await request.json()) as Record<string, unknown>;
+    const message = JSON.stringify({ type: "gmail.sync", ...notification });
 
     for (const ws of this.sessions) {
       try {
-        ws.send(message)
+        ws.send(message);
       } catch {
-        this.sessions.delete(ws)
+        this.sessions.delete(ws);
       }
     }
-    return new Response("OK")
+    return new Response("OK");
   }
 
   webSocketClose(ws: WebSocket) {
-    this.sessions.delete(ws)
+    this.sessions.delete(ws);
   }
   webSocketError(ws: WebSocket) {
-    this.sessions.delete(ws)
+    this.sessions.delete(ws);
   }
 }

@@ -26,10 +26,36 @@ function formatDate(date: Date): string {
 function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
-      "p", "br", "div", "span", "a", "b", "strong", "i", "em", "u",
-      "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li",
-      "table", "thead", "tbody", "tr", "th", "td",
-      "blockquote", "pre", "code", "img", "hr",
+      "p",
+      "br",
+      "div",
+      "span",
+      "a",
+      "b",
+      "strong",
+      "i",
+      "em",
+      "u",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "ul",
+      "ol",
+      "li",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "blockquote",
+      "pre",
+      "code",
+      "img",
+      "hr",
     ],
     ALLOWED_ATTR: ["href", "src", "alt", "style", "class", "target", "width", "height"],
     ALLOW_DATA_ATTR: false,
@@ -38,9 +64,9 @@ function sanitizeHtml(html: string): string {
 
 function MessageItem({ message }: { message: Message }) {
   return (
-    <div className="border-b border-[var(--color-border-light)] py-5">
+    <div className="border-b border-[var(--color-border-light)] py-6">
       {/* Sender + date */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-semibold">
             {message.from.name || message.from.email}
@@ -58,7 +84,7 @@ function MessageItem({ message }: { message: Message }) {
 
       {/* Recipients */}
       {message.to.length > 0 && (
-        <div className="text-[11px] text-[var(--color-text-secondary)] mb-3">
+        <div className="text-[11px] text-[var(--color-text-secondary)] mb-4">
           To: {message.to.map((r) => r.name || r.email).join(", ")}
           {message.cc.length > 0 && (
             <> | Cc: {message.cc.map((r) => r.name || r.email).join(", ")}</>
@@ -80,11 +106,11 @@ function MessageItem({ message }: { message: Message }) {
 
       {/* Attachments */}
       {message.attachments.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {message.attachments.map((att) => (
             <span
               key={att.id}
-              className="px-2 py-1 bg-[var(--color-bg-hover)] rounded text-[11px] text-[var(--color-text-secondary)]"
+              className="px-3 py-1.5 bg-[var(--color-bg-hover)] rounded-lg text-[11px] text-[var(--color-text-secondary)]"
             >
               {att.filename} ({Math.round(att.size / 1024)}KB)
             </span>
@@ -126,19 +152,33 @@ export function ThreadView({ onBack }: ThreadViewProps = {}) {
 
   if (!selectedThread) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-tertiary)] gap-3">
+      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-tertiary)] gap-4">
         <span className="text-5xl opacity-30 font-bold">V</span>
-        <span className="text-base font-semibold text-[var(--color-text)]">
-          VantageMail
-        </span>
-        <span className="text-[13px]">
-          メールを選択してください
-        </span>
+        <span className="text-base font-semibold text-[var(--color-text)]">VantageMail</span>
+        <span className="text-[13px]">メールを選択してください</span>
         {/* キーボードショートカットヒント */}
-        <div className="mt-4 flex gap-4 text-[11px]">
-          <span><kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">J</kbd> <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">K</kbd> 移動</span>
-          <span><kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">/</kbd> 検索</span>
-          <span><kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">⌘K</kbd> コマンド</span>
+        <div className="mt-6 flex gap-5 text-[11px]">
+          <span>
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">
+              J
+            </kbd>{" "}
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">
+              K
+            </kbd>{" "}
+            移動
+          </span>
+          <span>
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">
+              /
+            </kbd>{" "}
+            検索
+          </span>
+          <span>
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] font-mono text-[10px]">
+              ⌘K
+            </kbd>{" "}
+            コマンド
+          </span>
         </div>
       </div>
     );
@@ -147,50 +187,50 @@ export function ThreadView({ onBack }: ThreadViewProps = {}) {
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* Thread header */}
-      <div className="p-6 border-b border-[var(--color-border-light)]">
+      <div className="px-8 py-7 border-b border-[var(--color-border-light)]">
         {/* モバイル: 戻るボタン */}
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="md:hidden flex items-center gap-1 mb-3 px-0 py-0 border-none bg-transparent cursor-pointer text-[13px] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+            className="md:hidden flex items-center gap-1 mb-4 px-0 py-0 border-none bg-transparent cursor-pointer text-[13px] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="15 18 9 12 15 6" />
             </svg>
             戻る
           </button>
         )}
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-3">
           {account && (
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ background: account.color }}
-            />
+            <span className="w-2 h-2 rounded-full" style={{ background: account.color }} />
           )}
-          <span className="text-[11px] text-[var(--color-text-secondary)]">
-            {account?.email}
-          </span>
+          <span className="text-[11px] text-[var(--color-text-secondary)]">{account?.email}</span>
         </div>
-        <h1 className="text-xl font-semibold leading-snug">
-          {selectedThread.subject}
-        </h1>
-        <div className="mt-2 text-[11px] text-[var(--color-text-secondary)]">
+        <h1 className="text-xl font-semibold leading-snug">{selectedThread.subject}</h1>
+        <div className="mt-3 text-[11px] text-[var(--color-text-secondary)]">
           {selectedThread.participants.join(", ")} · {selectedThread.messageCount}通
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 px-6">
+      <div className="flex-1 px-8">
         {isLoading && (
           <div className="py-8 text-center text-[var(--color-text-secondary)] text-[13px]">
             Loading messages...
           </div>
         )}
         {error && (
-          <div className="py-8 text-center text-red-500 text-[13px]">
-            Failed to load messages
-          </div>
+          <div className="py-8 text-center text-red-500 text-[13px]">Failed to load messages</div>
         )}
         {!isLoading && !error && messages.length === 0 && (
           <div className="py-8 text-[var(--color-text-secondary)] text-[13px]">
@@ -202,11 +242,11 @@ export function ThreadView({ onBack }: ThreadViewProps = {}) {
         ))}
       </div>
 
-      {/* Reply bar — 閲覧優先のため控えめなスタイル */}
-      <div className="px-6 py-3 border-t border-[var(--color-border-light)]">
+      {/* Reply bar -- 閲覧優先のため控えめなスタイル */}
+      <div className="px-8 py-4 border-t border-[var(--color-border-light)]">
         <button
           type="button"
-          className="px-3 py-1.5 bg-transparent border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded cursor-pointer text-[12px] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+          className="px-4 py-2 bg-transparent border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl cursor-pointer text-[13px] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
         >
           返信
         </button>

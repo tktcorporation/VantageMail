@@ -61,11 +61,7 @@ export interface ThreadsActions {
   setActiveCategory: (category: SmartCategory) => void;
   setLoading: (loading: boolean) => void;
   /** スレッドのラベルを更新（アーカイブ、ゴミ箱等で使用） */
-  updateThreadLabels: (
-    accountId: string,
-    threadId: string,
-    labelIds: string[],
-  ) => void;
+  updateThreadLabels: (accountId: string, threadId: string, labelIds: string[]) => void;
   /** スレッドのスター状態をトグル */
   toggleStar: (accountId: string, threadId: string) => void;
 }
