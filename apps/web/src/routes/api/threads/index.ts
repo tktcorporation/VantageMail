@@ -30,12 +30,14 @@ export const Route = createFileRoute("/api/threads/")({
         }
 
         const maxResults = url.searchParams.get("maxResults") ?? "30";
+        const pageToken = url.searchParams.get("pageToken");
 
         const effect = Effect.gen(function* () {
-          // 1. Get thread ID list
+          // 1. Get thread ID list (pageToken があれば次ページを取得)
+          const queryParams = `labelIds=INBOX&maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ""}`;
           const listResult = yield* gmailFetch<GmailThreadListResponse>(
             accountId,
-            `/threads?labelIds=INBOX&maxResults=${maxResults}`,
+            `/threads?${queryParams}`,
           );
 
           if (!listResult?.threads?.length) {
@@ -66,7 +68,10 @@ export const Route = createFileRoute("/api/threads/")({
             }
           }
 
-          return Response.json({ threads });
+          return Response.json({
+            threads,
+            nextPageToken: listResult.nextPageToken,
+          });
         });
 
         return handleEffect(effect, env);

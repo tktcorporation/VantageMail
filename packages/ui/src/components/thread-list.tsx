@@ -11,7 +11,7 @@
  * 「すべて表示」はモバイルでフルスクリーンオーバーレイを開く。
  */
 import { useAccounts, useThreads } from "../hooks/use-store";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchBar } from "./search-bar";
 import type { Thread, SmartCategory } from "@vantagemail/core";
 import { matchesCategory } from "@vantagemail/core";
@@ -374,14 +374,18 @@ function SeenSection({ threads, selectedThreadId, onSelectThread }: SeenSectionP
 interface ThreadListProps {
   /** モバイルでサイドバーを開くコールバック */
   onOpenSidebar?: () => void;
+  /** 次ページのスレッドを取得するコールバック（無限スクロール用） */
+  onFetchMore?: () => void;
 }
 
-export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
+export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {}) {
   const visibleThreadIds = useThreads((s) => s.visibleThreadIds);
   const threadsByAccount = useThreads((s) => s.threadsByAccount);
   const selectedThreadId = useThreads((s) => s.selectedThreadId);
   const selectThread = useThreads((s) => s.selectThread);
   const isLoading = useThreads((s) => s.isLoading);
+  const isLoadingMore = useThreads((s) => s.isLoadingMore);
+  const pageTokenByAccount = useThreads((s) => s.pageTokenByAccount);
   const activeCategory = useThreads((s) => s.activeCategory);
   const setActiveCategory = useThreads((s) => s.setActiveCategory);
   const accounts = useAccounts((s) => s.accounts);
@@ -528,6 +532,32 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  /**
+   * 無限スクロール用 IntersectionObserver。
+   *
+   * sentinel 要素（リスト末尾の透明div）がビューポートに入ったら
+   * onFetchMore を呼び出す。rootMargin: "200px" で末尾到達の200px手前で
+   * 先行ロードを開始し、ユーザーにローディングを感じさせない。
+   */
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const hasMore = Object.values(pageTokenByAccount).some((t) => t != null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !onFetchMore || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          onFetchMore();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onFetchMore, hasMore]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full text-[var(--color-text-secondary)]">
@@ -664,6 +694,14 @@ export function ThreadList({ onOpenSidebar }: ThreadListProps = {}) {
             );
           })
         )}
+
+        {/* 無限スクロール: sentinel 要素 + ローディングインジケーター */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4">
+            <div className="w-4 h-4 border-2 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin" />
+          </div>
+        )}
+        {hasMore && <div ref={sentinelRef} className="h-1" />}
       </div>
 
       {/* フルスクリーンオーバーレイ: 「すべて表示」で開く */}
