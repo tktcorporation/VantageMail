@@ -33,6 +33,19 @@ export class SessionError extends Data.TaggedError("SessionError")<{
 /** 認証されていない状態でのアクセス */
 export class NotAuthenticated extends Data.TaggedError("NotAuthenticated")<{}> {}
 
+/**
+ * アカウントの認証が期限切れ / 取り消された（再認証が必要）。
+ *
+ * 背景: ユーザーが Google アカウント設定でアプリの権限を剥奪した場合や、
+ * refresh_token が失効した場合に発生する。クライアントは accountId を使って
+ * 該当アカウントの再認証フローを案内できる。
+ * refresh_token が有効な状態に戻れば削除可能。
+ */
+export class AuthExpiredError extends Data.TaggedError("AuthExpiredError")<{
+  readonly accountId: string;
+  readonly reason: string;
+}> {}
+
 // ─── Crypto ───
 
 /** トークン復号失敗（鍵不一致、データ破損等） */
@@ -92,6 +105,7 @@ export type AuthError =
   | GoogleSubExtractionError
   | SessionError
   | NotAuthenticated
+  | AuthExpiredError
   | DecryptionError
   | KeyDerivationError
   | DbQueryError

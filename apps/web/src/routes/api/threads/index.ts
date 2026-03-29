@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/threads/")({
             `/threads?${queryParams}`,
           );
 
-          if (!listResult?.threads?.length) {
+          if (!listResult.threads?.length) {
             return Response.json({ threads: [] });
           }
 
