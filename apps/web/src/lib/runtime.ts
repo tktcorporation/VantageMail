@@ -10,6 +10,7 @@
  * ここで Layer に含める（サーバー関数・API ルートハンドラ内でのみ有効）。
  */
 import { Effect, Layer } from "effect";
+import { NotAuthenticated, AuthExpiredError } from "@vantagemail/core";
 import { D1Service, CryptoService, ConfigService, SessionService } from "./services/index.ts";
 
 /**
@@ -59,6 +60,10 @@ export const getEnv = async (): Promise<Cloudflare.Env> => {
  * エラーの _tag フィールドをレスポンスに含めることで、クライアント側で
  * エラー種別を判定できる。
  *
+ * 認証系エラーは適切な HTTP ステータスにマッピングする:
+ * - NotAuthenticated → 401（セッションなし / 未ログイン）
+ * - AuthExpiredError → 401 + accountId（アカウントの認証が期限切れ）
+ *
  * 使い方:
  *   return handleEffect(myEffect, env)
  */
@@ -70,6 +75,21 @@ export const handleEffect = <E>(
     effect.pipe(
       Effect.provide(makeAppLayer(env)),
       Effect.catchAll((error: unknown) => {
+        // NotAuthenticated: セッションがない / 未ログイン
+        if (error instanceof NotAuthenticated) {
+          return Effect.succeed(Response.json({ error: "NotAuthenticated" }, { status: 401 }));
+        }
+
+        // AuthExpiredError: アカウントの認証が期限切れ（再認証が必要）
+        if (error instanceof AuthExpiredError) {
+          return Effect.succeed(
+            Response.json(
+              { error: "AuthExpiredError", accountId: error.accountId },
+              { status: 401 },
+            ),
+          );
+        }
+
         const tag =
           typeof error === "object" &&
           error !== null &&

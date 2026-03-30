@@ -12,8 +12,8 @@
 import { Effect } from "effect";
 import {
   NotAuthenticated,
+  AuthExpiredError,
   GmailApiError,
-  type TokenExchangeError,
   type DecryptionError,
   type EncryptionError,
   type KeyDerivationError,
@@ -42,6 +42,10 @@ interface RefreshResult {
 /**
  * Google Token Endpoint で access_token をリフレッシュする。
  * ConfigService から clientSecret を取得し、constants.ts から clientId を取得する。
+ *
+ * refresh_token が失効している場合（ユーザーが権限剥奪、Google 側でローテーション済み等）は
+ * "token_refresh_failed" reason の GmailApiError を返す。呼び出し元（getAccessToken）で
+ * AuthExpiredError に変換される。
  */
 const refreshGoogleToken = (
   refreshToken: string,
@@ -60,47 +64,72 @@ const refreshGoogleToken = (
       );
     }
 
-    return yield* Effect.tryPromise({
-      try: async () => {
-        const body = new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          refresh_token: refreshToken,
-          grant_type: "refresh_token",
-        });
+    const body = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    });
 
-        const response = await fetch(GOOGLE_TOKEN_ENDPOINT, {
+    const response = yield* Effect.tryPromise({
+      try: () =>
+        fetch(GOOGLE_TOKEN_ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: body.toString(),
-        });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Token refresh failed: ${response.status} ${errText}`);
-        }
-
-        const data = (await response.json()) as {
-          access_token: string;
-          expires_in: number;
-          scope: string;
-          refresh_token?: string;
-        };
-        return {
-          accessToken: data.access_token,
-          expiresAt: Date.now() + data.expires_in * 1000,
-          scope: data.scope,
-          // Google はトークンローテーション時のみ新しい refresh_token を返す
-          newRefreshToken: data.refresh_token ?? undefined,
-        };
-      },
+        }),
       catch: (e) =>
         new GmailApiError({
           status: 0,
           path: GOOGLE_TOKEN_ENDPOINT,
-          body: String(e),
+          body: `Network error: ${String(e)}`,
         }),
     });
+
+    if (!response.ok) {
+      const errText = yield* Effect.tryPromise({
+        try: () => response.text(),
+        catch: () =>
+          new GmailApiError({
+            status: response.status,
+            path: GOOGLE_TOKEN_ENDPOINT,
+            body: "Failed to read error response",
+          }),
+      });
+      // Google は invalid_grant を返す: refresh_token 失効、ユーザーが権限剥奪した場合など。
+      // 呼び出し元（getAccessToken）で AuthExpiredError に変換する。
+      return yield* Effect.fail(
+        new GmailApiError({
+          status: response.status,
+          path: GOOGLE_TOKEN_ENDPOINT,
+          body: errText,
+        }),
+      );
+    }
+
+    const data = yield* Effect.tryPromise({
+      try: () =>
+        response.json() as Promise<{
+          access_token: string;
+          expires_in: number;
+          scope: string;
+          refresh_token?: string;
+        }>,
+      catch: (e) =>
+        new GmailApiError({
+          status: response.status,
+          path: GOOGLE_TOKEN_ENDPOINT,
+          body: `JSON parse error: ${String(e)}`,
+        }),
+    });
+
+    return {
+      accessToken: data.access_token,
+      expiresAt: Date.now() + data.expires_in * 1000,
+      scope: data.scope,
+      // Google はトークンローテーション時のみ新しい refresh_token を返す
+      newRefreshToken: data.refresh_token ?? undefined,
+    };
   });
 
 /**
@@ -119,6 +148,7 @@ export const getAccessToken = (
 ): Effect.Effect<
   string,
   | NotAuthenticated
+  | AuthExpiredError
   | SessionError
   | DbQueryError
   | DecryptionError
@@ -171,7 +201,24 @@ export const getAccessToken = (
     });
 
     // 4. access_token をリフレッシュ
-    const refreshed = yield* refreshGoogleToken(refreshToken);
+    // refresh_token が失効している場合（invalid_grant 等）は AuthExpiredError に変換する。
+    // これによりクライアント側で「認証切れ」と「正常な空データ」を区別できる。
+    const refreshed = yield* Effect.catchTag(
+      refreshGoogleToken(refreshToken),
+      "GmailApiError",
+      (err): Effect.Effect<never, GmailApiError | AuthExpiredError, never> => {
+        // 400（invalid_grant）や 401 は refresh_token 失効を意味する
+        if (err.status === 400 || err.status === 401) {
+          return Effect.fail(
+            new AuthExpiredError({
+              accountId,
+              reason: `Token refresh failed (${err.status}): ${err.body}`,
+            }),
+          );
+        }
+        return Effect.fail(err);
+      },
+    );
 
     // 5. セッションにキャッシュ
     yield* session.update((prev) => ({
@@ -207,13 +254,18 @@ export const getAccessToken = (
  *
  * access_token を取得してから Gmail API を呼び出し、
  * レスポンスを JSON パースして返す。
+ *
+ * 401/403 レスポンスは AuthExpiredError として失敗させ、
+ * クライアントが「認証切れ」と「正常な空データ」を区別できるようにする。
+ * その他の API エラー（404 等）は GmailApiError として失敗させる。
  */
 export const gmailFetch = <T>(
   accountId: string,
   path: string,
 ): Effect.Effect<
-  T | null,
+  T,
   | NotAuthenticated
+  | AuthExpiredError
   | SessionError
   | DbQueryError
   | DecryptionError
@@ -242,8 +294,35 @@ export const gmailFetch = <T>(
     });
 
     if (!response.ok) {
-      console.error(`Gmail API error ${response.status} on ${path}`);
-      return null;
+      const errorBody = yield* Effect.tryPromise({
+        try: () => response.text(),
+        catch: () =>
+          new GmailApiError({
+            status: response.status,
+            path,
+            body: "Failed to read error response",
+          }),
+      });
+
+      // 401/403 は access_token が無効化された（権限剥奪、アカウント停止等）。
+      // getAccessToken 内で refresh 済みの access_token を使ってなお 401/403 なので、
+      // アカウント自体の再認証が必要。
+      if (response.status === 401 || response.status === 403) {
+        return yield* Effect.fail(
+          new AuthExpiredError({
+            accountId,
+            reason: `Gmail API returned ${response.status} on ${path}: ${errorBody}`,
+          }),
+        );
+      }
+
+      return yield* Effect.fail(
+        new GmailApiError({
+          status: response.status,
+          path,
+          body: errorBody,
+        }),
+      );
     }
 
     return yield* Effect.tryPromise({

@@ -30,10 +30,6 @@ export const Route = createFileRoute("/api/threads/$threadId")({
             `/threads/${threadId}?format=full`,
           );
 
-          if (!gmailThread) {
-            return Response.json({ error: "thread not found" }, { status: 404 });
-          }
-
           const messages = (gmailThread.messages ?? []).map((msg) => {
             const message = adaptGmailMessage(msg, accountId);
             return {
