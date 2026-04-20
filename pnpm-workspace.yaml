@@ -4,6 +4,7 @@ packages:
   - "workers/*"
 
 catalog:
+  "@ast-grep/cli": ^0.42.1
   "@cloudflare/vite-plugin": ^1.30.0
   "@effect/eslint-plugin": ^0.3.2
   "@effect/schema": ^0.75.5
@@ -30,6 +31,7 @@ catalog:
   react: ^19.1.0
   react-dom: ^19.1.0
   tailwindcss: ^4.2.2
+  ts-pattern: ^5.9.0
   typescript: ^5
   vite: npm:@voidzero-dev/vite-plus-core@^0.1.13
   vite-plus: latest
