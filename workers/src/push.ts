@@ -17,6 +17,15 @@ interface PubSubNotification {
 }
 
 /**
+ * Cloudflare Workers の WebSocket.readyState 定数。
+ *
+ * 背景: DOM の WebSocket 型が Workers ランタイムでは型定義されていないため、
+ * DOM 標準で定義された数値 (OPEN = 1) を定数化する。
+ * 参照: https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
+ */
+const WS_READY_STATE_OPEN = 1;
+
+/**
  * Pub/Sub push body をデコードし、KV に historyId を保存、
  * Durable Object 経由で WebSocket にファンアウトする Effect プログラム。
  *
@@ -141,12 +150,15 @@ export class PushConnectionManager implements DurableObject {
     const notification = (await request.json()) as Record<string, unknown>;
     const message = JSON.stringify({ type: "gmail.sync", ...notification });
 
+    // readyState === 1 (OPEN) 以外の WebSocket は送信できず、
+    // send() が例外を投げる可能性があるため事前にフィルタして掃除する。
+    // CLOSING / CLOSED の WebSocket はセッションから除外する。
     for (const ws of this.sessions) {
-      try {
-        ws.send(message);
-      } catch {
+      if (ws.readyState !== WS_READY_STATE_OPEN) {
         this.sessions.delete(ws);
+        continue;
       }
+      ws.send(message);
     }
     return new Response("OK");
   }

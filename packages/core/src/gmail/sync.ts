@@ -40,11 +40,17 @@ export function syncAccountThreads(
   const maxResults = options?.maxResults ?? 50;
   const labelIds = options?.inboxOnly !== false ? ["INBOX"] : undefined;
 
-  return Effect.gen(function* () {
-    threadsStore.getState().setLoading(true);
+  // setLoading(true) をリリースに対応させた acquireRelease。
+  // 成功・失敗・中断いずれの終了でも setLoading(false) が確実に呼ばれる。
+  const loadingGuard = Effect.acquireRelease(
+    Effect.sync(() => threadsStore.getState().setLoading(true)),
+    () => Effect.sync(() => threadsStore.getState().setLoading(false)),
+  );
 
-    try {
-      // スレッドID一覧を取得
+  return Effect.scoped(
+    Effect.gen(function* () {
+      yield* loadingGuard;
+
       const listResult = yield* listThreads({ maxResults, labelIds });
       if (!listResult.threads?.length) {
         threadsStore.getState().setThreads(accountId, []);
@@ -67,10 +73,8 @@ export function syncAccountThreads(
       }
 
       threadsStore.getState().setThreads(accountId, threads);
-    } finally {
-      threadsStore.getState().setLoading(false);
-    }
-  });
+    }),
+  );
 }
 
 /**

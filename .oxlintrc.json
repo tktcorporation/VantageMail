@@ -1,5 +1,91 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
   "jsPlugins": ["@effect/eslint-plugin"],
-  "rules": {}
+  "plugins": ["typescript", "unicorn", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "warn",
+    "perf": "warn",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "no-eval": "error",
+    "no-new-func": "error",
+    "no-alert": "error",
+    "no-script-url": "error",
+
+    "prefer-const": "error",
+    "no-var": "error",
+
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-non-null-assertion": "warn",
+    "typescript/no-unsafe-type-assertion": "warn",
+    "typescript/ban-ts-comment": "warn",
+    "typescript/no-import-type-side-effects": "warn",
+    "typescript/prefer-optional-chain": "warn",
+
+    "unicorn/no-useless-undefined": "off",
+    "unicorn/no-null": "off",
+    "unicorn/filename-case": "off",
+    "unicorn/prefer-top-level-await": "off",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/no-typeof-undefined": "off",
+
+    "no-await-in-loop": "off",
+
+    "no-inline-comments": "off",
+    "no-negated-condition": "off",
+    "max-lines-per-function": "off",
+    "max-lines": "off",
+    "max-classes-per-file": "off",
+
+    "import/max-dependencies": "off",
+    "import/no-cycle": "error",
+    "import/no-self-import": "error",
+    "import/no-duplicates": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/e2e/**"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/no-non-null-assertion": "off",
+        "typescript/consistent-type-imports": "off",
+        "no-unused-vars": "warn",
+        "max-lines-per-function": "off",
+        "max-lines": "off",
+        "require-await": "off",
+        "unicorn/no-array-callback-reference": "off",
+        "unicorn/no-useless-undefined": "off"
+      }
+    },
+    {
+      "files": ["**/*.gen.ts", "**/*.gen.tsx", "worker-configuration.d.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/consistent-type-imports": "off",
+        "import/no-cycle": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "build",
+    ".turbo",
+    "coverage",
+    "**/routeTree.gen.ts",
+    "worker-configuration.d.ts"
+  ]
 }
