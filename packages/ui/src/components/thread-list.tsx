@@ -435,7 +435,7 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
       const account = accounts.find((a) => a.id === accountId);
       return {
         accountId,
-        accountLabel: account?.displayName || account?.email || accountId,
+        accountLabel: account?.email || accountId,
         accountColor: account?.color || "#888",
         threads: entries.slice(0, MAX_ITEMS_PER_CARD),
         allThreads: entries,

@@ -49,16 +49,16 @@ describe("AuthExpiredBanner", () => {
     renderBanner({ expiredAccountIds: ["acc-1"] });
 
     expect(screen.getByTestId("auth-expired-banner")).toBeInTheDocument();
-    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getByText("alice@gmail.com")).toBeInTheDocument();
     // Bob は期限切れではないので表示されない
-    expect(screen.queryByText("Bob (Work)")).not.toBeInTheDocument();
+    expect(screen.queryByText("bob@work.com")).not.toBeInTheDocument();
   });
 
   it("複数アカウントが期限切れの場合、全て表示する", () => {
     renderBanner({ expiredAccountIds: ["acc-1", "acc-2"] });
 
-    expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("Bob (Work)")).toBeInTheDocument();
+    expect(screen.getByText("alice@gmail.com")).toBeInTheDocument();
+    expect(screen.getByText("bob@work.com")).toBeInTheDocument();
     // 「再ログイン」ボタンもアカウント数ぶん並ぶ
     expect(screen.getAllByRole("button", { name: "再ログイン" })).toHaveLength(2);
   });

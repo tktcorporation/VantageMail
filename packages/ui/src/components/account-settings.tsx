@@ -69,9 +69,6 @@ export function AccountSettings({ onAddAccount, onRemoveAccount, onBack }: Accou
                 />
                 <div>
                   <div className="text-[14px] font-semibold">
-                    {mainAccount.displayName || mainAccount.email}
-                  </div>
-                  <div className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
                     {mainAccount.email}
                   </div>
                 </div>
@@ -97,9 +94,6 @@ export function AccountSettings({ onAddAccount, onRemoveAccount, onBack }: Accou
                     style={{ background: account.color }}
                   />
                   <span className="text-[13px] font-medium truncate">
-                    {account.displayName || account.email}
-                  </span>
-                  <span className="text-[11px] text-[var(--color-text-tertiary)] truncate">
                     {account.email}
                   </span>
                   <div className="flex-1" />

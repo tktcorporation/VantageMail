@@ -185,7 +185,7 @@ export function Sidebar({
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ background: account.color }}
                 />
-                <span className="truncate">{account.displayName || account.email}</span>
+                <span className="truncate">{account.email}</span>
               </span>
               {account.unreadCount > 0 && (
                 <span className="text-[12px] md:text-[11px] text-[var(--color-text-tertiary)] font-normal shrink-0">
