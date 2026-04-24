@@ -60,12 +60,38 @@ class FetchStatusError extends Data.TaggedError("FetchStatusError")<{
   readonly accountEmail: string;
 }> {}
 
+/**
+ * 連携アカウントの認証が期限切れ / 取り消された。
+ *
+ * 背景: サーバー /api/threads は 401 + { error: "AuthExpiredError", accountId } を返す
+ * （apps/web/src/lib/runtime.ts:84-90）。これを専用タグにすることで、
+ * ts-pattern + catchTags で UI が再ログイン導線を出し分けできる。
+ * 以前は FetchStatusError に吸収され、UI には「スレッド 0 件」としか見えなかった。
+ */
+class AccountAuthExpiredError extends Data.TaggedError("AccountAuthExpiredError")<{
+  readonly accountId: string;
+  readonly accountEmail: string;
+}> {}
+
 class ResponseDecodeError extends Data.TaggedError("ResponseDecodeError")<{
   readonly cause: unknown;
   readonly accountEmail: string;
 }> {}
 
-type SyncError = FetchNetworkError | FetchStatusError | ResponseDecodeError;
+type SyncError =
+  | FetchNetworkError
+  | FetchStatusError
+  | AccountAuthExpiredError
+  | ResponseDecodeError;
+
+/**
+ * /api/threads が 401 で返す認証期限切れエラーのレスポンス形状。
+ * runtime.ts の handleEffect が投入する JSON と一致させる。
+ */
+const AuthExpiredResponseSchema = Schema.Struct({
+  error: Schema.Literal("AuthExpiredError"),
+  accountId: Schema.String,
+});
 
 /**
  * 1 アカウント分のスレッドを取得して Effect で返す。
@@ -91,6 +117,23 @@ function fetchAccountThreads(params: {
     });
 
     if (!res.ok) {
+      // 401 はアカウント認証期限切れの可能性があるため、body を覗いて判別する。
+      // AuthExpiredError なら再ログイン用の専用タグに昇格させ、それ以外は汎用 FetchStatusError。
+      if (res.status === 401) {
+        const body = yield* Effect.tryPromise({
+          try: () => res.json() as Promise<unknown>,
+          catch: () => new FetchStatusError({ status: res.status, accountEmail }),
+        });
+        const parsed = yield* Schema.decodeUnknown(AuthExpiredResponseSchema)(body).pipe(
+          Effect.option,
+        );
+        if (parsed._tag === "Some") {
+          return yield* new AccountAuthExpiredError({
+            accountId: parsed.value.accountId,
+            accountEmail,
+          });
+        }
+      }
       return yield* new FetchStatusError({ status: res.status, accountEmail });
     }
 
@@ -106,18 +149,35 @@ function fetchAccountThreads(params: {
 }
 
 /**
- * SyncError を構造化ログに落とす。ts-pattern で網羅性保証。
+ * SyncError をストア状態 + ログに落とす。ts-pattern で網羅性保証。
+ *
+ * 背景: アカウント認証が切れた場合、UI 側は「スレッド 0 件」としか見えないという
+ * 不具合があった。ここで accountsStore の connectionStatus を更新することで、
+ * 再ログインバナー (AuthExpiredBanner) が表示されるようになる。
  *
  * 将来的にここを Sentry / 監視基盤の send に置き換える際、
  * .exhaustive() により全ケース対応が型で強制される。
  */
-const logSyncError = (error: SyncError) =>
+const handleSyncError = (
+  error: SyncError,
+  accountsStore: StoreApi<AccountsStore>,
+): Effect.Effect<void> =>
   match(error)
     .with({ _tag: "FetchNetworkError" }, (e) =>
       Effect.logError(`[sync] network failure for ${e.accountEmail}`, { cause: e.cause }),
     )
     .with({ _tag: "FetchStatusError" }, (e) =>
       Effect.logError(`[sync] HTTP ${e.status} for ${e.accountEmail}`),
+    )
+    .with({ _tag: "AccountAuthExpiredError" }, (e) =>
+      Effect.gen(function* () {
+        yield* Effect.logWarning(
+          `[sync] auth expired for ${e.accountEmail} (accountId=${e.accountId})`,
+        );
+        yield* Effect.sync(() =>
+          accountsStore.getState().setConnectionStatus(e.accountId, "token_expired"),
+        );
+      }),
     )
     .with({ _tag: "ResponseDecodeError" }, (e) =>
       Effect.logError(`[sync] response decode failure for ${e.accountEmail}`, { cause: e.cause }),
@@ -169,10 +229,13 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
                   // ストアの mutable Thread[] に合わせてスプレッドでコピーする。
                   const threads = [...(rawThreads ?? [])];
                   threadsStore.getState().setThreads(account.id, threads, nextPageToken);
+                  // 成功したので connectionStatus を復帰させる（前回 token_expired になっていた場合）
+                  accountsStore.getState().setConnectionStatus(account.id, "connected");
                 }),
               ),
-              // 1 アカウントの失敗が他に波及しないよう、ここで吸収する
-              Effect.catchAll(logSyncError),
+              // 1 アカウントの失敗が他に波及しないよう、ここで吸収する。
+              // AccountAuthExpiredError の場合はストアを更新して UI 通知に繋げる。
+              Effect.catchAll((e) => handleSyncError(e, accountsStore)),
             ),
           ),
           { concurrency: "unbounded" },
@@ -181,7 +244,7 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
     );
 
     // useEffect は Promise を返せないため、意図的に fire-and-forget する。
-    // program 内部で全てのエラーは logSyncError に吸収済み。
+    // program 内部で全てのエラーは handleSyncError に吸収済み。
     void Effect.runPromise(program);
   }, [accountsStore, threadsStore, apiBase]);
 
@@ -223,9 +286,10 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
                 Effect.sync(() => {
                   const threads = [...(rawThreads ?? [])];
                   threadsStore.getState().appendThreads(account.id, threads, nextPageToken);
+                  accountsStore.getState().setConnectionStatus(account.id, "connected");
                 }),
               ),
-              Effect.catchAll(logSyncError),
+              Effect.catchAll((e) => handleSyncError(e, accountsStore)),
             );
           }),
           { concurrency: "unbounded" },

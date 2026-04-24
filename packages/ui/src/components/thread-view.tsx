@@ -12,9 +12,36 @@ import { useThreads } from "../hooks/use-store";
 import { useAccounts } from "../hooks/use-store";
 import { useMemo } from "react";
 import DOMPurify from "dompurify";
-import { useThreadMessages } from "../hooks/use-thread-messages";
+import { match } from "ts-pattern";
+import { useThreadMessages, type FetchMessagesError } from "../hooks/use-thread-messages";
 import type { Message } from "@vantagemail/core";
 import { ChevronLeft, Reply, Paperclip, Inbox } from "lucide-react";
+
+/**
+ * FetchMessagesError をユーザー向けの日本語メッセージへ変換する。
+ * ts-pattern .exhaustive() で将来エラー種別が増えても網羅漏れを検出。
+ *
+ * 認証期限切れの場合は accountsStore の connectionStatus が別途 "token_expired"
+ * に更新され、画面上部の AuthExpiredBanner で再ログインを促す。
+ * ここでは本文エリア内の案内文だけを担当する。
+ */
+function formatMessagesError(error: FetchMessagesError): string {
+  return match(error)
+    .with(
+      { _tag: "MessagesAuthExpiredError" },
+      () => "このアカウントの認証が切れています。上部のバナーから再ログインしてください。",
+    )
+    .with(
+      { _tag: "FetchMessagesNetworkError" },
+      () => "ネットワークエラー: メッセージを取得できませんでした。",
+    )
+    .with(
+      { _tag: "FetchMessagesStatusError" },
+      (e) => `メッセージの読み込みに失敗しました (HTTP ${e.status})`,
+    )
+    .with({ _tag: "MessagesDecodeError" }, () => "サーバーレスポンスの解析に失敗しました。")
+    .exhaustive();
+}
 
 function formatDate(date: Date): string {
   return date.toLocaleString("ja-JP", {
@@ -233,7 +260,7 @@ export function ThreadView({ onBack }: ThreadViewProps = {}) {
         )}
         {error && (
           <div className="py-8 text-center text-[var(--color-danger)] text-[14px] md:text-[13px]">
-            メッセージの読み込みに失敗しました
+            {formatMessagesError(error)}
           </div>
         )}
         {!isLoading && !error && messages.length === 0 && (
