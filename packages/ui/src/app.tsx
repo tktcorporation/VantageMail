@@ -19,6 +19,7 @@ import { ThreadView } from "./components/thread-view";
 import { AccountSettings } from "./components/account-settings";
 import { CommandPalette } from "./components/command-palette";
 import { Onboarding } from "./components/onboarding";
+import { AuthExpiredBanner } from "./components/auth-expired-banner";
 import { useAccounts, useThreads } from "./hooks/use-store";
 
 export interface AppProps {
@@ -117,34 +118,44 @@ function InnerAppShell({
 
   return (
     <>
-      <AppLayout
-        mobileView={mobileView}
-        isSidebarOpen={isSidebarOpen}
-        onCloseSidebar={handleCloseSidebar}
-        sidebar={
-          <Sidebar
-            onAddAccount={handleAddAccount}
-            onRemoveAccount={handleRemoveAccount}
-            onToggleSettings={() => {
-              handleToggleSettings();
-              handleCloseSidebar();
-            }}
-            isSettingsActive={showSettings}
+      <div className="flex flex-col h-full">
+        {/*
+          認証が切れたアカウントがあれば上部にバナーを表示し、
+          ユーザーが再ログインへ進めるようにする。
+          対象アカウントがなければ何もレンダーしない（null を返す）。
+        */}
+        <AuthExpiredBanner onReauth={handleAddAccount} />
+        <div className="flex-1 min-h-0">
+          <AppLayout
+            mobileView={mobileView}
+            isSidebarOpen={isSidebarOpen}
+            onCloseSidebar={handleCloseSidebar}
+            sidebar={
+              <Sidebar
+                onAddAccount={handleAddAccount}
+                onRemoveAccount={handleRemoveAccount}
+                onToggleSettings={() => {
+                  handleToggleSettings();
+                  handleCloseSidebar();
+                }}
+                isSettingsActive={showSettings}
+              />
+            }
+            threadList={<ThreadList onOpenSidebar={handleOpenSidebar} onFetchMore={fetchMore} />}
+            threadView={
+              showSettings ? (
+                <AccountSettings
+                  onAddAccount={handleAddAccount}
+                  onRemoveAccount={handleRemoveAccount}
+                  onBack={handleMobileBack}
+                />
+              ) : (
+                <ThreadView onBack={handleMobileBack} />
+              )
+            }
           />
-        }
-        threadList={<ThreadList onOpenSidebar={handleOpenSidebar} onFetchMore={fetchMore} />}
-        threadView={
-          showSettings ? (
-            <AccountSettings
-              onAddAccount={handleAddAccount}
-              onRemoveAccount={handleRemoveAccount}
-              onBack={handleMobileBack}
-            />
-          ) : (
-            <ThreadView onBack={handleMobileBack} />
-          )
-        }
-      />
+        </div>
+      </div>
       <CommandPalette />
     </>
   );
