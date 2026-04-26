@@ -206,6 +206,9 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 3.21.0
+      ts-pattern:
+        specifier: 'catalog:'
+        version: 5.9.0
       zustand:
         specifier: 'catalog:'
         version: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))

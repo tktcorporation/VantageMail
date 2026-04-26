@@ -8,7 +8,7 @@
  */
 import { useEffect, useCallback } from "react";
 import type { StoreApi } from "zustand";
-import type { ThreadsStore } from "@vantagemail/core";
+import { GmailSystemLabel, type ThreadsStore } from "@vantagemail/core";
 
 interface UseKeyboardShortcutsOptions {
   threadsStore: StoreApi<ThreadsStore>;
@@ -57,7 +57,7 @@ export function useKeyboardShortcuts({
               state.updateThreadLabels(
                 accountId,
                 thread.id,
-                thread.labelIds.filter((l) => l !== "INBOX"),
+                thread.labelIds.filter((l) => l !== GmailSystemLabel.INBOX),
               );
               break;
             }
@@ -87,8 +87,8 @@ export function useKeyboardShortcuts({
             const thread = threads[state.selectedThreadId];
             if (thread) {
               state.updateThreadLabels(accountId, thread.id, [
-                ...thread.labelIds.filter((l) => l !== "INBOX"),
-                "TRASH",
+                ...thread.labelIds.filter((l) => l !== GmailSystemLabel.INBOX),
+                GmailSystemLabel.TRASH,
               ]);
               break;
             }

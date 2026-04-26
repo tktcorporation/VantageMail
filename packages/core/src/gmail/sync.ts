@@ -16,6 +16,7 @@ import { GmailApiError } from "../errors.js";
 import type { Thread } from "../schemas/thread.js";
 import type { StoreApi } from "zustand";
 import type { ThreadsStore } from "../stores/threads.js";
+import { GmailSystemLabel } from "../gmail-constants.js";
 
 interface SyncOptions {
   /** 取得する最大スレッド数（デフォルト50） */
@@ -38,7 +39,7 @@ export function syncAccountThreads(
   options?: SyncOptions,
 ): Effect.Effect<void, GmailApiError | ParseError, GmailClient> {
   const maxResults = options?.maxResults ?? 50;
-  const labelIds = options?.inboxOnly !== false ? ["INBOX"] : undefined;
+  const labelIds = options?.inboxOnly !== false ? [GmailSystemLabel.INBOX] : undefined;
 
   // setLoading(true) をリリースに対応させた acquireRelease。
   // 成功・失敗・中断いずれの終了でも setLoading(false) が確実に呼ばれる。

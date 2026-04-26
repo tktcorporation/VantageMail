@@ -14,7 +14,7 @@ import { useAccounts, useThreads } from "../hooks/use-store";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchBar } from "./search-bar";
 import type { Thread, SmartCategory } from "@vantagemail/core";
-import { matchesCategory } from "@vantagemail/core";
+import { matchesSmartCategory } from "@vantagemail/core";
 import { Mail, Bell, Newspaper, Inbox, X, ChevronRight, Star, Menu, Eye } from "lucide-react";
 
 /** SmartCategoryをUIに表示するための日本語名マッピング */
@@ -423,7 +423,7 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
     const peopleByAccount = new Map<string, { thread: Thread; accountColor: string }[]>();
     for (const entry of allEntries) {
       if (!entry.thread.isUnread) continue;
-      if (!matchesCategory(entry.thread.labelIds, "people")) continue;
+      if (!matchesSmartCategory(entry.thread.labelIds, "people")) continue;
       const accId = entry.thread.accountId;
       if (!peopleByAccount.has(accId)) {
         peopleByAccount.set(accId, []);
@@ -446,7 +446,7 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
     /* --- 通知・ニュースレター: アカウント統合 --- */
     const uCards = UNIFIED_CATEGORY_CARDS.map((card) => {
       const matching = allEntries.filter(
-        (e) => e.thread.isUnread && matchesCategory(e.thread.labelIds, card.key),
+        (e) => e.thread.isUnread && matchesSmartCategory(e.thread.labelIds, card.key),
       );
       return {
         ...card,
@@ -475,7 +475,7 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
 
     return allEntries.filter((e) => {
       if (!e.thread.isUnread) return false;
-      if (!matchesCategory(e.thread.labelIds, overlayState.categoryKey)) return false;
+      if (!matchesSmartCategory(e.thread.labelIds, overlayState.categoryKey)) return false;
       if (overlayState.accountId && e.thread.accountId !== overlayState.accountId) return false;
       return true;
     });

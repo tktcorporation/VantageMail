@@ -6,7 +6,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { adaptGmailThread } from "@vantagemail/core";
+import { adaptGmailThread, GmailSystemLabel } from "@vantagemail/core";
 import type { GmailThread } from "@vantagemail/core";
 import { gmailFetch } from "~/lib/gmail-server.ts";
 import { getEnv, handleEffect } from "~/lib/runtime.ts";
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/threads/")({
 
         const effect = Effect.gen(function* () {
           // 1. Get thread ID list (pageToken があれば次ページを取得)
-          const queryParams = `labelIds=INBOX&maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ""}`;
+          const queryParams = `labelIds=${GmailSystemLabel.INBOX}&maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ""}`;
           const listResult = yield* gmailFetch<GmailThreadListResponse>(
             accountId,
             `/threads?${queryParams}`,

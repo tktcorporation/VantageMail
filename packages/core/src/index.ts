@@ -16,6 +16,12 @@ import {
 // Schema 定義 + 型（schemas/ が正規の定義元）
 export * from "./schemas/index.js";
 
+// Gmail / Google API の SSOT 定数（エンドポイント、システムラベル、SmartCategory）
+export * from "./gmail-constants.js";
+
+// パッケージ境界を越える API パス（OAuth プロキシ）
+export * from "./api-paths.js";
+
 // エラー型
 export * from "./errors.js";
 

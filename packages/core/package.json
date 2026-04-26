@@ -17,6 +17,7 @@
   "dependencies": {
     "@effect/schema": "catalog:",
     "effect": "catalog:",
+    "ts-pattern": "catalog:",
     "zustand": "catalog:"
   },
   "devDependencies": {

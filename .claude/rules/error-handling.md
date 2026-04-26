@@ -4,12 +4,12 @@
 
 try/catch は ast-grep ルール `no-try-catch` で禁止される。
 
-| 状況          | パターン                                                            |
-| ------------- | ------------------------------------------------------------------- |
-| 同期処理      | `Effect.try({ try: () => ..., catch: (e): MyError => ... })`        |
-| 非同期処理    | `Effect.tryPromise({ try: () => ..., catch: (e): MyError => ... })` |
-| Effect の連結 | `.pipe(Effect.flatMap())`, `.pipe(Effect.map())`, `Effect.gen`      |
-| エラー分岐    | `Effect.catchTag` / `Effect.catchTags` / `Effect.match` / ts-pattern|
+| 状況          | パターン                                                             |
+| ------------- | -------------------------------------------------------------------- |
+| 同期処理      | `Effect.try({ try: () => ..., catch: (e): MyError => ... })`         |
+| 非同期処理    | `Effect.tryPromise({ try: () => ..., catch: (e): MyError => ... })`  |
+| Effect の連結 | `.pipe(Effect.flatMap())`, `.pipe(Effect.map())`, `Effect.gen`       |
+| エラー分岐    | `Effect.catchTag` / `Effect.catchTags` / `Effect.match` / ts-pattern |
 
 ### try-catch が許容されるケース（ast-grep ignore 対象のみ）
 
@@ -22,9 +22,9 @@ try/catch は ast-grep ルール `no-try-catch` で禁止される。
 
 ## エラーの分類
 
-| 種別             | 処理                                | 例                                           |
-| ---------------- | ----------------------------------- | -------------------------------------------- |
-| 予期されたエラー | `Effect<T, E>` のエラーチャネル     | ファイル未検出、バリデーション、タイムアウト |
+| 種別             | 処理                                  | 例                                            |
+| ---------------- | ------------------------------------- | --------------------------------------------- |
+| 予期されたエラー | `Effect<T, E>` のエラーチャネル       | ファイル未検出、バリデーション、タイムアウト  |
 | 予期しないエラー | `Effect.die` または defect として伝搬 | DB 接続エラー、メモリ不足、プログラミングミス |
 
 予期しないエラーは `runPromise` のトップレベルで一括ログし、監視基盤へ送る。
@@ -70,22 +70,22 @@ const toHttp = (error: AppError) =>
 
 ## 禁止パターン
 
-| パターン                                        | 問題                                              |
-| ----------------------------------------------- | ------------------------------------------------- |
-| `throw new Error(\`Failed: ${error.message}\`)` | スタックトレース消失。`Data.TaggedError` を使う   |
-| `catch (e) { console.log(...) }`                | エラー握りつぶし。監視基盤に送信されない          |
-| `Effect.Effect<T, Error \| any \| unknown>`     | パターンマッチ不可。具体型 (TaggedError) を定義   |
-| `Effect.orElseSucceed(() => null)`              | エラーが型から消える。`Effect.option` を使う      |
+| パターン                                        | 問題                                            |
+| ----------------------------------------------- | ----------------------------------------------- |
+| `throw new Error(\`Failed: ${error.message}\`)` | スタックトレース消失。`Data.TaggedError` を使う |
+| `catch (e) { console.log(...) }`                | エラー握りつぶし。監視基盤に送信されない        |
+| `Effect.Effect<T, Error \| any \| unknown>`     | パターンマッチ不可。具体型 (TaggedError) を定義 |
+| `Effect.orElseSucceed(() => null)`              | エラーが型から消える。`Effect.option` を使う    |
 
 ---
 
 ## レイヤー別の責務
 
-| レイヤー     | 責務                                        | パターン                             |
-| ------------ | ------------------------------------------- | ------------------------------------ |
-| Service      | エラー分類、予期されたエラーの返却          | `Effect.Effect<T, E>`                |
-| Route/Worker | Effect→HTTP Response 変換 / `runPromise`    | `Effect.catchTags` → status + body   |
-| Frontend     | ユーザー向けメッセージ表示                  | Toast + ts-pattern でエラー種別ごと  |
+| レイヤー     | 責務                                     | パターン                            |
+| ------------ | ---------------------------------------- | ----------------------------------- |
+| Service      | エラー分類、予期されたエラーの返却       | `Effect.Effect<T, E>`               |
+| Route/Worker | Effect→HTTP Response 変換 / `runPromise` | `Effect.catchTags` → status + body  |
+| Frontend     | ユーザー向けメッセージ表示               | Toast + ts-pattern でエラー種別ごと |
 
 ## 関連リンター
 

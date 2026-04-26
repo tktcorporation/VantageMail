@@ -14,6 +14,8 @@ import {
   NotAuthenticated,
   AuthExpiredError,
   GmailApiError,
+  GOOGLE_TOKEN_ENDPOINT,
+  GMAIL_API_BASE,
   type DecryptionError,
   type EncryptionError,
   type KeyDerivationError,
@@ -27,9 +29,6 @@ import { GOOGLE_CLIENT_ID } from "./constants.ts";
 import { findLinkedAccountsByUserId, updateLinkedAccountToken } from "./db.ts";
 import type { LinkedAccountRow } from "./db.ts";
 import type { AppServices } from "./runtime.ts";
-
-const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
-const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 interface RefreshResult {
   accessToken: string;

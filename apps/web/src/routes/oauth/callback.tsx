@@ -23,6 +23,9 @@ import {
   TokenExchangeError,
   GoogleSubExtractionError,
   RefreshTokenMissing,
+  GOOGLE_TOKEN_ENDPOINT,
+  GOOGLE_TOKENINFO_ENDPOINT,
+  GOOGLE_USERINFO_ENDPOINT,
 } from "@vantagemail/core";
 import { SessionService } from "~/lib/services/SessionService.ts";
 import { CryptoService } from "~/lib/services/CryptoService.ts";
@@ -53,14 +56,6 @@ const ACCOUNT_COLORS = [
   "#15aabf",
   "#fd7e14",
 ];
-
-const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
-const GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
-/**
- * Google ID Token からクレームを取得するエンドポイント。
- * google_sub（不変のユーザー識別子）を安全に取得するために使う。
- */
-const GOOGLE_TOKENINFO_ENDPOINT = "https://oauth2.googleapis.com/tokeninfo";
 
 /** トークン交換で取得するデータ */
 interface VerifiedTokenData {
