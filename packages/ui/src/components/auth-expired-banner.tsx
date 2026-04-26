@@ -43,7 +43,7 @@ export function AuthExpiredBanner({ onReauth }: AuthExpiredBannerProps) {
         >
           <AlertTriangle size={16} className="text-[var(--color-danger)] shrink-0" />
           <span className="flex-1 min-w-0 truncate">
-            <span className="font-medium">{account.displayName || account.email}</span>
+            <span className="font-medium">{account.email}</span>
             <span className="text-[var(--color-text-secondary)]"> の認証が切れました。</span>
             <span className="text-[var(--color-text-secondary)]">
               メールを再取得するには再ログインしてください。

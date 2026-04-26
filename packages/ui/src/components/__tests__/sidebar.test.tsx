@@ -43,8 +43,8 @@ describe("Sidebar", () => {
   it("接続済みアカウントが表示される", () => {
     renderSidebar({ accounts: MOCK_ACCOUNTS });
 
-    expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("Bob (Work)")).toBeInTheDocument();
+    expect(screen.getByText("alice@gmail.com")).toBeInTheDocument();
+    expect(screen.getByText("bob@work.com")).toBeInTheDocument();
   });
 
   it("未読数が0より大きいアカウントにバッジが表示される", () => {
@@ -76,9 +76,9 @@ describe("Sidebar", () => {
   it("アカウントをクリックするとそのアカウントが選択状態になる", () => {
     renderSidebar({ accounts: MOCK_ACCOUNTS });
 
-    fireEvent.click(screen.getByText("Alice"));
+    fireEvent.click(screen.getByText("alice@gmail.com"));
 
-    const aliceButton = screen.getByText("Alice").closest("button");
+    const aliceButton = screen.getByText("alice@gmail.com").closest("button");
     expect(aliceButton?.className).toContain("bg-[var(--color-bg-selected)]");
 
     const unifiedButton = screen.getByText("すべてのアカウント").closest("button");
@@ -89,7 +89,7 @@ describe("Sidebar", () => {
     renderSidebar({ accounts: MOCK_ACCOUNTS });
 
     // まず Alice を選択
-    fireEvent.click(screen.getByText("Alice"));
+    fireEvent.click(screen.getByText("alice@gmail.com"));
     // すべてのアカウントに戻す
     fireEvent.click(screen.getByText("すべてのアカウント"));
 
