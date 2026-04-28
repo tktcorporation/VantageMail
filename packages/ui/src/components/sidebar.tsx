@@ -11,7 +11,7 @@
 import { useAccounts, useThreads } from "../hooks/use-store";
 import { useCallback, useMemo } from "react";
 import type { SmartCategory } from "@vantagemail/core";
-import { matchesCategory } from "@vantagemail/core";
+import { matchesSmartCategory } from "@vantagemail/core";
 import { Inbox, Mail, Bell, Newspaper, Settings, Users } from "lucide-react";
 
 /**
@@ -31,6 +31,12 @@ const CATEGORIES: {
 
 interface SidebarProps {
   onAddAccount?: () => void;
+  /**
+   * アカウント削除コールバック (fire-and-forget 契約)。
+   * 戻り値は `void` で、子コンポーネントは成功/失敗を観測しない。
+   * 親 (App) が内部で Promise を握り、エラー時の alert / store 更新を担う。
+   * 完了通知が必要になれば `Promise<void>` に昇格させる。
+   */
   onRemoveAccount?: (accountId: string) => void;
   /** 設定画面の表示/非表示をトグルするコールバック */
   onToggleSettings?: () => void;
@@ -77,7 +83,7 @@ export function Sidebar({
       for (const thread of Object.values(threads)) {
         if (!thread.isUnread) continue;
         for (const cat of CATEGORIES) {
-          if (matchesCategory(thread.labelIds, cat.key)) {
+          if (matchesSmartCategory(thread.labelIds, cat.key)) {
             counts[cat.key]++;
           }
         }

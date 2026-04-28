@@ -7,32 +7,7 @@
  */
 import { createStore } from "zustand/vanilla";
 import type { Thread } from "../types/account";
-
-/**
- * Smart Inboxのカテゴリフィルタ。
- * GmailのカテゴリラベルをSparkスタイルの3グループに集約する。
- * - "people": CATEGORY_PERSONAL / IMPORTANT（人からのメール）
- * - "notifications": CATEGORY_UPDATES / CATEGORY_SOCIAL（通知系）
- * - "newsletters": CATEGORY_PROMOTIONS / CATEGORY_FORUMS（ニュースレター・広告）
- * - "all": フィルタなし（全件表示）
- */
-export type SmartCategory = "all" | "people" | "notifications" | "newsletters";
-
-/**
- * スレッドのlabelIdsからSmartCategoryに該当するかを判定する。
- * "all"は常にtrue。
- */
-export function matchesCategory(labelIds: readonly string[], category: SmartCategory): boolean {
-  if (category === "all") return true;
-  switch (category) {
-    case "people":
-      return labelIds.some((l) => l === "CATEGORY_PERSONAL" || l === "IMPORTANT");
-    case "notifications":
-      return labelIds.some((l) => l === "CATEGORY_UPDATES" || l === "CATEGORY_SOCIAL");
-    case "newsletters":
-      return labelIds.some((l) => l === "CATEGORY_PROMOTIONS" || l === "CATEGORY_FORUMS");
-  }
-}
+import { matchesSmartCategory, type SmartCategory } from "../gmail-constants.js";
 
 export interface ThreadsState {
   /** accountId -> threadId -> Thread のマップ */
@@ -102,7 +77,7 @@ function computeVisibleThreadIds(
     for (const thread of Object.values(threads)) {
       if (activeLabel && !thread.labelIds.includes(activeLabel)) continue;
       // Smart Inboxカテゴリフィルタ
-      if (!matchesCategory(thread.labelIds, activeCategory)) continue;
+      if (!matchesSmartCategory(thread.labelIds, activeCategory)) continue;
       allThreads.push(thread);
     }
   }

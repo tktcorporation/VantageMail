@@ -13,6 +13,12 @@ import type { MouseEvent } from "react";
 
 export interface AccountSettingsProps {
   onAddAccount?: () => void;
+  /**
+   * アカウント削除コールバック (fire-and-forget 契約)。
+   * 戻り値は `void` で、本コンポーネントは成功/失敗を観測しない。
+   * 親 (App) が内部で Promise を握り、エラー時の alert / store 更新を担う。
+   * 完了通知 (削除中スピナー等) が必要になれば `Promise<void>` に昇格させる。
+   */
   onRemoveAccount?: (accountId: string) => void;
   /** モバイルでリスト画面に戻るコールバック */
   onBack?: () => void;
@@ -68,9 +74,7 @@ export function AccountSettings({ onAddAccount, onRemoveAccount, onBack }: Accou
                   style={{ background: mainAccount.color }}
                 />
                 <div>
-                  <div className="text-[14px] font-semibold">
-                    {mainAccount.email}
-                  </div>
+                  <div className="text-[14px] font-semibold">{mainAccount.email}</div>
                 </div>
               </div>
             </div>
@@ -93,9 +97,7 @@ export function AccountSettings({ onAddAccount, onRemoveAccount, onBack }: Accou
                     className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ background: account.color }}
                   />
-                  <span className="text-[13px] font-medium truncate">
-                    {account.email}
-                  </span>
+                  <span className="text-[13px] font-medium truncate">{account.email}</span>
                   <div className="flex-1" />
                   {onRemoveAccount && (
                     <button

@@ -21,14 +21,7 @@ import {
   GmailLabelSchema,
   GmailSearchResultSchema,
 } from "../schemas/gmail-api.js";
-import type {
-  GmailThread,
-  GmailMessage,
-  GmailLabel,
-  GmailSearchResult,
-} from "../schemas/gmail-api.js";
-
-const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
+import { GMAIL_API_BASE } from "../gmail-constants.js";
 
 // ─── Effect Service 定義 ───
 

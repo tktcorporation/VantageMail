@@ -94,7 +94,7 @@ type State =
 ### 早期リターンと型の絞り込み
 
 ```typescript
-if (!user) return yield* new NotFoundError({ id });
+if (!user) return yield * new NotFoundError({ id });
 // 以降 user は User 型（non-null 保証）
 ```
 

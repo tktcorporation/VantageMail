@@ -12,6 +12,7 @@
 import type { GmailThread, GmailMessage, GmailMessagePart } from "../schemas/gmail-api.js";
 import type { Thread } from "../schemas/thread.js";
 import type { Message, Attachment } from "../schemas/message.js";
+import { GmailSystemLabel } from "../gmail-constants.js";
 
 /**
  * GmailThreadをアプリ内のThread型に変換する。
@@ -44,8 +45,8 @@ export function adaptGmailThread(gmailThread: GmailThread, accountId: string): T
     participants: [...participants],
     messageCount: messages.length,
     labelIds: [...labelIds],
-    isUnread: labelIds.includes("UNREAD"),
-    isStarred: labelIds.includes("STARRED"),
+    isUnread: labelIds.includes(GmailSystemLabel.UNREAD),
+    isStarred: labelIds.includes(GmailSystemLabel.STARRED),
     isPinned: false,
   };
 }
@@ -80,8 +81,8 @@ export function adaptGmailMessage(gmailMessage: GmailMessage, accountId: string)
     bodyText: text,
     date: new Date(Number(gmailMessage.internalDate)),
     labelIds: [...gmailMessage.labelIds],
-    isUnread: gmailMessage.labelIds.includes("UNREAD"),
-    isStarred: gmailMessage.labelIds.includes("STARRED"),
+    isUnread: gmailMessage.labelIds.includes(GmailSystemLabel.UNREAD),
+    isStarred: gmailMessage.labelIds.includes(GmailSystemLabel.STARRED),
     attachments,
   };
 }

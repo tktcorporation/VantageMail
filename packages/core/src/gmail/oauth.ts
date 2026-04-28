@@ -22,6 +22,8 @@ import type { OAuthTokens } from "../schemas/account.js";
 import { OAuthTokenResponseSchema, GoogleUserInfoSchema } from "../schemas/gmail-api.js";
 import type { GoogleUserInfo } from "../schemas/gmail-api.js";
 import { TokenExchangeError } from "../errors.js";
+import { GOOGLE_AUTH_ENDPOINT, GOOGLE_USERINFO_ENDPOINT } from "../gmail-constants.js";
+import { API_OAUTH_TOKEN, API_OAUTH_REFRESH } from "../api-paths.js";
 
 /**
  * Gmail APIに必要なOAuthスコープ。
@@ -40,9 +42,6 @@ const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
 ];
-
-const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
-const GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
 
 export interface OAuthConfig {
   clientId: string;
@@ -141,7 +140,7 @@ export function exchangeCodeForTokens(
   codeVerifier: string,
 ): Effect.Effect<OAuthTokens, TokenExchangeError> {
   return Effect.gen(function* () {
-    const tokenUrl = `${config.proxyBaseUrl ?? ""}/api/oauth/token`;
+    const tokenUrl = `${config.proxyBaseUrl ?? ""}${API_OAUTH_TOKEN}`;
 
     const body = new URLSearchParams({
       client_id: config.clientId,
@@ -219,7 +218,7 @@ export function refreshAccessToken(
   refreshToken: string,
 ): Effect.Effect<OAuthTokens, TokenExchangeError> {
   return Effect.gen(function* () {
-    const refreshUrl = `${config.proxyBaseUrl ?? ""}/api/oauth/refresh`;
+    const refreshUrl = `${config.proxyBaseUrl ?? ""}${API_OAUTH_REFRESH}`;
 
     const body = new URLSearchParams({
       client_id: config.clientId,
