@@ -38,7 +38,12 @@ export interface AppSessionData {
  * process.env を直接参照せず、呼び出し元から password を受け取ることで
  * 環境変数アクセスの Single Source of Truth を ConfigService に統一する。
  *
- * process.env.NODE_ENV は bundler/runtime が自動設定する特殊変数なので直接参照を許容する。
+ * secure は常に true とする。wrangler.jsonc の vars に NODE_ENV を定義していないため
+ * process.env.NODE_ENV は Cloudflare Workers ランタイム上で "production" にならず、
+ * これを判定に使うと本番でも secure Cookie にならない（以前のバグ）。
+ * Cloudflare Workers は workers.dev / カスタムドメインとも常に HTTPS 終端されるため、
+ * secure: true 固定で問題ない（wrangler dev のローカル開発も localhost は
+ * ブラウザから secure context として扱われるため動作する）。
  */
 export function getSessionConfig(password: string): SessionConfig {
   return {
@@ -47,7 +52,7 @@ export function getSessionConfig(password: string): SessionConfig {
     maxAge: 60 * 60 * 24 * 30, // 30日
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "lax" as const,
       path: "/",
     },
