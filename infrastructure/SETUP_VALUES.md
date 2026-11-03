@@ -23,7 +23,7 @@ backend 設定と state はリポジトリにない。**state の所在は不明
 | 申請する OAuth scopes | `packages/core/src/gmail/oauth.ts` の `GMAIL_SCOPES` | [Data Access](https://console.cloud.google.com/auth/scopes?project=unified-email-client) と照合 |
 | Audience、テストユーザー、Publishing status | アプリコードでは管理しない | [Audience](https://console.cloud.google.com/auth/audience?project=unified-email-client) と [Overview](https://console.cloud.google.com/auth/overview?project=unified-email-client) |
 
-現在の `GMAIL_SCOPES` は `gmail.modify`、`gmail.compose`、`gmail.labels`、`userinfo.email`、`userinfo.profile`。変更や追加はこの手順の対象外。
+現在の `GMAIL_SCOPES` は `openid`、`gmail.modify`、`gmail.compose`、`gmail.labels`、`userinfo.email`、`userinfo.profile`。変更や追加はこの手順の対象外。
 
 個人・既知の少人数の利用は、[Google の検証例外](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification)に該当する場合がある。一方、**Testing のオフライン認可は期限とテストユーザー制限がある**。[Audience の説明](https://support.google.com/cloud/answer/15549945)を確認し、個人利用だから Testing のままで永続運用できるとは見なさない。一般公開は必要なスコープの審査・要件を別途確認する。ここで Publishing status を切り替えない。
 
