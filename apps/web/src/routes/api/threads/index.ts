@@ -31,13 +31,18 @@ export const Route = createFileRoute("/api/threads/")({
 
         const maxResults = url.searchParams.get("maxResults") ?? "30";
         const pageToken = url.searchParams.get("pageToken");
+        const searchQuery = url.searchParams.get("q")?.trim();
 
         const effect = Effect.gen(function* () {
           // 1. Get thread ID list (pageToken があれば次ページを取得)
-          const queryParams = `labelIds=${GmailSystemLabel.INBOX}&maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ""}`;
+          const listParams = new URLSearchParams({ maxResults });
+          // Gmail searches across labels; an empty query keeps the inbox view.
+          if (searchQuery) listParams.set("q", searchQuery);
+          else listParams.set("labelIds", GmailSystemLabel.INBOX);
+          if (pageToken) listParams.set("pageToken", pageToken);
           const listResult = yield* gmailFetch<GmailThreadListResponse>(
             accountId,
-            `/threads?${queryParams}`,
+            `/threads?${listParams.toString()}`,
           );
 
           if (!listResult.threads?.length) {

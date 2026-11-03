@@ -75,11 +75,21 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
     [query, onSearch],
   );
 
-  const insertOperator = useCallback((operator: string) => {
-    setQuery((prev) => (prev ? `${prev} ${operator}` : operator));
-    setShowSuggestions(false);
-    inputRef.current?.focus();
-  }, []);
+  const insertOperator = useCallback(
+    (operator: string) => {
+      handleChange(query ? `${query} ${operator}` : operator);
+      setShowSuggestions(false);
+      inputRef.current?.focus();
+    },
+    [handleChange, query],
+  );
+
+  useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -125,7 +135,7 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
           }}
           onBlur={() => {
             setIsFocused(false);
-            setTimeout(() => setShowSuggestions(false), 200);
+            setShowSuggestions(false);
           }}
           onKeyDown={handleKeyDown}
           placeholder="メールを検索..."
@@ -135,6 +145,7 @@ export function SearchBar({ onSearch, onClear }: SearchBarProps) {
           <button
             type="button"
             onClick={() => {
+              if (debounceRef.current) clearTimeout(debounceRef.current);
               setQuery("");
               onClear();
             }}
