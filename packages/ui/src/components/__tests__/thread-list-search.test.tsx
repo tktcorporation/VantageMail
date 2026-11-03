@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createAccountsStore, createThreadsStore } from "@vantagemail/core";
 import type { Account, Thread } from "@vantagemail/core";
@@ -27,9 +27,43 @@ const makeThread = (accountId: string): Thread => ({
   isStarred: false,
   isPinned: false,
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("ThreadList search and recovery", () => {
+  it("observes a visible next-page marker after all accounts finish their first page", () => {
+    const onFetchMore = vi.fn();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(private callback: IntersectionObserverCallback) {}
+        observe() {
+          this.callback(
+            [{ isIntersecting: true } as IntersectionObserverEntry],
+            this as unknown as IntersectionObserver,
+          );
+        }
+        disconnect() {}
+      },
+    );
+    const accountsStore = createAccountsStore(accounts);
+    const threadsStore = createThreadsStore();
+    threadsStore.getState().setLoading(true);
+    threadsStore.getState().setThreads("first", [makeThread("first")], "page-2");
+    render(
+      <StoreContext.Provider value={{ accountsStore, threadsStore }}>
+        <ThreadList onFetchMore={onFetchMore} />
+      </StoreContext.Provider>,
+    );
+    expect(onFetchMore).not.toHaveBeenCalled();
+    act(() => threadsStore.getState().setThreads("second", [makeThread("second")]));
+    expect(onFetchMore).not.toHaveBeenCalled();
+    act(() => threadsStore.getState().setLoading(false));
+    expect(onFetchMore).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps search available for empty, loading and failed lists; supports account filter and retries", async () => {
     const accountsStore = createAccountsStore(accounts);
     const threadsStore = createThreadsStore();

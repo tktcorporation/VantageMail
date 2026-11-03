@@ -548,12 +548,9 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    // isLoadingMore 中は observer を切断する。
-    // ロード完了時（isLoadingMore: true→false）に effect が再実行され、
-    // observer が再作成されるため、sentinel がまだ表示中なら再度トリガーされる。
-    // これがないと、sentinel が一度もビューポートを離れなかった場合に
-    // IntersectionObserver が再発火せず、2ページ目以降がロードされない。
-    if (!sentinel || !onFetchMore || !hasMore || isLoadingMore) return;
+    // 初回取得中は一部のアカウントだけにページトークンがある状態になり得る。
+    // 全アカウントの初回取得が終わってから observer を接続し、可視の sentinel を再評価する。
+    if (!sentinel || !onFetchMore || !hasMore || isLoading || isLoadingMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -565,7 +562,7 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [onFetchMore, hasMore, isLoadingMore]);
+  }, [onFetchMore, hasMore, isLoading, isLoadingMore]);
 
   const hasNoMail =
     visibleThreadIds.length === 0 &&

@@ -193,6 +193,10 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
               result.right.nextPageToken,
             );
           accountsStore.getState().setConnectionStatus(account.id, "connected");
+          const current = threadsStore.getState();
+          if (current.failedAccountIds.includes(account.id)) {
+            current.setFailedAccountIds(current.failedAccountIds.filter((id) => id !== account.id));
+          }
         }
       }),
     );

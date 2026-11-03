@@ -171,4 +171,37 @@ describe("useSync", () => {
     });
     expect(threadsStore.getState().visibleThreadIds).not.toContain("old-page");
   });
+
+  it("clears only the recovered account's page error", async () => {
+    const attempts = new Map<string, number>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) => {
+        const url = new URL(input, "http://localhost");
+        const id = url.searchParams.get("accountId")!;
+        if (!url.searchParams.has("pageToken")) {
+          return Promise.resolve(
+            response({ threads: [thread(id, `${id}-first`)], nextPageToken: "next" }),
+          );
+        }
+        const count = (attempts.get(id) ?? 0) + 1;
+        attempts.set(id, count);
+        if (count === 1 || (id === "second" && count === 2)) {
+          return Promise.resolve(response({ error: "temporary" }, 503));
+        }
+        return Promise.resolve(response({ threads: [thread(id, `${id}-last`)] }));
+      }),
+    );
+    const { threadsStore, result } = setup();
+    await waitFor(() => expect(threadsStore.getState().isLoading).toBe(false));
+    await act(async () => result.current.fetchMore());
+    expect(threadsStore.getState().failedAccountIds).toEqual(["first", "second"]);
+    expect(threadsStore.getState().visibleThreadIds).toHaveLength(2);
+    await act(async () => result.current.fetchMore());
+    expect(threadsStore.getState().failedAccountIds).toEqual(["second"]);
+    expect(threadsStore.getState().visibleThreadIds).toContain("first-last");
+    await act(async () => result.current.fetchMore());
+    expect(threadsStore.getState().failedAccountIds).toEqual([]);
+    expect(threadsStore.getState().visibleThreadIds).toContain("second-last");
+  });
 });
