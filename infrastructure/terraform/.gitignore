@@ -2,6 +2,7 @@
 .terraform/
 *.tfstate
 *.tfstate.backup
+*.tfstate.*
 *.tfplan
 
 # 秘密情報を含む可能性がある

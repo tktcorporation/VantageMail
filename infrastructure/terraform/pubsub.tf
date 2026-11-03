@@ -27,7 +27,7 @@ resource "google_pubsub_topic_iam_member" "gmail_publisher" {
 
 # Push subscription（宛先: CF push-relay Worker）
 # push_relay_url が設定されている場合のみ作成する。
-# Worker 未デプロイ時はスキップし、デプロイ後に terraform apply で追加できる。
+# URL 未設定時はスキップ。state と受信先を確認してから構成を適用する。
 resource "google_pubsub_subscription" "gmail_push" {
   count = var.push_relay_url != "" ? 1 : 0
 
