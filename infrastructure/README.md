@@ -1,162 +1,40 @@
-# VantageMail インフラストラクチャ
+# VantageMail インフラ構成と管理範囲
 
-## 設計原則: Cloudflare ファースト
+このディレクトリは **GCP 側の構成定義** と、OAuth 設定を確認するための手順を置く。定義がリポジトリにあることは、実環境への適用済みを意味しない。
 
-**Cloudflare で完結させ、GCP は Gmail API が強制する部分のみ使う。**
+## 現在のコードと管理主体
 
-## アーキテクチャ概要
+| 対象 | リポジトリ上の定義 | 管理・確認先 |
+| --- | --- | --- |
+| Gmail API / Pub/Sub API の有効化 | `terraform/apis.tf` | GCP。OpenTofu の state を特定してから管理範囲を確認 |
+| Gmail 通知用トピック、Gmail publisher IAM、任意の push subscription | `terraform/pubsub.tf` | GCP。`push_relay_url` が空なら subscription は定義上 0 件 |
+| OAuth 同意画面、Audience、Publishing status、OAuth クライアント | OpenTofu の管理外 | Google Auth Platform の Console で既存設定を確認 |
+| Web アプリ、D1、Worker の環境変数と secret | `apps/web/wrangler.jsonc`、`apps/web/src` | Cloudflare。`GOOGLE_CLIENT_SECRET` 等の値を OpenTofu state に移さない |
+| push relay / scheduler のコード | `workers/src` | コードのみ確認済み。このリポジトリには各 Worker の wrangler 設定がなく、配備状況は不明 |
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Cloudflare（メイン）                          │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────┐ │
-│  │ CF Workers     │  │ Workers          │  │ Storage               │ │
-│  │              │  │                  │  │                       │ │
-│  │ Web App      │  │ oauth-proxy      │  │ KV: SYNC_STATE        │ │
-│  │ (React+Vite) │  │ push-relay       │  │ KV: SCHEDULED_JOBS    │ │
-│  │              │  │ scheduler        │  │ KV: WATCH_STATE        │ │
-│  └──────┬───────┘  └──────┬───────────┘  │                       │ │
-│         │                 │              │ Durable Objects:       │ │
-│         │                 │              │ PushConnectionManager  │ │
-│         │                 │              └───────────────────────┘ │
-└─────────┼─────────────────┼─────────────────────────────────────────┘
-          │                 │
-          │ 直接通信         │ Pub/Sub push
-          │                 │ subscription
-          ▼                 ▼
-┌──────────────────────────────────────────┐
-│              Google Cloud                 │
-│                                          │
-│  ┌────────────────┐  ┌───────────────┐  │
-│  │ Gmail API      │  │ Pub/Sub       │  │
-│  │ (REST v1)      │  │ トピック×1     │  │
-│  │                │◄─┤               │  │
-│  │ メール読み書き  │  │ gmail-push    │  │
-│  │ ラベル操作     │  │               │  │
-│  │ 検索           │  └───────────────┘  │
-│  └────────────────┘                      │
-└──────────────────────────────────────────┘
-```
+現在の OAuth フローは `apps/web/src/routes/api/auth/start.ts` と `apps/web/src/routes/oauth/callback.tsx` にある。Gmail API 呼び出しも `apps/web/src/lib/gmail-server.ts` にある。古い `oauth-proxy` Worker を前提とした手順は現在の Web アプリに適用しない。
 
-## GCP 依存（最小限）
+## OpenTofu の安全な検査
 
-| GCP サービス  | 用途                     | なぜ必要か                                              |
-| ------------- | ------------------------ | ------------------------------------------------------- |
-| Cloud Pub/Sub | Gmail プッシュ通知の受信 | `users.watch()` API が Pub/Sub を強制する。代替手段なし |
+`terraform/` には backend ブロックがないため、設定上の既定はローカル state である。ただし、**実際に使われた state の所在と適用履歴は未確認**。リポジトリには state や backend 設定がなく、これだけで未適用とは判断できない。既存の state と管理主体を確認するまで `plan`、`apply`、`import` を実行しない。
 
-**GCP で必要なリソース:**
-
-- Pub/Sub トピック × 1
-- Pub/Sub push subscription × 1（宛先: CF Worker）
-
-## Cloudflare サービス
-
-| サービス                    | 用途                                             |
-| --------------------------- | ------------------------------------------------ |
-| **Workers (Static Assets)** | Web アプリホスティング                           |
-| **Workers**                 | oauth-proxy, push-relay, scheduler               |
-| **KV**                      | 同期状態、スケジュールジョブ、watch 状態         |
-| **Durable Objects**         | WebSocket 接続管理、リアルタイム通知ファンアウト |
-| **Cron Triggers**           | スヌーズ/送信予約の実行、Gmail watch() 再登録    |
-
-## データフロー
-
-### メール受信通知
-
-```
-Gmail → GCP Pub/Sub → CF push-relay Worker → Durable Object → WebSocket → クライアント
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                       ここから先は全て Cloudflare 内
-```
-
-### メール操作（読み書き）
-
-```
-クライアント → Gmail API（直接通信。CF を経由しない）
-```
-
-### OAuth トークン交換
-
-```
-クライアント → CF oauth-proxy Worker → Google Token Endpoint
-```
-
-### スヌーズ/送信予約
-
-```
-クライアント → CF scheduler Worker (KV に保存)
-Cron Trigger → scheduler Worker → push-relay Worker → WebSocket → クライアント
-```
-
-## ディレクトリ構成
-
-```
-infrastructure/
-├── terraform/                  # GCP リソース管理（IaC）
-│   ├── main.tf                 # プロバイダ設定
-│   ├── variables.tf            # 変数定義
-│   ├── apis.tf                 # API 有効化（Gmail, Pub/Sub）
-│   ├── pubsub.tf               # Pub/Sub トピック + サブスクリプション
-│   ├── data.tf                 # データソース
-│   ├── outputs.tf              # 出力値
-│   └── terraform.tfvars.example
-├── scripts/
-│   └── setup-oauth.sh          # OAuth 同意画面 + クライアント ID（手動操作ガイド）
-└── README.md
-```
-
-## セットアップ手順
-
-### 1. GCP リソース（Terraform）
-
-Terraform で API 有効化、Pub/Sub トピック、IAM バインディングを管理する。
+以下は provider の取得と静的検査だけを行う。GCP の認証情報は不要。`.terraform/` は gitignore 対象とし、`.terraform.lock.hcl` はレビュー対象としてコミットする。
 
 ```bash
 cd infrastructure/terraform
-cp terraform.tfvars.example terraform.tfvars
-# terraform.tfvars を編集して gcp_project_id を設定
-
-terraform init
-terraform plan
-terraform apply
+tofu init -backend=false -input=false -lockfile=readonly
+tofu fmt -check -recursive
+tofu validate -no-color
 ```
 
-push-relay Worker をデプロイした後、`push_relay_url` を設定して再度 apply すると
-push subscription が作成される。
+provider のバージョンを見直すときだけ、変更内容をレビューしてから `tofu providers lock -platform=linux_amd64 -platform=darwin_arm64` で lock を更新する。`terraform.tfvars`、state、credential はコミットしない。
 
-```bash
-# terraform.tfvars に追記:
-# push_relay_url = "https://vantagemail-push-relay.onon.workers.dev"
-terraform apply
-```
+実環境の管理を再開する前に、担当者が既存 state の保管場所、使用していた CLI / workspace、対象 GCP project、現存リソースとの対応を確認する。state が見つからない場合も、新しい state で既存リソースを作り直さない。
 
-### 2. OAuth 同意画面 + クライアント ID（手動）
+Gmail 通知には [Pub/Sub トピックと Gmail の publisher 権限](https://developers.google.com/workspace/gmail/api/guides/push)が必要。push subscription は Worker の公開エンドポイントと運用状態を確認してから扱う。
 
-Terraform Google Provider に対応リソースがないため、コンソール UI で設定する。
-ガイドスクリプトが手順を表示する。
+## OAuth の照合
 
-```bash
-GCP_PROJECT_ID=unified-email-client ./infrastructure/scripts/setup-oauth.sh
-```
+`GCP_PROJECT_ID=unified-email-client ./infrastructure/scripts/setup-oauth.sh` は**読み取り用チェックリストを表示するだけ**で、認証トークンの取得やリソースの作成をしない。照合項目とコード上の参照先は [SETUP_VALUES.md](SETUP_VALUES.md) にまとめた。既存クライアントを推測で再作成しない。
 
-### 3. CF Workers デプロイ
-
-KV namespace は Terraform で作成済み。出力された ID を各 wrangler.toml に設定する。
-
-```bash
-# KV namespace ID を確認
-cd infrastructure/terraform
-terraform output kv_sync_state_id
-terraform output kv_scheduled_jobs_id
-terraform output kv_watch_state_id
-# → 各 wrangler.toml の [[kv_namespaces]] id に転記
-
-# シークレット設定
-cd workers/oauth-proxy && wrangler secret put GOOGLE_CLIENT_SECRET
-
-# デプロイ
-cd workers/oauth-proxy && wrangler deploy
-cd workers/push-relay && wrangler deploy
-cd workers/scheduler && wrangler deploy
-```
+Google Auth Platform の同意画面と Publishing status は Console 側の設定であり、IAP の brand / OAuth client リソースは Gmail OAuth の代替ではない。個人・少人数の利用と一般公開は検証要件が異なる。Testing のテストユーザー制限とオフライン認可の有効期限も [Google の Audience 説明](https://support.google.com/cloud/answer/15549945)で確認する。一般公開を検討するときは、使用スコープに対する [Google の検証要件](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification)を別途確認する。

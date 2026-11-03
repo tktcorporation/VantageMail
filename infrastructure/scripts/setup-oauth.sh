@@ -1,88 +1,30 @@
 #!/usr/bin/env bash
-#
-# OAuth 同意画面とクライアント ID のセットアップ。
-#
-# 背景: Terraform Google Provider には OAuth 同意画面（Google Auth Platform）と
-# OAuth クライアント ID に対応するリソースがないため、gcloud CLI で管理する。
-# https://github.com/hashicorp/terraform-provider-google/issues/7753
-#
-# このスクリプトは冪等（何度実行しても安全）。
-#
-# 前提:
-#   - gcloud CLI がインストール・認証済みであること
-#   - GCP_PROJECT_ID 環境変数が設定されていること
-#
-# 使い方:
-#   GCP_PROJECT_ID=unified-email-client ./infrastructure/scripts/setup-oauth.sh
-
+# 既存 Gmail OAuth 設定の読み取り用チェックリスト。変更・認証操作は行わない。
 set -euo pipefail
 
-: "${GCP_PROJECT_ID:?GCP_PROJECT_ID を設定してください}"
+: "${GCP_PROJECT_ID:?照合対象の GCP_PROJECT_ID を設定してください}"
 
-echo "=== OAuth セットアップ ==="
-echo "Project: ${GCP_PROJECT_ID}"
-echo ""
+cat <<GUIDE
+=== VantageMail Gmail OAuth の照合（読み取り専用） ===
+Project: ${GCP_PROJECT_ID}
 
-# ------------------------------------------------------------------
-# 1. OAuth 同意画面（OAuth ブランド）
-# ------------------------------------------------------------------
-# 注意: gcloud にはOAuth同意画面を直接作成するコマンドがない。
-# Google Auth Platform の構成はコンソール UI から行う必要がある。
-#
-# 以下の設定が必要:
-#   - アプリ名: VantageMail
-#   - ユーザーサポートメール: (あなたのメールアドレス)
-#   - 対象: 外部（External）
-#   - テストモード（公開前は CASA 審査が必要）
-#   - スコープ: gmail.modify, gmail.compose, gmail.labels
-#
-# コンソール URL:
-echo "1. OAuth 同意画面をコンソールで設定してください:"
-echo "   https://console.cloud.google.com/auth/overview?project=${GCP_PROJECT_ID}"
-echo ""
-echo "   設定内容:"
-echo "   - アプリ名: VantageMail"
-echo "   - ユーザーサポートメール: (あなたのメールアドレス)"
-echo "   - 対象: 外部（External）"
-echo "   - 公開ステータス: テスト"
-echo ""
+1. Google Auth Platform の既存設定を確認:
+   クライアント: https://console.cloud.google.com/auth/clients?project=${GCP_PROJECT_ID}
+   Audience: https://console.cloud.google.com/auth/audience?project=${GCP_PROJECT_ID}
+   Data Access: https://console.cloud.google.com/auth/scopes?project=${GCP_PROJECT_ID}
+   Overview: https://console.cloud.google.com/auth/overview?project=${GCP_PROJECT_ID}
 
-# ------------------------------------------------------------------
-# 2. OAuth クライアント ID の作成
-# ------------------------------------------------------------------
-# Web アプリケーション用
-echo "2. OAuth クライアント ID を作成..."
-echo ""
+2. Web client ID と実際のビルド値、Web client の redirect URI / 生成元を照合。
+   コード: apps/web/.env.example、apps/web/src/lib/constants.ts
+   redirect URI 未設定時は現在の request origin + /oauth/callback。
+   稼働中のビルド設定は別途確認する。client secret の値は表示・記録しない。
 
-# 既存のクライアントを確認
-EXISTING_WEB=$(gcloud auth application-default print-access-token 2>/dev/null | head -1 || true)
+3. Data Access のスコープと packages/core/src/gmail/oauth.ts の GMAIL_SCOPES を照合。
+   Audience のテストユーザーと Publishing status も確認する。
+   個人・少人数の利用と一般公開の審査要件を区別する。
 
-echo "=== Web アプリケーション用クライアント ID ==="
-echo ""
-echo "コンソールから作成してください:"
-echo "   https://console.cloud.google.com/auth/clients/create?project=${GCP_PROJECT_ID}"
-echo ""
-echo "   種類: Web アプリケーション"
-echo "   名前: VantageMail Web"
-echo "   承認済みの JavaScript 生成元:"
-echo "     - http://localhost:5173 (開発)"
-echo "     - https://vantagemail.onon.workers.dev (本番)"
-echo "   承認済みのリダイレクト URI:"
-echo "     - http://localhost:5173/oauth/callback (開発)"
-echo "     - https://vantagemail.onon.workers.dev/oauth/callback (本番)"
-echo ""
+4. Worker secret は apps/web の GOOGLE_CLIENT_SECRET の名前のみ確認。
+   既存 client の再作成、Publishing status の変更、OpenTofu state への secret 移行はしない。
 
-echo "=== デスクトップアプリ用クライアント ID ==="
-echo ""
-echo "   種類: デスクトップ アプリ"
-echo "   名前: VantageMail Desktop"
-echo ""
-
-echo "=== 作成後に必要な作業 ==="
-echo ""
-echo "1. クライアント ID を packages/core の環境変数に設定"
-echo "2. クライアントシークレットを Cloudflare Workers のシークレットに設定:"
-echo "   cd workers/oauth-proxy && wrangler secret put GOOGLE_CLIENT_SECRET"
-echo ""
-echo "3. テストユーザーを追加（テストモードでは手動追加が必要）:"
-echo "   https://console.cloud.google.com/auth/audience?project=${GCP_PROJECT_ID}"
+詳細: infrastructure/SETUP_VALUES.md
+GUIDE

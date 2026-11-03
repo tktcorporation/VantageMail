@@ -1,18 +1,10 @@
 # VantageMail GCP インフラストラクチャ
 #
-# 背景: VantageMail は Cloudflare ファーストのアーキテクチャだが、
-# Gmail の users.watch() API が GCP Pub/Sub を強制するため、
-# Pub/Sub トピック + push subscription が唯一の GCP 依存。
-# OAuth 関連の API 有効化もここで管理する。
+# Gmail の users.watch() API が要求する Pub/Sub と、Gmail API の有効化を定義する。
+# 実際の適用状況と state の所在は未確認。OAuth 同意画面・client は管理しない。
 #
-# Cloudflare リソース（KV namespace 等）は wrangler.toml で管理する。
-# Terraform は GCP 専用。
-#
-# 使い方:
-#   cd infrastructure/terraform
-#   terraform init
-#   terraform plan
-#   terraform apply
+# Cloudflare 側の設定は apps/web/wrangler.jsonc 等で別途管理する。
+# state を確認するまで plan / apply / import は行わない。
 
 terraform {
   required_version = ">= 1.5"
