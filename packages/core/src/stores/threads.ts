@@ -29,6 +29,11 @@ export interface ThreadsState {
    * isLoading とは分離し、スクロール中に全画面ローディングが出るのを防ぐ。
    */
   isLoadingMore: boolean;
+  /** Account IDs whose latest list request failed (auth expiry has its own banner). */
+  failedAccountIds: string[];
+  /** Committed Gmail search expression. Empty means inbox. */
+  searchQuery: string;
+  refreshVersion: number;
   /**
    * アカウントごとの次ページトークン。
    * undefined のとき「もうページがない」ことを意味する（Gmail API の仕様に準拠）。
@@ -56,6 +61,9 @@ export interface ThreadsActions {
   appendThreads: (accountId: string, threads: Thread[], nextPageToken?: string) => void;
   setLoadingMore: (loading: boolean) => void;
   setPageToken: (accountId: string, token: string | undefined) => void;
+  setFailedAccountIds: (ids: string[]) => void;
+  setSearchQuery: (query: string) => void;
+  refreshThreads: () => void;
 }
 
 export type ThreadsStore = ThreadsState & ThreadsActions;
@@ -92,7 +100,7 @@ function computeVisibleThreadIds(
 }
 
 export const createThreadsStore = () =>
-  createStore<ThreadsStore>((set, get) => ({
+  createStore<ThreadsStore>((set) => ({
     threadsByAccount: {},
     visibleThreadIds: [],
     selectedThreadId: null,
@@ -101,6 +109,9 @@ export const createThreadsStore = () =>
     activeCategory: "all",
     isLoading: false,
     isLoadingMore: false,
+    failedAccountIds: [],
+    searchQuery: "",
+    refreshVersion: 0,
     pageTokenByAccount: {},
 
     setThreads: (accountId, threads, nextPageToken) =>
@@ -230,6 +241,25 @@ export const createThreadsStore = () =>
       }),
 
     setLoadingMore: (loading) => set({ isLoadingMore: loading }),
+    setFailedAccountIds: (ids) => set({ failedAccountIds: ids }),
+    setSearchQuery: (query) =>
+      set((state) => {
+        const next = query.trim();
+        if (next === state.searchQuery) return state;
+        return {
+          searchQuery: next,
+          threadsByAccount: {},
+          visibleThreadIds: [],
+          pageTokenByAccount: {},
+          failedAccountIds: [],
+          selectedThreadId: null,
+          activeLabel: null,
+          activeCategory: "all",
+          isLoading: true,
+          isLoadingMore: false,
+        };
+      }),
+    refreshThreads: () => set((state) => ({ refreshVersion: state.refreshVersion + 1 })),
 
     setPageToken: (accountId, token) =>
       set((state) => ({

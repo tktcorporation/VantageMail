@@ -15,7 +15,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchBar } from "./search-bar";
 import type { Thread, SmartCategory } from "@vantagemail/core";
 import { matchesSmartCategory } from "@vantagemail/core";
-import { Mail, Bell, Newspaper, Inbox, X, ChevronRight, Star, Menu, Eye } from "lucide-react";
+import {
+  Mail,
+  Bell,
+  Newspaper,
+  Inbox,
+  X,
+  ChevronRight,
+  Star,
+  Menu,
+  Eye,
+  RefreshCw,
+} from "lucide-react";
 
 /** SmartCategoryをUIに表示するための日本語名マッピング */
 const CATEGORY_DISPLAY_NAMES: Record<SmartCategory, string> = {
@@ -377,8 +388,11 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
   const isLoadingMore = useThreads((s) => s.isLoadingMore);
   const pageTokenByAccount = useThreads((s) => s.pageTokenByAccount);
   const activeCategory = useThreads((s) => s.activeCategory);
-  const setActiveCategory = useThreads((s) => s.setActiveCategory);
   const accounts = useAccounts((s) => s.accounts);
+  const searchQuery = useThreads((s) => s.searchQuery);
+  const setSearchQuery = useThreads((s) => s.setSearchQuery);
+  const failedAccountIds = useThreads((s) => s.failedAccountIds);
+  const refreshThreads = useThreads((s) => s.refreshThreads);
 
   /**
    * フルスクリーンオーバーレイの表示状態。
@@ -485,7 +499,7 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
    * J/Kナビゲーション用のフラットなスレッドIDリスト。
    */
   const navigableThreadIds = useMemo(() => {
-    if (activeCategory !== "all") return visibleThreadIds;
+    if (activeCategory !== "all" || searchQuery) return visibleThreadIds;
     const ids: string[] = [];
     for (const card of peopleCards) {
       for (const { thread } of card.threads) ids.push(thread.id);
@@ -497,7 +511,7 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
       ids.push(thread.id);
     }
     return ids;
-  }, [activeCategory, visibleThreadIds, peopleCards, unifiedCards, seenThreads]);
+  }, [activeCategory, searchQuery, visibleThreadIds, peopleCards, unifiedCards, seenThreads]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -534,12 +548,9 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    // isLoadingMore 中は observer を切断する。
-    // ロード完了時（isLoadingMore: true→false）に effect が再実行され、
-    // observer が再作成されるため、sentinel がまだ表示中なら再度トリガーされる。
-    // これがないと、sentinel が一度もビューポートを離れなかった場合に
-    // IntersectionObserver が再発火せず、2ページ目以降がロードされない。
-    if (!sentinel || !onFetchMore || !hasMore || isLoadingMore) return;
+    // 初回取得中は一部のアカウントだけにページトークンがある状態になり得る。
+    // 全アカウントの初回取得が終わってから observer を接続し、可視の sentinel を再評価する。
+    if (!sentinel || !onFetchMore || !hasMore || isLoading || isLoadingMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -551,38 +562,13 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [onFetchMore, hasMore, isLoadingMore]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full text-[var(--color-text-secondary)]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-5 h-5 border-2 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin" />
-          <span className="text-[14px] md:text-[13px]">読み込み中...</span>
-        </div>
-      </div>
-    );
-  }
+  }, [onFetchMore, hasMore, isLoading, isLoadingMore]);
 
   const hasNoMail =
     visibleThreadIds.length === 0 &&
     peopleCards.length === 0 &&
     unifiedCards.length === 0 &&
     seenThreads.length === 0;
-
-  if (hasNoMail) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-secondary)] gap-3 px-6">
-        <Inbox size={32} strokeWidth={1.5} className="text-[var(--color-text-tertiary)]" />
-        <span className="text-[15px] md:text-[14px] font-medium text-[var(--color-text)]">
-          受信トレイは空です
-        </span>
-        <span className="text-[13px] md:text-[12px] text-center leading-relaxed">
-          新しいメールが届くとここに表示されます
-        </span>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -601,26 +587,71 @@ export function ThreadList({ onOpenSidebar, onFetchMore }: ThreadListProps = {})
                 <Menu size={18} />
               </button>
             )}
-            {CATEGORY_DISPLAY_NAMES[activeCategory]}
+            {searchQuery ? "検索結果" : CATEGORY_DISPLAY_NAMES[activeCategory]}
             <span className="text-[var(--color-text-tertiary)] font-normal text-[14px] md:text-[13px]">
               {visibleThreadIds.length}
             </span>
           </span>
+          <button
+            type="button"
+            onClick={refreshThreads}
+            disabled={isLoading || isLoadingMore}
+            aria-label="メール一覧を更新"
+            title="メール一覧を更新"
+            className="p-2 border-0 bg-transparent cursor-pointer text-[var(--color-text-secondary)] disabled:opacity-50"
+          >
+            <RefreshCw size={16} />
+          </button>
         </div>
-        <SearchBar
-          onSearch={(query) => {
-            // TODO: Gmail API検索に接続
-            console.log("Search:", query);
-          }}
-          onClear={() => {
-            // TODO: 検索結果をクリア
-          }}
-        />
+        <SearchBar onSearch={setSearchQuery} onClear={() => setSearchQuery("")} />
       </div>
+
+      {failedAccountIds.length > 0 && (
+        <div
+          role="alert"
+          className="px-4 py-3 text-[13px] bg-[var(--color-bg-secondary)] text-[var(--color-text)]"
+        >
+          {failedAccountIds.length === accounts.length
+            ? "メールを取得できませんでした。接続を確認して再試行してください。"
+            : `${failedAccountIds.length}件のアカウントからメールを取得できませんでした。表示中の結果は一部です。`}
+          <button
+            type="button"
+            onClick={refreshThreads}
+            className="ml-2 underline border-0 bg-transparent cursor-pointer text-[var(--color-accent)]"
+          >
+            再試行
+          </button>
+        </div>
+      )}
 
       {/* スレッドリスト: カード表示 or フラットリスト */}
       <div className="flex-1 overflow-auto">
-        {activeCategory === "all" ? (
+        {isLoading && hasNoMail ? (
+          <div
+            role="status"
+            className="flex items-center justify-center h-full text-[var(--color-text-secondary)]"
+          >
+            読み込み中...
+          </div>
+        ) : hasNoMail ? (
+          <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-secondary)] gap-3 px-6">
+            <Inbox size={32} strokeWidth={1.5} />
+            <span className="text-[15px] md:text-[14px] font-medium text-[var(--color-text)]">
+              {failedAccountIds.length
+                ? "メールを表示できません"
+                : searchQuery
+                  ? "検索結果はありません"
+                  : "受信トレイは空です"}
+            </span>
+            {!failedAccountIds.length && (
+              <span className="text-[13px] md:text-[12px] text-center leading-relaxed">
+                {searchQuery
+                  ? "別の検索語をお試しください"
+                  : "新しいメールが届くとここに表示されます"}
+              </span>
+            )}
+          </div>
+        ) : activeCategory === "all" && !searchQuery ? (
           /* Spark風カテゴリカード表示 */
           <div className="p-3">
             {/* 重要メール: アカウント別カード */}
