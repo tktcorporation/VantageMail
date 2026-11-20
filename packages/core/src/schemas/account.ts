@@ -5,7 +5,7 @@
  * 実行時バリデーションと型推論を同時に行う。
  * types/account.ts の既存インターフェースと完全一致する形状を維持する。
  */
-import { Schema } from "@effect/schema";
+import { Schema } from "effect";
 
 /** OAuth 2.0トークンペア */
 export const OAuthTokensSchema = Schema.Struct({
@@ -47,9 +47,9 @@ export type Account = typeof AccountSchema.Type;
  */
 export type AccountConnectionStatus = "connected" | "refreshing" | "token_expired" | "error";
 
-export const AccountConnectionStatusSchema = Schema.Literal(
+export const AccountConnectionStatusSchema = Schema.Literals([
   "connected",
   "refreshing",
   "token_expired",
   "error",
-);
+]);

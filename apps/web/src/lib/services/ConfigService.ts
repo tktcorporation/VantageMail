@@ -25,7 +25,7 @@ export interface AppConfig {
   allowedOrigins: string[];
 }
 
-export class ConfigService extends Context.Tag("ConfigService")<ConfigService, AppConfig>() {
+export class ConfigService extends Context.Service<ConfigService, AppConfig>()("ConfigService") {
   /**
    * Cloudflare Workers の env から設定値を抽出して Layer を構築する。
    *

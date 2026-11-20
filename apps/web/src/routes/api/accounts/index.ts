@@ -6,8 +6,7 @@
  * SessionService で認証済みかを判定する。
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect } from "effect";
-import { Schema } from "@effect/schema";
+import { Effect, Schema } from "effect";
 import type { Account } from "@vantagemail/core";
 import { SessionService } from "~/lib/services/SessionService.ts";
 import { findLinkedAccountsByUserId, deleteLinkedAccount } from "~/lib/db.ts";
@@ -63,26 +62,26 @@ export const Route = createFileRoute("/api/accounts/")({
         const effect = Effect.gen(function* () {
           const session = yield* SessionService;
 
-          // request.json() → Schema.decodeUnknown でバリデーション。
+          // request.json() → Schema.decodeUnknownEffect でバリデーション。
           // JSON パース失敗・バリデーション失敗は 400 を返す。
-          const jsonResult = yield* Effect.either(
+          const jsonResult = yield* Effect.result(
             Effect.tryPromise({
               try: () => request.json() as Promise<unknown>,
               catch: () => new Error("invalid_json"),
             }),
           );
-          if (jsonResult._tag === "Left") {
+          if (jsonResult._tag === "Failure") {
             return Response.json({ error: "Invalid JSON body" }, { status: 400 });
           }
 
-          const parseResult = yield* Effect.either(
-            Schema.decodeUnknown(DeleteAccountBody)(jsonResult.right),
+          const parseResult = yield* Effect.result(
+            Schema.decodeUnknownEffect(DeleteAccountBody)(jsonResult.success),
           );
-          if (parseResult._tag === "Left") {
+          if (parseResult._tag === "Failure") {
             return Response.json({ error: "accountId is required" }, { status: 400 });
           }
 
-          const { accountId } = parseResult.right;
+          const { accountId } = parseResult.success;
 
           const auth = yield* session.requireAuth();
 

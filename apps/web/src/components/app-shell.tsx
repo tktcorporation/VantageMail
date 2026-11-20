@@ -15,14 +15,14 @@
  * の 3 種類に discriminated union として分割する。これは AccountRemove* と
  * AuthStart* で同じ設計言語を採り、UI 側の ts-pattern dispatch を統一可能にする。
  *
- * defect 漏れ防止のため、`Effect.catchAllCause` で型付きエラー以外の Cause も
+ * defect 漏れ防止のため、`Effect.catchCause` で型付きエラー以外の Cause も
  * バックストップする。defect は `*Defect` タグに正規化して上流に伝え、UI 側で
  * 「予期しないエラー」を明示できるようにする。
  */
 import { App, RuntimeContext } from "@vantagemail/ui";
 import type { Account } from "@vantagemail/core";
 import { useCallback } from "react";
-import { Cause, Data, Effect, Either, ManagedRuntime, Layer } from "effect";
+import { Cause, Data, Effect, ManagedRuntime, Layer, Result } from "effect";
 import { API_ACCOUNTS, API_AUTH_START } from "~/lib/api-paths.ts";
 
 /**
@@ -120,7 +120,7 @@ class AccountRemoveDefect extends Data.TaggedError("AccountRemoveDefect")<{
 
 /**
  * Response.text() を読み取り、失敗時は空文字列にフォールバックする。
- * 失敗を silent に潰さないよう、Either の Left 経路で警告ログを出す。
+ * 失敗を silent に潰さないよう、失敗経路で警告ログを出す。
  *
  * 戻り値の型 `string` は「成功 = サーバー応答本文」「失敗 = "" の sentinel」を
  * 区別しない。意図的な単純化（body は cause としての参考情報であり、エラー
@@ -131,7 +131,7 @@ const readBodyOrLog = (res: Response, context: string): Effect.Effect<string, ne
     try: () => res.text(),
     catch: (e) => e,
   }).pipe(
-    Effect.catchAll((e) =>
+    Effect.catch((e) =>
       Effect.sync(() => {
         console.warn(`[${context}] response.text() failed (status=${res.status}):`, e);
         return "";
@@ -154,18 +154,18 @@ export function AppShell({ initialAccounts }: AppShellProps) {
       if (!response.ok) {
         // 失敗応答の body を JSON としてパースし、サーバー提供の error 文字列を優先表示する。
         // パース失敗 / error フィールド欠落の双方でステータスコードベースの fallback に
-        // フォールスルーする。Either で Right/Left を明示的に扱い、Effect 抽象境界
-        // (Either.match) を尊重する。
+        // フォールスルーする。Result で Success/Failure を明示的に扱い、Effect 抽象境界
+        // (Result.match) を尊重する。
         const fallbackReason = `認証開始に失敗: ${response.status}`;
-        const parsed = yield* Effect.either(
+        const parsed = yield* Effect.result(
           Effect.tryPromise({
             try: () => response.json() as Promise<{ error?: string }>,
             catch: (e) => e,
           }),
         );
-        const reason = Either.match(parsed, {
-          onLeft: () => fallbackReason,
-          onRight: (data) => data.error ?? fallbackReason,
+        const reason = Result.match(parsed, {
+          onFailure: () => fallbackReason,
+          onSuccess: (data) => data.error ?? fallbackReason,
         });
         return yield* new AuthStartHttpError({ status: response.status, reason });
       }
@@ -179,7 +179,7 @@ export function AppShell({ initialAccounts }: AppShellProps) {
 
     // onStartAuth prop は () => void 契約のため Promise を返さず fire-and-forget。
     // 既知 TaggedError は catchTags でユーザー文言に変換し、defect (Effect.die や
-    // 同期 throw 等の想定外) は catchAllCause でログだけ残す（UI 通知不要、
+    // 同期 throw 等の想定外) は catchCause でログだけ残す（UI 通知不要、
     // OAuth 開始は再試行ボタン経由で復帰可能なため）。
     void Effect.runPromise(
       program.pipe(
@@ -200,7 +200,7 @@ export function AppShell({ initialAccounts }: AppShellProps) {
               alert("認証応答が不正です。サーバー設定を確認してください。");
             }),
         }),
-        Effect.catchAllCause((cause) =>
+        Effect.catchCause((cause) =>
           Effect.sync(() => {
             console.error("OAuth 開始 (defect):", Cause.pretty(cause));
           }),
@@ -216,7 +216,7 @@ export function AppShell({ initialAccounts }: AppShellProps) {
    * 呼び出し元（packages/ui/app.tsx の handleRemoveAccount）は Promise の
    * resolve/reject でストア更新の可否を判定する。ts-pattern dispatch で UX 文言を
    * 出し分けるため、Effect.runPromise の reject 値が必ず `_tag` 付き TaggedError
-   * になるよう catchAllCause で defect を AccountRemoveDefect に正規化する。
+   * になるよう catchCause で defect を AccountRemoveDefect に正規化する。
    */
   const handleRemoveAccount = useCallback(async (accountId: string) => {
     const program = Effect.gen(function* () {
@@ -236,19 +236,19 @@ export function AppShell({ initialAccounts }: AppShellProps) {
       }
     });
 
-    // catchAllCause で defect (Effect.die や同期 throw) を AccountRemoveDefect に
+    // catchCause で defect (Effect.die や同期 throw) を AccountRemoveDefect に
     // 正規化し、UI 側 ts-pattern が `.otherwise` に流す前に `_tag` 経由で識別できる
     // ようにする。これがないと FiberFailure として reject され、UX 文言が
     // 「再試行可能」風に丸められる潜在バグが残る (handleStartAuth との対称性)。
     //
     // 戻り値型を明示しないと、TS は条件分岐の片側 (Effect<never, A|B>) と
     // もう片側 (Effect<never, Defect>) の union を `Effect<never, A|B|Defect>` に
-    // widening できない。注釈で union を明示することで catchAllCause の型整合を保つ。
+    // widening できない。注釈で union を明示することで catchCause の型整合を保つ。
     type RemoveErr = AccountRemoveNetworkError | AccountRemoveHttpError | AccountRemoveDefect;
     await Effect.runPromise(
       program.pipe(
-        Effect.catchAllCause((cause): Effect.Effect<never, RemoveErr> => {
-          const failure = Cause.failureOption(cause);
+        Effect.catchCause((cause): Effect.Effect<never, RemoveErr> => {
+          const failure = Cause.findErrorOption(cause);
           if (failure._tag === "Some") {
             // 既知 TaggedError (Network / Http) はそのまま reject に流す
             return Effect.fail(failure.value);

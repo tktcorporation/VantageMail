@@ -15,7 +15,6 @@
     "test": "vp test"
   },
   "dependencies": {
-    "@effect/schema": "catalog:",
     "effect": "catalog:",
     "ts-pattern": "catalog:",
     "zustand": "catalog:"

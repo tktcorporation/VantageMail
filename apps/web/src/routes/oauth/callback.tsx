@@ -577,7 +577,7 @@ export const Route = createFileRoute("/oauth/callback")({
 
         return handleEffect(
           callbackEffect.pipe(
-            Effect.catchAll((error: unknown) => {
+            Effect.catch((error: unknown) => {
               // Effect-TS の TaggedError は _tag プロパティを持つ。
               // 型安全にプロパティの存在を確認してからアクセスする。
               const tag =

@@ -15,7 +15,6 @@
     "screenshot": "pnpm --filter @vantagemail/ui run screenshot"
   },
   "dependencies": {
-    "@effect/schema": "catalog:",
     "effect": "catalog:"
   },
   "devDependencies": {

@@ -37,24 +37,22 @@ const getAccounts = createServerFn({ method: "GET" }).handler(async (): Promise<
     if (!userId) return [] as Account[];
 
     const rows = yield* findLinkedAccountsByUserId(userId);
-    return rows.map(
-      (row: LinkedAccountRow): Account => ({
-        id: row.id,
-        email: row.email,
-        displayName: row.display_name,
-        avatarUrl: row.avatar_url ?? undefined,
-        color: row.color,
-        unreadCount: 0,
-        notificationsEnabled: true,
-      }),
-    );
+    return rows.map((row: LinkedAccountRow): Account => ({
+      id: row.id,
+      email: row.email,
+      displayName: row.display_name,
+      avatarUrl: row.avatar_url ?? undefined,
+      color: row.color,
+      unreadCount: 0,
+      notificationsEnabled: true,
+    }));
   });
 
   return Effect.runPromise(
     effect.pipe(
       Effect.provide(makeAppLayer(env)),
       // 認証エラー時は空配列を返す（未ログイン状態として扱う）
-      Effect.catchAll(() => Effect.succeed([] as Account[])),
+      Effect.catch(() => Effect.succeed([] as Account[])),
     ),
   );
 });

@@ -5,7 +5,7 @@
  * 複数アカウントをまたいでUnified Inboxに表示するため、
  * accountIdフィールドでどのアカウントのスレッドかを識別する。
  */
-import { Schema } from "@effect/schema";
+import { Schema } from "effect";
 
 /** アプリ内で表示するメールスレッドの正規化された形 */
 export const ThreadSchema = Schema.Struct({
@@ -15,7 +15,7 @@ export const ThreadSchema = Schema.Struct({
   subject: Schema.String,
   snippet: Schema.String,
   /** スレッドの最新メッセージの日時 */
-  lastMessageAt: Schema.DateFromSelf,
+  lastMessageAt: Schema.Date,
   /** 参加者のメールアドレス一覧 */
   participants: Schema.Array(Schema.String),
   /** スレッド内のメッセージ数 */
@@ -27,7 +27,7 @@ export const ThreadSchema = Schema.Struct({
   /** スター付きかどうか */
   isStarred: Schema.Boolean,
   /** スヌーズ中の場合、再表示時刻 */
-  snoozedUntil: Schema.optional(Schema.DateFromSelf),
+  snoozedUntil: Schema.optional(Schema.Date),
   /** ピン留めされているか */
   isPinned: Schema.Boolean,
 });

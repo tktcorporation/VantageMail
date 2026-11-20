@@ -40,27 +40,27 @@ const getMessage = (status: Status): string =>
 
 ---
 
-## @effect/schema（外部境界バリデーション）
+## Schema（外部境界バリデーション）
 
 **使用場面**: API 境界（HTTP リクエスト/レスポンス）、D1 / KV の読み書き、環境変数、ユーザー入力、OAuth レスポンス
 
 ```typescript
-import { Schema } from "@effect/schema";
+import { Schema } from "effect";
 
 const User = Schema.Struct({
-  id: Schema.UUID,
-  name: Schema.String.pipe(Schema.minLength(1)),
-  role: Schema.Literal("admin", "user", "guest"),
+  id: Schema.String.check(Schema.isUUID()),
+  name: Schema.String.check(Schema.isMinLength(1)),
+  role: Schema.Literals(["admin", "user", "guest"]),
 });
-type User = Schema.Schema.Type<typeof User>;
+type User = typeof User.Type;
 
-const parseUser = Schema.decodeUnknown(User); // Effect<User, ParseError>
+const parseUser = Schema.decodeUnknownEffect(User); // Effect<User, Schema.SchemaError>
 ```
 
 ### Branded Types（ID 混同防止）
 
 ```typescript
-const UserId = Schema.UUID.pipe(Schema.brand("UserId"));
+const UserId = Schema.String.check(Schema.isUUID()).pipe(Schema.brand("UserId"));
 const ThreadId = Schema.String.pipe(Schema.brand("ThreadId"));
 // getThread(userId) → コンパイルエラー
 ```
@@ -103,7 +103,7 @@ if (!user) return yield * new NotFoundError({ id });
 ## アンチパターン
 
 - `any` / `unknown` の安易な使用 → Schema 経由で型を導出する（`oxlint` で `typescript/no-explicit-any: error`）
-- 型アサーション `as` の濫用 → Schema の `decodeUnknown` を使う
+- 型アサーション `as` の濫用 → Schema の `decodeUnknownEffect` を使う
 - `if/else` で Union 型を分岐 → ts-pattern + `.exhaustive()` を使う
 - `switch` の default 省略 → ts-pattern に置き換える
 - オプショナルチェーンの過剰使用 (`a?.b?.c?.d`) → 明示的な null チェック + 早期リターン

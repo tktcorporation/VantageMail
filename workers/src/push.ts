@@ -5,7 +5,7 @@
  * Durable Objects で管理する WebSocket 接続にファンアウトする。
  *
  * CRITICAL: Pub/Sub は HTTP 200 を受け取らないと再送を繰り返すため、
- * エラー発生時も必ず 200 を返す（Effect.catchAll で保証）。
+ * エラー発生時も必ず 200 を返す（Effect.catch で保証）。
  */
 import { Effect } from "effect";
 import type { Env } from "./index";
@@ -70,7 +70,7 @@ const processPushNotification = (
     return new Response("OK", { status: 200 });
   }).pipe(
     // Pub/Sub は 200 以外を受け取ると再送するため、エラー時も必ず 200 を返す
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       Effect.succeed(
         (() => {
           console.error("Push handling failed:", error);

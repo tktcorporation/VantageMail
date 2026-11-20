@@ -4,7 +4,7 @@
  * 背景: Gmail APIレスポンスをUI表示用に正規化したメッセージ形状。
  * from/to/cc は { name, email } の構造化データとして保持する。
  */
-import { Schema } from "@effect/schema";
+import { Schema } from "effect";
 
 /** メールアドレスと表示名のペア */
 export const EmailContactSchema = Schema.Struct({
@@ -37,7 +37,7 @@ export const MessageSchema = Schema.Struct({
   bodyHtml: Schema.String,
   /** プレーンテキストボディ */
   bodyText: Schema.String,
-  date: Schema.DateFromSelf,
+  date: Schema.Date,
   labelIds: Schema.Array(Schema.String),
   isUnread: Schema.Boolean,
   isStarred: Schema.Boolean,

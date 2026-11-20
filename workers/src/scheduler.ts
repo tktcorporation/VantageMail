@@ -84,7 +84,7 @@ const createJob = (request: Request, env: Env): Effect.Effect<Response, never, n
 
     return Response.json({ id, key }, { status: 201 });
   }).pipe(
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       Effect.succeed(
         Response.json({ error: `Internal error: ${(error as Error).message}` }, { status: 500 }),
       ),
@@ -128,7 +128,7 @@ const cancelJob = (request: Request, env: Env): Effect.Effect<Response, never, n
 
     return Response.json({ ok: true });
   }).pipe(
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       Effect.succeed(
         Response.json({ error: `Internal error: ${(error as Error).message}` }, { status: 500 }),
       ),
@@ -164,7 +164,7 @@ const listJobs = (request: Request, env: Env): Effect.Effect<Response, never, ne
 
     return Response.json({ jobs });
   }).pipe(
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       Effect.succeed(
         Response.json({ error: `Internal error: ${(error as Error).message}` }, { status: 500 }),
       ),
@@ -205,7 +205,7 @@ export async function processScheduledJobs(env: Env, ctx: ExecutionContext): Pro
       );
     }
   }).pipe(
-    Effect.catchAll((error) => {
+    Effect.catch((error) => {
       console.error("processScheduledJobs failed:", error);
       return Effect.void;
     }),
@@ -239,7 +239,7 @@ const processJob = (job: ScheduledJob, env: Env): Effect.Effect<void, never, nev
       catch: (e) => new Error(`DO notification failed: ${e}`),
     });
   }).pipe(
-    Effect.catchAll((error) => {
+    Effect.catch((error) => {
       console.error(`Job ${job.id} failed:`, error);
       return Effect.void;
     }),
@@ -307,14 +307,14 @@ export async function reregisterGmailWatch(env: Env): Promise<void> {
         },
         catch: (e) => new Error(`Watch re-registration failed for ${key.name}: ${e}`),
       }).pipe(
-        Effect.catchAll((error) => {
+        Effect.catch((error) => {
           console.error(error);
           return Effect.void;
         }),
       );
     }
   }).pipe(
-    Effect.catchAll((error) => {
+    Effect.catch((error) => {
       console.error("reregisterGmailWatch failed:", error);
       return Effect.void;
     }),

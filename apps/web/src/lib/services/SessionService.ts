@@ -23,10 +23,9 @@ export interface SessionServiceImpl {
   requireAuth: () => Effect.Effect<{ userId: string; dek: string }, NotAuthenticated>;
 }
 
-export class SessionService extends Context.Tag("SessionService")<
-  SessionService,
-  SessionServiceImpl
->() {
+export class SessionService extends Context.Service<SessionService, SessionServiceImpl>()(
+  "SessionService",
+) {
   /** 手動で実装を渡す場合（テスト等） */
   static layer = (impl: SessionServiceImpl) => Layer.succeed(SessionService, impl);
 

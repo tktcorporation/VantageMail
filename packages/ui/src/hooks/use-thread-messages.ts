@@ -8,12 +8,11 @@
  * 出し分けを可能にする。特に 401 + AuthExpiredError を専用タグに昇格させ、
  * accountsStore の connectionStatus を更新することで再ログインバナーに繋げる。
  *
- * Schema.decodeUnknown を使って API レスポンスの ISO 日時文字列を
+ * Schema.decodeUnknownEffect を使って API レスポンスの ISO 日時文字列を
  * Date オブジェクトにデコードする。
  */
 import { useState, useEffect, useRef } from "react";
-import { Data, Effect } from "effect";
-import { Schema } from "@effect/schema";
+import { Data, Effect, Schema } from "effect";
 import { match } from "ts-pattern";
 import type { Message } from "@vantagemail/core";
 import { useStoreApis } from "./use-store";
@@ -23,7 +22,7 @@ import { useStoreApis } from "./use-store";
  *
  * 背景: API レスポンスでは date が ISO 文字列で返るため、
  * DateFromString で自動的に Date へデコードする。
- * MessageSchema (DateFromSelf) とは異なり、JSON シリアライズ境界のデコードに使う。
+ * MessageSchema (Schema.Date) とは異なり、JSON シリアライズ境界のデコードに使う。
  */
 const ApiEmailContactSchema = Schema.Struct({
   name: Schema.String,
@@ -122,7 +121,7 @@ function fetchThreadMessages(params: {
           try: () => res.json() as Promise<unknown>,
           catch: () => new FetchMessagesStatusError({ status: res.status }),
         });
-        const parsed = yield* Schema.decodeUnknown(AuthExpiredResponseSchema)(body).pipe(
+        const parsed = yield* Schema.decodeUnknownEffect(AuthExpiredResponseSchema)(body).pipe(
           Effect.option,
         );
         if (parsed._tag === "Some") {
@@ -137,11 +136,11 @@ function fetchThreadMessages(params: {
       catch: (cause) => new MessagesDecodeError({ cause }),
     });
 
-    const decoded = yield* Schema.decodeUnknown(ApiMessagesResponseSchema)(json).pipe(
+    const decoded = yield* Schema.decodeUnknownEffect(ApiMessagesResponseSchema)(json).pipe(
       Effect.mapError((cause) => new MessagesDecodeError({ cause })),
     );
 
-    // Schema.decodeUnknown は readonly 配列を返すため、Message[] に合わせてコピー。
+    // Schema.decodeUnknownEffect は readonly 配列を返すため、Message[] に合わせてコピー。
     return [...(decoded.messages ?? [])] as Message[];
   });
 }
@@ -188,7 +187,7 @@ export function useThreadMessages(
           accountsStore.getState().setConnectionStatus(accountId, "connected");
         }),
       ),
-      Effect.catchAll((err) =>
+      Effect.catch((err) =>
         Effect.sync(() => {
           if (cancelled) return;
           // 認証期限切れは accountsStore に反映してバナーを出す。

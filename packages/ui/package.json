@@ -17,7 +17,6 @@
     "screenshot": "pnpm exec playwright test --config playwright.config.ts"
   },
   "dependencies": {
-    "@effect/schema": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@tiptap/extensions": "^3.34.0",
     "@tiptap/react": "^3.34.0",
