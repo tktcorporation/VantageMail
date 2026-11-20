@@ -33,8 +33,6 @@ const config: KnipConfig = {
         "tailwindcss",
         // dompurify の型定義、thread-view.tsx で使用
         "@types/dompurify",
-        // @vitest/browser-playwright の peer dependency、vitest browser mode のランタイムで使用
-        "@vitest/browser",
       ],
     },
     workers: {
@@ -47,8 +45,7 @@ const config: KnipConfig = {
     },
   },
   ignoreDependencies: [
-    // OxLint は CLI として使用、jsPlugins で ESLint プラグインを読み込む
-    "oxlint",
+    // vp lint（vite-plus 同梱の OxLint）が .oxlintrc.json の jsPlugins で読み込む
     "@effect/eslint-plugin",
   ],
   ignoreBinaries: [

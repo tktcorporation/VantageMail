@@ -6,7 +6,7 @@
  * sentinel 要素がビューポートに入ったときに onFetchMore が呼ばれること、
  * ロード完了後に sentinel がまだ表示中なら再度呼ばれることを確認する。
  */
-import { afterEach, describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vite-plus/test";
 import { render, cleanup } from "@testing-library/react";
 import { ThreadList } from "../thread-list";
 import { StoreContext, type StoreContextValue } from "../../hooks/use-store";

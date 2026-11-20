@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vite-plus/test";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { Sidebar } from "../sidebar";
 import { StoreContext, createStores, createStoresWithData } from "../../hooks/use-store";
