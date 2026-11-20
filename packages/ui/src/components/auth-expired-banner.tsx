@@ -14,7 +14,7 @@
  * - packages/core/src/errors.ts (AuthExpiredError 定義)
  * - packages/ui/src/hooks/use-sync.ts (AccountAuthExpiredError 検出)
  */
-import { AlertTriangle } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import { useAccounts } from "../hooks/use-store";
 
 interface AuthExpiredBannerProps {
@@ -41,7 +41,7 @@ export function AuthExpiredBanner({ onReauth }: AuthExpiredBannerProps) {
           key={account.id}
           className="flex items-center gap-3 px-5 py-3 text-[13px] md:text-[13px] text-[var(--color-text)]"
         >
-          <AlertTriangle size={16} className="text-[var(--color-danger)] shrink-0" />
+          <TriangleAlert size={16} className="text-[var(--color-danger)] shrink-0" />
           <span className="flex-1 min-w-0 truncate">
             <span className="font-medium">{account.email}</span>
             <span className="text-[var(--color-text-secondary)]"> の認証が切れました。</span>
