@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { createAccountsStore, createThreadsStore } from "@vantagemail/core";
 import type { Account } from "@vantagemail/core";

@@ -11,9 +11,7 @@
  * 旧クラスベースの GmailClient は GmailClientLegacy として残し、
  * 既存の呼び出し元（apps/web, packages/ui）の互換性を維持する。
  */
-import { Context, Effect, Schedule } from "effect";
-import { Schema } from "@effect/schema";
-import type { ParseError } from "@effect/schema/ParseResult";
+import { Context, Effect, Schedule, Schema } from "effect";
 import { GmailApiError } from "../errors.js";
 import {
   GmailThreadSchema,
@@ -28,7 +26,7 @@ import { GMAIL_API_BASE } from "../gmail-constants.js";
 /**
  * GmailClient サービスの型。
  *
- * 背景: Effect の Context.Tag で DI 可能なサービスとして定義。
+ * 背景: Effect の Context.Service で DI 可能なサービスとして定義。
  * テスト時にモックに差し替えたり、Layer で構成したりできる。
  */
 export interface GmailClientService {
@@ -38,13 +36,13 @@ export interface GmailClientService {
    */
   readonly request: <A, I>(
     path: string,
-    schema: Schema.Schema<A, I>,
+    schema: Schema.Codec<A, I>,
     options?: RequestInit,
-  ) => Effect.Effect<A, GmailApiError | ParseError>;
+  ) => Effect.Effect<A, GmailApiError | Schema.SchemaError>;
 }
 
 /**
- * GmailClient の Context.Tag。
+ * GmailClient のサービス識別子。
  *
  * 使い方:
  *   const program = Effect.gen(function* () {
@@ -52,19 +50,21 @@ export interface GmailClientService {
  *     const thread = yield* client.request("/threads/123", GmailThreadSchema)
  *   })
  */
-export class GmailClient extends Context.Tag("GmailClient")<GmailClient, GmailClientService>() {}
+export class GmailClient extends Context.Service<GmailClient, GmailClientService>()(
+  "GmailClient",
+) {}
 
 /**
  * 429 レートリミットのリトライポリシー。
  * 1秒 → 2秒 → 4秒 の指数バックオフ、最大3回リトライ。
  * 429 以外のエラーではリトライしない。
  */
-const retryPolicy = Schedule.exponential("1 second").pipe(
-  Schedule.compose(Schedule.recurs(3)),
-  Schedule.whileInput(
-    (err: GmailApiError | ParseError) => err._tag === "GmailApiError" && err.status === 429,
-  ),
-);
+const retryPolicy = {
+  schedule: Schedule.exponential("1 second"),
+  times: 3,
+  while: (err: GmailApiError | Schema.SchemaError) =>
+    err._tag === "GmailApiError" && err.status === 429,
+};
 
 /**
  * GmailClient サービスのファクトリ関数。
@@ -78,9 +78,9 @@ export function makeGmailClient(accessToken: string): GmailClientService {
   return {
     request: <A, I>(
       path: string,
-      schema: Schema.Schema<A, I>,
+      schema: Schema.Codec<A, I>,
       options?: RequestInit,
-    ): Effect.Effect<A, GmailApiError | ParseError> =>
+    ): Effect.Effect<A, GmailApiError | Schema.SchemaError> =>
       Effect.tryPromise({
         try: () =>
           fetch(`${GMAIL_API_BASE}${path}`, {
@@ -124,7 +124,7 @@ export function makeGmailClient(accessToken: string): GmailClientService {
               }),
           });
         }),
-        Effect.flatMap((json) => Schema.decodeUnknown(schema)(json)),
+        Effect.flatMap((json) => Schema.decodeUnknownEffect(schema)(json)),
         Effect.retry(retryPolicy),
       ),
   };

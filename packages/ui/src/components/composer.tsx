@@ -12,8 +12,7 @@
  */
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
+import { Placeholder } from "@tiptap/extensions";
 import { useState, useCallback } from "react";
 
 interface ComposerProps {
@@ -80,14 +79,24 @@ export function Composer({ replyTo, fromEmail, onSend, onClose }: ComposerProps)
   const [showCc, setShowCc] = useState(false);
 
   const editor = useEditor({
+    // SSR では DOM が無いのでエディタを作らず、クライアントのマウント後に作る。
+    // 初回描画の editor は null になり、ツールバーは editor が揃ってから出る。
+    immediatelyRender: false,
+    // ツールバーのアクティブ表示（editor.isActive）は描画時に読むため、
+    // トランザクションごとに再描画させる。
+    shouldRerenderOnTransaction: true,
     extensions: [
       StarterKit.configure({
-        // Markdownショートカットを有効化
-        // **太字**, *斜体*, `コード`, > 引用, - リスト等
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: { rel: "noopener noreferrer" },
+        // Markdownショートカット（**太字**, *斜体*, `コード`, > 引用, - リスト等）は
+        // StarterKit の各拡張が持つ。
+        link: {
+          openOnClick: false,
+          HTMLAttributes: { rel: "noopener noreferrer" },
+        },
+        // ツールバーに無い書式を増やさず、送信する HTML の形も変えないため、
+        // 下線と末尾の空段落の自動追加は使わない。
+        underline: false,
+        trailingNode: false,
       }),
       Placeholder.configure({
         placeholder: "メッセージを入力...",

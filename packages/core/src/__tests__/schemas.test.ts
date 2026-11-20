@@ -1,6 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { Schema } from "@effect/schema";
-import { Either } from "effect";
+import { describe, it, expect } from "vite-plus/test";
+import { Result, Schema } from "effect";
 import {
   AccountSchema,
   OAuthTokensSchema,
@@ -9,9 +8,9 @@ import {
   OAuthTokenResponseSchema,
 } from "../schemas/index.js";
 
-/** decodeEither のヘルパー。成功時は Right、失敗時は Left を返す。 */
-function decode<A, I>(schema: Schema.Schema<A, I>, input: unknown) {
-  return Schema.decodeUnknownEither(schema)(input);
+/** decodeUnknownResult のヘルパー。成功時は Success、失敗時は Failure を返す。 */
+function decode<A, I>(schema: Schema.Codec<A, I>, input: unknown) {
+  return Schema.decodeUnknownResult(schema)(input);
 }
 
 describe("AccountSchema", () => {
@@ -25,10 +24,10 @@ describe("AccountSchema", () => {
       notificationsEnabled: true,
     };
     const result = decode(AccountSchema, input);
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right.email).toBe("test@gmail.com");
-      expect(result.right.avatarUrl).toBeUndefined();
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success.email).toBe("test@gmail.com");
+      expect(result.success.avatarUrl).toBeUndefined();
     }
   });
 
@@ -44,10 +43,10 @@ describe("AccountSchema", () => {
       notificationsEnabled: false,
     };
     const result = decode(AccountSchema, input);
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right.avatarUrl).toBe("https://example.com/avatar.png");
-      expect(result.right.signature).toBe("Best regards");
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success.avatarUrl).toBe("https://example.com/avatar.png");
+      expect(result.success.signature).toBe("Best regards");
     }
   });
 
@@ -61,7 +60,7 @@ describe("AccountSchema", () => {
       notificationsEnabled: true,
     };
     const result = decode(AccountSchema, input);
-    expect(Either.isLeft(result)).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("フィールドの型が違う場合はデコード失敗", () => {
@@ -74,7 +73,7 @@ describe("AccountSchema", () => {
       notificationsEnabled: true,
     };
     const result = decode(AccountSchema, input);
-    expect(Either.isLeft(result)).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
   });
 });
 
@@ -89,10 +88,10 @@ describe("OAuthTokenResponseSchema", () => {
       id_token: "eyJhbGciOiJSUzI1NiJ9...",
     };
     const result = decode(OAuthTokenResponseSchema, input);
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right.access_token).toBe("ya29.abc123");
-      expect(result.right.refresh_token).toBe("1//abc456");
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success.access_token).toBe("ya29.abc123");
+      expect(result.success.refresh_token).toBe("1//abc456");
     }
   });
 
@@ -104,9 +103,9 @@ describe("OAuthTokenResponseSchema", () => {
       token_type: "Bearer",
     };
     const result = decode(OAuthTokenResponseSchema, input);
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right.refresh_token).toBeUndefined();
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success.refresh_token).toBeUndefined();
     }
   });
 });
@@ -120,7 +119,7 @@ describe("OAuthTokensSchema", () => {
       scope: "openid",
     };
     const result = decode(OAuthTokensSchema, input);
-    expect(Either.isRight(result)).toBe(true);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 });
 
@@ -141,10 +140,10 @@ describe("ThreadSchema", () => {
       isPinned: false,
     };
     const result = decode(ThreadSchema, input);
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right.lastMessageAt).toBeInstanceOf(Date);
-      expect(result.right.snoozedUntil).toBeUndefined();
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success.lastMessageAt).toBeInstanceOf(Date);
+      expect(result.success.snoozedUntil).toBeUndefined();
     }
   });
 
@@ -166,9 +165,9 @@ describe("ThreadSchema", () => {
       isPinned: true,
     };
     const result = decode(ThreadSchema, input);
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right.snoozedUntil).toBeInstanceOf(Date);
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success.snoozedUntil).toBeInstanceOf(Date);
     }
   });
 });
@@ -203,12 +202,12 @@ describe("MessageSchema", () => {
       ],
     };
     const result = decode(MessageSchema, input);
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isRight(result)) {
-      expect(result.right.from.name).toBe("Alice");
-      expect(result.right.to).toHaveLength(2);
-      expect(result.right.cc).toHaveLength(1);
-      expect(result.right.attachments).toHaveLength(1);
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success.from.name).toBe("Alice");
+      expect(result.success.to).toHaveLength(2);
+      expect(result.success.cc).toHaveLength(1);
+      expect(result.success.attachments).toHaveLength(1);
     }
   });
 
@@ -231,6 +230,6 @@ describe("MessageSchema", () => {
       attachments: [],
     };
     const result = decode(MessageSchema, input);
-    expect(Either.isLeft(result)).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
   });
 });

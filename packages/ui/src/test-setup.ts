@@ -1,11 +1,8 @@
 /**
  * Vitest テストセットアップ。
  *
- * 背景: vitest が pnpm catalog で npm:@voidzero-dev/vite-plus-test にエイリアスされているため、
- * @testing-library/jest-dom/vitest の declare module 'vitest' による自動拡張が効かない。
- * 代わりに matchers を手動で expect.extend() に渡す。
+ * jest-dom の matcher（toBeInTheDocument など）を expect に登録し、
+ * vitest の Assertion 型へ同じ matcher を足す。vite-plus/test は vitest を
+ * そのまま再エクスポートしているため、jest-dom の vitest 用エントリで両方が揃う。
  */
-import { expect } from "vitest";
-import * as matchers from "@testing-library/jest-dom/matchers";
-
-expect.extend(matchers);
+import "@testing-library/jest-dom/vitest";

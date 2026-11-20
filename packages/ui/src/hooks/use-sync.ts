@@ -1,8 +1,7 @@
 /** Fetch inbox or Gmail search results for every connected account. */
 import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "zustand";
-import { Data, Effect } from "effect";
-import { Schema } from "@effect/schema";
+import { Data, Effect, Schema } from "effect";
 import type { StoreApi } from "zustand";
 import type { AccountsStore, ThreadsStore } from "@vantagemail/core";
 
@@ -24,7 +23,7 @@ const ApiThreadsResponseSchema = Schema.Struct({
   threads: Schema.optional(Schema.Array(ApiThreadSchema)),
   nextPageToken: Schema.optional(Schema.String),
 });
-type ThreadsResponse = Schema.Schema.Type<typeof ApiThreadsResponseSchema>;
+type ThreadsResponse = typeof ApiThreadsResponseSchema.Type;
 
 class FetchNetworkError extends Data.TaggedError("FetchNetworkError")<{}> {}
 class FetchStatusError extends Data.TaggedError("FetchStatusError")<{ readonly status: number }> {}
@@ -65,7 +64,7 @@ function fetchAccountThreads(params: {
           try: () => res.json() as Promise<unknown>,
           catch: () => new FetchStatusError({ status: res.status }),
         });
-        const parsed = yield* Schema.decodeUnknown(AuthExpiredResponseSchema)(body).pipe(
+        const parsed = yield* Schema.decodeUnknownEffect(AuthExpiredResponseSchema)(body).pipe(
           Effect.option,
         );
         if (parsed._tag === "Some" && parsed.value.accountId === accountId) {
@@ -78,7 +77,7 @@ function fetchAccountThreads(params: {
       try: () => res.json() as Promise<unknown>,
       catch: () => new ResponseDecodeError(),
     });
-    return yield* Schema.decodeUnknown(ApiThreadsResponseSchema)(json).pipe(
+    return yield* Schema.decodeUnknownEffect(ApiThreadsResponseSchema)(json).pipe(
       Effect.mapError(() => new ResponseDecodeError()),
     );
   });
@@ -126,7 +125,7 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
     void Promise.all(
       accounts.map(async (account) => {
         const result = await Effect.runPromise(
-          Effect.either(
+          Effect.result(
             fetchAccountThreads({
               apiBase,
               accountId: account.id,
@@ -136,12 +135,16 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
           ),
         );
         if (!isCurrent()) return;
-        if (result._tag === "Left") {
-          recordError(account.id, result.left);
+        if (result._tag === "Failure") {
+          recordError(account.id, result.failure);
         } else {
           threadsStore
             .getState()
-            .setThreads(account.id, [...(result.right.threads ?? [])], result.right.nextPageToken);
+            .setThreads(
+              account.id,
+              [...(result.success.threads ?? [])],
+              result.success.nextPageToken,
+            );
           accountsStore.getState().setConnectionStatus(account.id, "connected");
         }
       }),
@@ -171,7 +174,7 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
     await Promise.all(
       pending.map(async ({ account, token }) => {
         const result = await Effect.runPromise(
-          Effect.either(
+          Effect.result(
             fetchAccountThreads({
               apiBase,
               accountId: account.id,
@@ -183,14 +186,14 @@ export function useSync({ accountsStore, threadsStore, apiBase = "" }: UseSyncOp
         );
         if (!isCurrent() || threadsStore.getState().pageTokenByAccount[account.id] !== token)
           return;
-        if (result._tag === "Left") recordError(account.id, result.left, false);
+        if (result._tag === "Failure") recordError(account.id, result.failure, false);
         else {
           threadsStore
             .getState()
             .appendThreads(
               account.id,
-              [...(result.right.threads ?? [])],
-              result.right.nextPageToken,
+              [...(result.success.threads ?? [])],
+              result.success.nextPageToken,
             );
           accountsStore.getState().setConnectionStatus(account.id, "connected");
           const current = threadsStore.getState();

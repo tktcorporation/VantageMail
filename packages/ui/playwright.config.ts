@@ -17,7 +17,7 @@ export default defineConfig({
     colorScheme: "light",
   },
   webServer: {
-    command: "pnpm exec vite --config e2e/vite.config.ts",
+    command: "pnpm exec vp dev --config e2e/vite.config.ts",
     port: 5199,
     reuseExistingServer: true,
   },

@@ -5,7 +5,7 @@
  * APIレスポンスの実行時バリデーションを行う。
  * types/gmail.ts の既存インターフェースと完全一致する形状を維持する。
  */
-import { Schema } from "@effect/schema";
+import { Schema } from "effect";
 
 /** Gmail APIから返されるメッセージヘッダー */
 export const GmailHeaderSchema = Schema.Struct({
@@ -33,7 +33,7 @@ export interface GmailMessagePart {
  * GmailMessagePartSchema は再帰構造のため Schema.suspend で定義。
  * Gmail APIのMIMEパートツリーを表現する。
  */
-export const GmailMessagePartSchema: Schema.Schema<GmailMessagePart> = Schema.suspend(() =>
+export const GmailMessagePartSchema: Schema.Codec<GmailMessagePart> = Schema.suspend(() =>
   Schema.Struct({
     partId: Schema.String,
     mimeType: Schema.String,
@@ -87,13 +87,13 @@ export type GmailThread = typeof GmailThreadSchema.Type;
 export const GmailLabelSchema = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
-  type: Schema.Literal("system", "user"),
+  type: Schema.Literals(["system", "user"]),
   /** ラベルリスト内での表示/非表示 */
   labelListVisibility: Schema.optional(
-    Schema.Literal("labelShow", "labelShowIfUnread", "labelHide"),
+    Schema.Literals(["labelShow", "labelShowIfUnread", "labelHide"]),
   ),
   /** メッセージリスト内での表示/非表示 */
-  messageListVisibility: Schema.optional(Schema.Literal("show", "hide")),
+  messageListVisibility: Schema.optional(Schema.Literals(["show", "hide"])),
   color: Schema.optional(
     Schema.Struct({
       textColor: Schema.String,
@@ -126,13 +126,13 @@ export type GmailSearchResult = typeof GmailSearchResultSchema.Type;
  * Gmailカテゴリ。Smart Inboxグルーピングに使用。
  * GmailはメールをPrimary/Social/Promotions/Updates/Forumsに自動分類する。
  */
-export const GmailCategorySchema = Schema.Literal(
+export const GmailCategorySchema = Schema.Literals([
   "CATEGORY_PERSONAL",
   "CATEGORY_SOCIAL",
   "CATEGORY_PROMOTIONS",
   "CATEGORY_UPDATES",
   "CATEGORY_FORUMS",
-);
+]);
 
 export type GmailCategory = typeof GmailCategorySchema.Type;
 

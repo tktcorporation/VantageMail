@@ -15,14 +15,13 @@
     "test": "vp test"
   },
   "dependencies": {
-    "@effect/schema": "catalog:",
     "effect": "catalog:",
     "ts-pattern": "catalog:",
     "zustand": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "vite-plus": "catalog:",
-    "vitest": "catalog:"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

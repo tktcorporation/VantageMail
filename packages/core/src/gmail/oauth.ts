@@ -16,8 +16,7 @@
  * ブラウザの crypto API を使用するため、tsconfig の DOM lib が必要。
  */
 
-import { Effect } from "effect";
-import { Schema } from "@effect/schema";
+import { Effect, Schema } from "effect";
 import type { OAuthTokens } from "../schemas/account.js";
 import { OAuthTokenResponseSchema, GoogleUserInfoSchema } from "../schemas/gmail-api.js";
 import type { GoogleUserInfo } from "../schemas/gmail-api.js";
@@ -190,7 +189,7 @@ export function exchangeCodeForTokens(
         }),
     });
 
-    const data = yield* Schema.decodeUnknown(OAuthTokenResponseSchema)(json).pipe(
+    const data = yield* Schema.decodeUnknownEffect(OAuthTokenResponseSchema)(json).pipe(
       Effect.mapError(
         (parseError) =>
           new TokenExchangeError({
@@ -266,7 +265,7 @@ export function refreshAccessToken(
         }),
     });
 
-    const data = yield* Schema.decodeUnknown(OAuthTokenResponseSchema)(json).pipe(
+    const data = yield* Schema.decodeUnknownEffect(OAuthTokenResponseSchema)(json).pipe(
       Effect.mapError(
         (parseError) =>
           new TokenExchangeError({
@@ -324,7 +323,7 @@ export function fetchUserInfo(
         }),
     });
 
-    return yield* Schema.decodeUnknown(GoogleUserInfoSchema)(json).pipe(
+    return yield* Schema.decodeUnknownEffect(GoogleUserInfoSchema)(json).pipe(
       Effect.mapError(
         (parseError) =>
           new TokenExchangeError({

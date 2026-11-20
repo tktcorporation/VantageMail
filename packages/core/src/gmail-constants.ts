@@ -12,7 +12,7 @@
  *
  * 参照: spec §6.4, §6.5 / .claude/rules/robustness.md（Literal + ts-pattern）
  */
-import { Schema } from "@effect/schema";
+import { Schema } from "effect";
 import { match, P } from "ts-pattern";
 
 // ─── Google OAuth / OpenID エンドポイント ───
@@ -83,7 +83,12 @@ export type GmailSystemLabel = (typeof GmailSystemLabel)[keyof typeof GmailSyste
  * - "notifications": 通知系（CATEGORY_UPDATES / CATEGORY_SOCIAL）
  * - "newsletters": ニュースレター・広告（CATEGORY_PROMOTIONS / CATEGORY_FORUMS）
  */
-export const SmartCategorySchema = Schema.Literal("all", "people", "notifications", "newsletters");
+export const SmartCategorySchema = Schema.Literals([
+  "all",
+  "people",
+  "notifications",
+  "newsletters",
+]);
 
 export type SmartCategory = typeof SmartCategorySchema.Type;
 

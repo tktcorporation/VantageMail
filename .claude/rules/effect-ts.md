@@ -37,7 +37,7 @@ const loadConfig = (dir: string) =>
 - `Effect.gen` を標準スタイルとする（pipe チェーンより可読性が高い）
 - `Effect.runPromise` は命令層（ルートハンドラ・コマンドのエントリポイント）でのみ呼ぶ
 - ユーティリティ関数は `Effect<A, E, R>` を返す（内部で runPromise しない）
-- エラーは Effect のエラーチャネルに残し、呼び出し側で `catchTag` / `catchAll` / `match` で処理する
+- エラーは Effect のエラーチャネルに残し、呼び出し側で `catchTag` / `catch` / `match` で処理する
 
 ## リソースクリーンアップ
 

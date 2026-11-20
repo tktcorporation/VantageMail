@@ -41,3 +41,4 @@ packages/ui/screenshots/
 # Playwright
 packages/ui/test-results/
 packages/ui/playwright-report/
+.vitest/

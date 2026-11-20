@@ -43,10 +43,9 @@ export interface CryptoServiceImpl {
   decryptDEK: (kek: CryptoKey, data: EncryptedData) => Effect.Effect<Uint8Array, DecryptionError>;
 }
 
-export class CryptoService extends Context.Tag("CryptoService")<
-  CryptoService,
-  CryptoServiceImpl
->() {
+export class CryptoService extends Context.Service<CryptoService, CryptoServiceImpl>()(
+  "CryptoService",
+) {
   /**
    * Web Crypto API を使った実装の Layer。
    * 外部依存がないため、固定の Layer として提供する。

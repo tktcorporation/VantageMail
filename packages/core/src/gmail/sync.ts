@@ -9,7 +9,7 @@
  * 対になるモジュール: gmail/client.ts（API通信）、gmail/adapter.ts（型変換）
  */
 import { Effect } from "effect";
-import type { ParseError } from "@effect/schema/ParseResult";
+import type { Schema } from "effect";
 import { GmailClient, listThreads, getThread, listHistory } from "./client.js";
 import { adaptGmailThread } from "./adapter.js";
 import { GmailApiError } from "../errors.js";
@@ -37,7 +37,7 @@ export function syncAccountThreads(
   accountId: string,
   threadsStore: StoreApi<ThreadsStore>,
   options?: SyncOptions,
-): Effect.Effect<void, GmailApiError | ParseError, GmailClient> {
+): Effect.Effect<void, GmailApiError | Schema.SchemaError, GmailClient> {
   const maxResults = options?.maxResults ?? 50;
   const labelIds = options?.inboxOnly !== false ? [GmailSystemLabel.INBOX] : undefined;
 
@@ -91,7 +91,7 @@ export function incrementalSync(
   accountId: string,
   threadsStore: StoreApi<ThreadsStore>,
   lastHistoryId: string,
-): Effect.Effect<string, GmailApiError | ParseError, GmailClient> {
+): Effect.Effect<string, GmailApiError | Schema.SchemaError, GmailClient> {
   return Effect.gen(function* () {
     const result = yield* listHistory(lastHistoryId, [
       "messageAdded",
@@ -125,7 +125,7 @@ export function incrementalSync(
           getThread(threadId, "metadata").pipe(
             Effect.map((gmailThread) => adaptGmailThread(gmailThread, accountId) as Thread | null),
             // スレッドが削除された場合はnullを返す
-            Effect.catchAll(() => Effect.succeed(null as Thread | null)),
+            Effect.catch(() => Effect.succeed(null as Thread | null)),
           ),
         ),
         { concurrency: 10 },

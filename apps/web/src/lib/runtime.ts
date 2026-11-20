@@ -28,7 +28,7 @@ export const makeAppLayer = (env: Cloudflare.Env) => {
   const configLayer = ConfigService.layer(env);
 
   // ConfigService から sessionSecret を取得して SessionService を構築する Layer
-  const sessionLayer = Layer.unwrapEffect(
+  const sessionLayer = Layer.unwrap(
     Effect.gen(function* () {
       const config = yield* ConfigService;
       return SessionService.live(config.sessionSecret);
@@ -74,7 +74,7 @@ export const handleEffect = <E>(
   Effect.runPromise(
     effect.pipe(
       Effect.provide(makeAppLayer(env)),
-      Effect.catchAll((error: unknown) => {
+      Effect.catch((error: unknown) => {
         // NotAuthenticated: セッションがない / 未ログイン
         if (error instanceof NotAuthenticated) {
           return Effect.succeed(Response.json({ error: "NotAuthenticated" }, { status: 401 }));
