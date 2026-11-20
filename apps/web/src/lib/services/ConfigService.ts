@@ -45,9 +45,13 @@ export class ConfigService extends Context.Tag("ConfigService")<ConfigService, A
     Layer.effect(
       ConfigService,
       Effect.gen(function* () {
-        // env オブジェクト → process.env の順でフォールバック
-        const get = (key: string): string | undefined =>
-          ((env as Record<string, unknown>)[key] as string | undefined) ?? process.env[key];
+        // env オブジェクト → process.env の順でフォールバック。
+        // Cloudflare.Env は宣言済みのキーしか持たない型なので、任意のキーは
+        // Reflect.get で読み、文字列のときだけ設定値として使う。
+        const get = (key: string): string | undefined => {
+          const fromEnv: unknown = Reflect.get(env, key);
+          return typeof fromEnv === "string" ? fromEnv : process.env[key];
+        };
 
         const requireKey = (key: string) => {
           const value = get(key);

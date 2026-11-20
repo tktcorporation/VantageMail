@@ -30,7 +30,7 @@ catalog:
   react-dom: ^19.3.1
   tailwindcss: ^4.3.5
   ts-pattern: ^5.9.2
-  typescript: ^5.9.3
+  typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@8.3.8000
   vite-plus: 1.7.0
   vite-tsconfig-paths: ^6.1.1
