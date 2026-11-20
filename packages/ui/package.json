@@ -19,10 +19,9 @@
   "dependencies": {
     "@effect/schema": "catalog:",
     "@tailwindcss/vite": "catalog:",
-    "@tiptap/extension-link": "^2.27.3",
-    "@tiptap/extension-placeholder": "^2.27.3",
-    "@tiptap/react": "^2.27.3",
-    "@tiptap/starter-kit": "^2.27.3",
+    "@tiptap/extensions": "^3.34.0",
+    "@tiptap/react": "^3.34.0",
+    "@tiptap/starter-kit": "^3.34.0",
     "@vantagemail/core": "workspace:*",
     "cmdk": "^1.1.1",
     "dompurify": "catalog:",
