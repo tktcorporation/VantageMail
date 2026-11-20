@@ -51,6 +51,37 @@ describe("makeGmailClient.request", () => {
     }
   });
 
+  it("429 のリトライは 1・2・4 秒の間隔で行う", async () => {
+    const fetchMock = mockFetch([{ status: 429, body: {} }]);
+    // 各時点までに呼ばれているべき累計回数。境界の直前（-1ms）では 1 つ前の回数に留まる。
+    const checkpoints: Array<[ms: number, calls: number]> = [
+      [0, 1],
+      [999, 1],
+      [1000, 2],
+      [2999, 2],
+      [3000, 3],
+      [6999, 3],
+      [7000, 4],
+    ];
+    const observed = await Effect.runPromise(
+      Effect.gen(function* () {
+        const fiber = yield* Effect.forkChild(
+          makeGmailClient("token").request("/threads", BodySchema),
+        );
+        const counts: Array<[number, number]> = [];
+        let elapsed = 0;
+        for (const [ms] of checkpoints) {
+          yield* TestClock.adjust(`${ms - elapsed} millis`);
+          elapsed = ms;
+          counts.push([ms, fetchMock.mock.calls.length]);
+        }
+        yield* Effect.exit(Fiber.join(fiber));
+        return counts;
+      }).pipe(Effect.provide(TestClock.layer())),
+    );
+    expect(observed).toEqual(checkpoints);
+  });
+
   it("429 の後に成功すれば、デコードした値を返す", async () => {
     const fetchMock = mockFetch([
       { status: 429, body: {} },

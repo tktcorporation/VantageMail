@@ -61,6 +61,17 @@ describe("Composer (browser)", () => {
     expect(await sendAndGetHtml(onSend)).toBe("<p><strong>strong</strong></p>");
   });
 
+  it("Ctrl+U を押しても下線にならない（ツールバーに下線が無いため）", async () => {
+    const onSend = vi.fn();
+    const { container } = render(
+      <Composer fromEmail="me@example.com" onSend={onSend} onClose={vi.fn()} />,
+    );
+    await focusEditor(container);
+    await userEvent.keyboard("{Control>}u{/Control}plain");
+
+    expect(await sendAndGetHtml(onSend)).toBe("<p>plain</p>");
+  });
+
   it("URL を入力して区切ると、rel 付きのリンクになる", async () => {
     const onSend = vi.fn();
     const { container } = render(

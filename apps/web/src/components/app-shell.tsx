@@ -107,9 +107,9 @@ class AccountRemoveHttpError extends Data.TaggedError("AccountRemoveHttpError")<
 /**
  * アカウント削除中の defect (Effect.die / 同期 throw / 想定外失敗)。
  *
- * 背景: `Effect.runPromise` の reject に乗る FiberFailure は `_tag` を持たないため、
- * UI 側の ts-pattern dispatch から `.otherwise` に流れて「再試行可能」風の文言で
- * 表示される問題があった。defect を専用タグに正規化し、UI が「予期しない失敗」
+ * 背景: `Effect.runPromise` は defect をその値のまま reject し、その値は `_tag` を
+ * 持たないため、UI 側の ts-pattern dispatch では `.otherwise` に流れ「再試行可能」風の
+ * 文言で表示されてしまう。defect を専用タグに正規化し、UI が「予期しない失敗」
  * として明確に扱えるようにする。
  */
 class AccountRemoveDefect extends Data.TaggedError("AccountRemoveDefect")<{
@@ -238,8 +238,8 @@ export function AppShell({ initialAccounts }: AppShellProps) {
 
     // catchCause で defect (Effect.die や同期 throw) を AccountRemoveDefect に
     // 正規化し、UI 側 ts-pattern が `.otherwise` に流す前に `_tag` 経由で識別できる
-    // ようにする。これがないと FiberFailure として reject され、UX 文言が
-    // 「再試行可能」風に丸められる潜在バグが残る (handleStartAuth との対称性)。
+    // ようにする。これがないと defect が `_tag` を持たない値のまま reject され、UX 文言が
+    // 「再試行可能」風に丸められる (handleStartAuth との対称性)。
     //
     // 戻り値型を明示しないと、TS は条件分岐の片側 (Effect<never, A|B>) と
     // もう片側 (Effect<never, Defect>) の union を `Effect<never, A|B|Defect>` に

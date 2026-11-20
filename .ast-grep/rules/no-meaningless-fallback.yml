@@ -3,7 +3,7 @@
 # 背景: orElseSucceed に null/undefined を渡すと、Effect のエラーチャネルが
 # 握りつぶされ、呼び出し側がエラーの存在を型レベルで認識できなくなる。
 # エラーは Effect のエラーチャネルに残し、何に変換するかは呼び出し側が
-# catchTag / catchAll で明示的に判断すること。
+# catchTag / catch で明示的に判断すること。
 # Effect.option を使えば Option<A> として安全にハンドリングできる。
 #
 # 参照: .claude/rules/effect-ts.md — エラーは呼び出し側の責務で処理する。

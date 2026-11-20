@@ -23,6 +23,11 @@ const config: KnipConfig = {
     },
     "packages/core": {
       // デフォルト entry (src/index.ts) で OK
+      ignoreDependencies: [
+        // import されない。vitest の peer の vite を catalog（vite-plus-core）に解決させ、
+        // 上流の vite が別に入るのを防ぐために宣言している
+        "vite",
+      ],
     },
     "packages/ui": {
       // Playwright スクリーンショットスクリプトと vitest browser テスト設定のエントリーポイント
